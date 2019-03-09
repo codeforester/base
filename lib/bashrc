@@ -1,0 +1,64 @@
+#
+# .bashrc
+#
+
+[[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1
+base_debug() { [[ $BASE_DEBUG ]] && printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "DEBUG ${BASH_SOURCE[0]} $@" >&2; }
+base_error() {                      printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "ERROR ${BASH_SOURCE[0]} $@" >&2; }
+base_debug "Running .bashrc"
+
+#
+# Source global bashrc
+#
+global_bashrc=/etc/bashrc
+if [ -f $global_bashrc ]; then
+    base_debug "Sourcing $global_bashrc"
+    source "$global_bashrc"
+fi
+
+#
+# base stuff
+#
+
+base_init() {
+    local script
+    
+    script=$HOME/.baserc
+    [[ -f $script ]] && {
+        base_debug "Sourcing $script"
+        source "$script"
+        _baserc_sourced=1
+    }
+
+    # set BASE_HOME to default in case it is not set
+    [[ -z $BASE_HOME ]] && {
+        dir=$HOME/git/base
+        base_debug "Defaulting BASE_HOME to '$dir'"
+        export BASE_HOME=$dir
+    }
+
+    [[ ! -d "$BASE_HOME" ]] && {
+        base_error "BASE_HOME directory '$BASE_HOME' does not exist"
+        return
+    }
+
+    script=$BASE_HOME/base_init.sh
+    if [[ -f $script ]]; then
+        base_debug "Sourcing $script"
+        source "$script"
+    else
+        base_error "base init script '$script' does not exist; check your git repository"
+        return
+    fi
+
+    #
+    # source in company specific bashrc if it exists
+    #
+    script=$BASE_HOME/company/lib/bashrc
+    [[ -f $script  ]] && {
+        base_debug "Sourcing $script"
+        source "$script"
+    }
+}
+
+base_init
