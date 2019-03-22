@@ -7,6 +7,9 @@
 # Example:
 #     import lib/assertions.sh company/lib/xyz.sh ...
 #
+# IMPORTANT NOTE: If your library has global variables declared with 'declare' statement, you need to add -g flag to those.
+#                 Since the library gets sourced inside the `import` function, globals declared without the -g option would
+#                 local to the function and hence become unavailable to other functions.
 import() {
     local lib rc=0
     for lib; do
@@ -91,6 +94,8 @@ exit_if_error() {
 #
 # map log level strings (FATAL, ERROR, etc.) to numeric values
 #
+# Note the '-g' option passed to declare - it is essential
+#
 unset _log_levels _loggers_level_map
 declare -gA _log_levels _loggers_level_map
 _log_levels=([FATAL]=0 [ERROR]=1 [WARN]=2 [INFO]=3 [DEBUG]=4 [VERBOSE]=5)
@@ -121,17 +126,8 @@ set_log_level() {
     fi
 }
 
-log_execute() {
-  local level=${1:-INFO}
-  if (( $1 >= ${_log_levels[$level]} )); then
-    "${@:2}" >/dev/null
-  else
-    "${@:2}"
-  fi
-}
-
 #
-# logging function
+# core logging function
 #
 _print_log() {
     local in_level=$1; shift
@@ -147,17 +143,7 @@ _print_log() {
 }
 
 #
-# shortcut functions for each log level
-#
-log_fatal()   { _print_log FATAL   "$@"; }
-log_error()   { _print_log ERROR   "$@"; }
-log_warn()    { _print_log WARN    "$@"; }
-log_info()    { _print_log INFO    "$@"; }
-log_debug()   { _print_log DEBUG   "$@"; }
-log_verbose() { _print_log VERBOSE "$@"; }
-
-#
-# functions for logging command output
+# core function for logging contents of a file
 #
 _print_log_file()   {
     local in_level=$1; shift
@@ -177,6 +163,18 @@ _print_log_file()   {
     fi
 }
 
+#
+# shortcut functions for each log level
+#
+log_fatal()   { _print_log FATAL   "$@"; }
+log_error()   { _print_log ERROR   "$@"; }
+log_warn()    { _print_log WARN    "$@"; }
+log_info()    { _print_log INFO    "$@"; }
+log_debug()   { _print_log DEBUG   "$@"; }
+log_verbose() { _print_log VERBOSE "$@"; }
+#
+# shortcut functions for logging files
+#
 log_debug_file()   { _print_log_file DEBUG "$@";   }
 log_verbose_file() { _print_log_file VERBOSE "$@"; }
 
