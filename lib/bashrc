@@ -50,15 +50,6 @@ base_init() {
         base_error "base init script '$script' does not exist; check your git repository"
         return
     fi
-
-    #
-    # source in company specific bashrc if it exists
-    #
-    script=$BASE_HOME/company/lib/bashrc
-    [[ -f $script  ]] && {
-        base_debug "Sourcing $script"
-        source "$script"
-    }
 }
 
 base_init
