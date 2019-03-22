@@ -1,32 +1,61 @@
-#
-# stdlib.sh - foundation library for Bash scripts
-#
-# we cover:
-#   - assertions
-#   - logging
-#   - error handling
-#
+###
+### stdlib.sh - foundation library for Bash scripts
+###
 
 #
 # import a library from $BASE_HOME/lib
 # Example:
-#     import lib/logging.sh company/lib/xyz.sh ...
+#     import lib/assertions.sh company/lib/xyz.sh ...
 #
 import() {
-    local lib
+    local lib rc=0
     for lib; do
         lib=$BASE_HOME/$lib
         [[ -f "$lib" ]] && {
             source "$lib"
         } || {
             printf 'ERROR: %s\n' "Library '$lib' does not exist" >&2
+            rc=1
         }
+    done
+    return $rc
+}
+
+##
+## PATH related functions
+##
+
+# add a new directory to $PATH
+add_to_path() {
+    local dir re prepend=0 opt strict=1
+
+    OPTIND=1
+    while getopts sp opt; do
+        case "$opt" in
+            n)  strict=0  ;;  # don't care if directory exists or not before adding it to PATH
+            p)  prepend=1 ;;  # prepend the directory to PATH instead of appending
+            *)  log_error "add_to_path - invalid option '$opt'"
+                return
+                ;;
+        esac
+    done
+
+    shift $((OPTIND-1))
+    for dir; do
+        ((strict)) && [[ ! -d $dir ]] && continue
+        re="(^$dir:|:$dir:|:$dir$)"
+        if ! [[ $PATH =~ $re ]]; then
+            ((prepend)) && PATH="$dir:$PATH" || PATH="$PATH:$dir"
+        fi
     done
 }
 
-#
-# Print components of $PATH, one on each line
-#
+# remove duplicates in $PATH
+dedupe_path() {
+    PATH="$(perl -e 'print join(":", grep { not $seen{$_}++ } split(/:/, $ENV{PATH}))')"
+}
+
+# print directories in $PATH, one per line
 print_path() {
     local -a dirs
     local dir
@@ -36,6 +65,10 @@ print_path() {
         printf '%s\n' "$dir"
     done
 }
+
+##
+## Logging
+##
 
 dump_trace() {
     local frame=0
@@ -56,81 +89,100 @@ exit_if_error() {
 }
 
 #
-# Given a version like x.y, where x and y are numbers, asserts that
-# bash version is at least x.y
+# map log level strings (FATAL, ERROR, etc.) to numeric values
 #
-assert_minimum_bash_version() {
-  local version=$1 message=$2
-  local version_array curr_version version_re='^[0-9]+\.[0-9]+$'
+unset _log_levels _loggers_level_map
+declare -gA _log_levels _loggers_level_map
+_log_levels=([FATAL]=0 [ERROR]=1 [WARN]=2 [INFO]=3 [DEBUG]=4 [VERBOSE]=5)
 
-  assert_arg_count $# 1 "Usage: assert_minimum_bash_version version"
-  assert_regex_match "$version" "$version_re" "Version should be in the format x.y where x and y are integers"
-  version_array=(${version//\./ })
-  ((  BASH_VERSINFO[0] < version_array[0] ||
-    ((BASH_VERSINFO[0] == version_array[0] && BASH_VERSINFO[1] < version_array[1])))) && {
-    curr_version="${BASH_VERSINFO[@]:0:4}"
-    [[ $message ]] || message="Running with Bash version ${curr_version// /.}; need $version or above"
-    printf '%s\n' "$message" >&2
-    exit 1
-  }
-  return 0
+#
+# hash to map loggers to their log levels
+# the default logger "default" has INFO as its default log level
+#
+_loggers_level_map["default"]=3  # the log level for the default logger is INFO
+
+#
+# set_log_level
+#
+set_log_level() {
+    local logger=default in_level l
+    [[ $1 = "-l" ]] && { logger=$2; shift 2 2>/dev/null; }
+    in_level="${1:-INFO}"
+    if [[ $logger ]]; then
+        l="${_log_levels[$in_level]}"
+        if [[ $l ]]; then
+            _loggers_level_map[$logger]=$l
+        else
+            printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown log level '$in_level' for logger '$logger'; setting to INFO"
+            _loggers_level_map[$logger]=3
+        fi
+    else
+        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Option '-l' needs an argument" >&2
+    fi
 }
 
-#
-# test code - run this to test the functions in this library
-# the tests run in a sub shell and hence won't exit the main shell in case of failures
-#
-test_stdlib() (
-  assert_minimum_bash_version "$@"
-)
-
-#
-# exit if number of arguments passed doesn't meet expectations
-# example call:
-#    assert_arg_count $# 2 "Need exactly two arguments"
-#
-assert_arg_count() {
-  local actual=$1 expected=$2 message=$3
-
-  ((actual != expected)) && {
-    [[ $message ]] || message="Expected $expected arguments, got $actual arguments"
-    printf '%s\n' "$message" >&2
-    exit 1
-  }
-}
-
-assert_regex_match() {
-  local string=$1 regex=$2 message=$3
-
-  [[ $string =~ $regex ]] || {
-    [[ $message ]] || message="String '$string' does not match regex '$regex'"
-    printf '%s\n' "$message" >&2
-    exit 1
-  }
-}
-
-#
-# assert if variables are set
-# if any variable is not set, exit 1 (when -f option is set) or return 1 otherwise
-#
-# Usage: assert_not_null [-f] variable ...
-#
-assert_not_null() {
-  local fatal var num_null=0
-  [[ "$1" = "-f" ]] && { shift; fatal=1; }
-  for var in "$@"; do
-    [[ -z "${!var}" ]] &&
-      printf '%s\n' "Variable '$var' not set" >&2 &&
-      ((num_null++))
-  done
-
-  if ((num_null > 0)); then
-    [[ "$fatal" ]] && exit 1
-    return 1
+log_execute() {
+  local level=${1:-INFO}
+  if (( $1 >= ${_log_levels[$level]} )); then
+    "${@:2}" >/dev/null
+  else
+    "${@:2}"
   fi
-  return 0
 }
 
+#
+# logging function
+#
+_print_log() {
+    local in_level=$1; shift
+    local logger=default log_level_set log_level
+    [[ $1 = "-l" ]] && { logger=$2; shift 2; }
+    log_level="${_log_levels[$in_level]}"
+    log_level_set="${_loggers_level_map[$logger]}"
+    if [[ $log_level_set ]]; then
+        ((log_level_set >= log_level)) && printf '%(%Y-%m-%d:%H:%M:%S)T %s %s\n' -1 "$in_level ${BASH_SOURCE[2]}:${BASH_LINENO[1]}" "$@" >&2
+    else
+        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'" >&2
+    fi
+}
+
+#
+# shortcut functions for each log level
+#
+log_fatal()   { _print_log FATAL   "$@"; }
+log_error()   { _print_log ERROR   "$@"; }
+log_warn()    { _print_log WARN    "$@"; }
+log_info()    { _print_log INFO    "$@"; }
+log_debug()   { _print_log DEBUG   "$@"; }
+log_verbose() { _print_log VERBOSE "$@"; }
+
+#
+# functions for logging command output
+#
+_print_log_file()   {
+    local in_level=$1; shift
+    local logger=default log_level_set log_level file
+    [[ $1 = "-l" ]] && { logger=$2; shift 2; }
+    file=$1
+    log_level="${_log_levels[$in_level]}"
+    log_level_set="${_loggers_level_map[$logger]}"
+    if [[ $log_level_set ]]; then
+        if ((log_level_set >= log_level)) && [[ -f $file ]]; then
+            log_debug "=== file output start ==="
+            cat "$1"
+            log_debug "=== file output end ==="
+        fi
+    else
+        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'" >&2
+    fi
+}
+
+log_debug_file()   { _print_log_file DEBUG "$@";   }
+log_verbose_file() { _print_log_file VERBOSE "$@"; }
+
+##
+## file related
+##
 dirname2() {
   local path=$1
   [[ $path =~ ^[^/]+$ ]] && dir=. || {              # if path has no slashes, set dir to .
