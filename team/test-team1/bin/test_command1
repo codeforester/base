@@ -1,3 +1,10 @@
 #
-# An empty command file
+# test command for team
 #
+main() {
+    log_info "Starting"
+    # do something
+    log_info "Finished"
+}
+
+base_wrapper "$@" || { printf '%s\n' "ERROR: base environment not initialized; make sure you have sourced base_init.sh before invoking this script" >&2; exit 1; }
