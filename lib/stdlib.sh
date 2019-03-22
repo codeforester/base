@@ -3,13 +3,13 @@
 ###
 
 #
-# import a library from $BASE_HOME/lib
+# import a library from $BASE_HOME
 # Example:
 #     import lib/assertions.sh company/lib/xyz.sh ...
 #
 # IMPORTANT NOTE: If your library has global variables declared with 'declare' statement, you need to add -g flag to those.
 #                 Since the library gets sourced inside the `import` function, globals declared without the -g option would
-#                 local to the function and hence become unavailable to other functions.
+#                 be local to the function and hence be unavailable to other functions.
 import() {
     local lib rc=0
     for lib; do
@@ -177,22 +177,3 @@ log_verbose() { _print_log VERBOSE "$@"; }
 #
 log_debug_file()   { _print_log_file DEBUG "$@";   }
 log_verbose_file() { _print_log_file VERBOSE "$@"; }
-
-##
-## file related
-##
-dirname2() {
-  local path=$1
-  [[ $path =~ ^[^/]+$ ]] && dir=. || {              # if path has no slashes, set dir to .
-    [[ $path =~ ^/+$ ]]  && dir=/ || {              # if path has only slashes, set dir to /
-      local IFS=/ dir_a i
-      read -ra dir_a <<< "$path"                    # read the components of path into an array
-      dir="${dir_a[0]}"
-      for ((i=1; i < ${#dir_a[@]}; i++)); do        # strip out any repeating slashes
-        [[ ${dir_a[i]} ]] && dir="$dir/${dir_a[i]}" # append unless it is an empty element
-      done
-    }
-  }
-
-  [[ $dir ]] && printf '%s\n' "$dir"                # print only if not empty
-}
