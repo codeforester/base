@@ -66,9 +66,18 @@ You need to do this on every host where you want base.
 
 ## I don't want to keep my personal settings private, and not in git.  What should I do?
 
+    Do one of the following:
+
     * write a one-liner in `user/<user>.sh` like this:
 
         source /path/to/your.settings
+
+    * add the following code to your .bashrc:
+
+        export BASE_HOME=/path/to/base
+        source "$BASE_HOME/base_init.sh"
+
+    In both these cases, you need to manage your files manually, outside git.
 
 ## I do want to use the default settings.  What should I do?
 
