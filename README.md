@@ -32,7 +32,7 @@ Here is the code:
 
 In a typical setting `.bashrc` sources in `$BASE_HOME/base_init.sh` which does the following:
 
-* sources in `lib/stdprofile.sh`, `lib/stdlib.sh`, and `user/<user>.sh` if it exists, in that order
+* sources in `lib/stdlib.sh`, and `user/<user>.sh` if it exists, in that order
 * updates `$PATH` to include the relevant `bin` directories
     * `$BASE_HOME/company/bin` is always added
     * `$BASE_HOME/team/$BASE_TEAM/bin` is added if `$BASE_TEAM` is set in `user/<user>.sh`
