@@ -1,9 +1,14 @@
 ###
 ### stdlib.sh - foundation library for Bash scripts
 ###
+### Areas covered:
+###     - PATH manipulation
+###     - error handling
+###     - logging
+###
 
 #
-# import a library from $BASE_HOME
+# import: source a library from $BASE_HOME
 # Example:
 #     import lib/assertions.sh company/lib/xyz.sh ...
 #
@@ -12,26 +17,26 @@
 #                 be local to the function and hence be unavailable to other functions.
 import() {
     local lib rc=0
+    [[ $BASE_HOME ]] || { printf '%s\n' "ERROR: BASE_HOME not set; import functionality needs it" >&2; return 1; }
     for lib; do
         lib=$BASE_HOME/$lib
-        [[ -f "$lib" ]] && {
+        if [[ -f "$lib" ]]; then
             source "$lib"
-        } || {
+        else
             printf 'ERROR: %s\n' "Library '$lib' does not exist" >&2
             rc=1
-        }
+        fi
     done
     return $rc
 }
 
-##
+########################################################################################################################
 ## PATH related functions
-##
+########################################################################################################################
 
 # add a new directory to $PATH
 add_to_path() {
     local dir re prepend=0 opt strict=1
-
     OPTIND=1
     while getopts sp opt; do
         case "$opt" in
@@ -54,42 +59,18 @@ add_to_path() {
 }
 
 # remove duplicates in $PATH
-dedupe_path() {
-    PATH="$(perl -e 'print join(":", grep { not $seen{$_}++ } split(/:/, $ENV{PATH}))')"
-}
+dedupe_path() { PATH="$(perl -e 'print join(":", grep { not $seen{$_}++ } split(/:/, $ENV{PATH}))')"; }
 
 # print directories in $PATH, one per line
 print_path() {
-    local -a dirs
-    local dir
-
+    local -a dirs; local dir
     IFS=: read -ra dirs <<< "$PATH"
-    for dir in "${dirs[@]}"; do
-        printf '%s\n' "$dir"
-    done
+    for dir in "${dirs[@]}"; do printf '%s\n' "$dir"; done
 }
 
-##
+########################################################################################################################
 ## Logging
-##
-
-dump_trace() {
-    local frame=0
-    while caller "$frame"; do
-        ((frame++))
-    done
-    printf '%s\n' "$@"
-}
-
-exit_if_error() {
-    (($#)) || return
-    local num_re='^[0-9]+'
-    local rc=$1; shift
-    [[ $rc =~ $num_re ]] || return
-    ((rc)) && {
-        dump_trace "$@"
-    }
-}
+########################################################################################################################
 
 #
 # map log level strings (FATAL, ERROR, etc.) to numeric values
@@ -177,3 +158,29 @@ log_verbose() { _print_log VERBOSE "$@"; }
 #
 log_debug_file()   { _print_log_file DEBUG "$@";   }
 log_verbose_file() { _print_log_file VERBOSE "$@"; }
+
+########################################################################################################################
+## Error handling
+########################################################################################################################
+
+dump_trace() {
+    local frame=0
+    while caller "$frame"; do
+        ((frame++))
+    done
+    printf '%s\n' "$@"
+}
+
+exit_if_error() {
+    (($#)) || return
+    local num_re='^[0-9]+'
+    local rc=$1; shift
+    local message="$@"
+    [[ $rc =~ $num_re ]] || return
+    ((rc)) && {
+        log_error "$message"
+        dump_trace "$@"
+        exit $rc
+    }
+}
+
