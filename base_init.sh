@@ -3,21 +3,27 @@
 #
 
 do_init() {
+    local rc=0
     [[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1
-    [[ ! $ZSH_EVAL_CONTEXT ]] && {
+    if [[ $BASH ]]; then
+        # Bash
         base_debug() { [[ $BASE_DEBUG ]] && printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "DEBUG ${BASH_SOURCE[0]}:${BASH_LINENO[1]} $@" >&2; }
         base_error() {                      printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "ERROR ${BASH_SOURCE[0]}:${BASH_LINENO[1]} $@" >&2; }
-    } || {
+    elif [[ $ZSH_VERSION ]]; then
         #
         # for zsh - it doesn't support time in printf
         #
         base_debug() { [[ $BASE_DEBUG ]] && printf '%s\n' "$(date) DEBUG ${BASH_SOURCE[0]}:${BASH_LINENO[1]} $@" >&2; }
         base_error() {                      printf '%s\n' "$(date) ERROR ${BASH_SOURCE[0]}:${BASH_LINENO[1]} $@" >&2; }
-    }
+    else
+        printf '%s\n' "ERROR: Unsupported shell - need Bash or zsh" >&2
+        rc=1
+    fi
 
     export BASE_SOURCES=()
     export BASE_OS=$(uname -s)
     export BASE_HOST=$(hostname -s)
+    return $rc
 }
 
 set_base_home() {
@@ -136,7 +142,7 @@ base_wrapper() {
 }
 
 base_main() {
-    do_init
+    do_init || return $?
     [[ $- = *i* ]] && _interactive=1 || _interactive=0
     set_base_home
     if [[ -d $BASE_HOME ]]; then
