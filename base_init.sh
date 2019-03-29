@@ -1,5 +1,7 @@
 #
-# base_init.sh: top level script that should be sourced in, especially inside .bash_profile
+# base_init.sh: top level script that should be sourced in by login/interactive shells
+#
+# lib/bashrce invokes this
 #
 
 do_init() {
@@ -44,6 +46,11 @@ set_base_home() {
     export BASE_HOME
 }
 
+#
+# check for existence of the library, source it, add its name to BASE_SOURCES array
+# Usage: source_it [-i] library_file
+# -i - source only if the shell is interactive
+#
 source_it() {
     local lib iflag=0 sourced=0
     [[ $1 = "-i" ]] && { iflag=1; shift; }
@@ -57,7 +64,7 @@ source_it() {
 }
 
 #
-# source in libraries
+# source in libraries, starting from the top (lowest precedence) to the bottom (highest precedence)
 #
 import_libs_and_profiles() {
     local lib script bin team
@@ -91,7 +98,8 @@ import_libs_and_profiles() {
 }
 
 #
-# A shortcut to refresh the base git repo
+# A shortcut to refresh the base git repo; users can add it to user/<user>.sh file so that base is automatically
+# updated upon login.
 #
 base_update() (
     [[ -d $BASE_HOME ]] && {
@@ -158,4 +166,7 @@ base_main() {
     export -f base_update base_wrapper import
 }
 
+#
+# start here
+#
 base_main
