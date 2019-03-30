@@ -164,21 +164,25 @@ log_verbose_file() { _print_log_file VERBOSE "$@"; }
 ########################################################################################################################
 
 dump_trace() {
-    local frame=0
+    local frame=0 line func source n=0
     while caller "$frame"; do
         ((frame++))
+    done | while read line func source; do
+        ((n++ == 0)) && {
+            printf 'Encountered a fatal error\n'
+        }
+        printf '%4s at %s\n' " " "$func ($source:$line)"
     done
-    printf '%s\n' "$@"
 }
 
 exit_if_error() {
     (($#)) || return
     local num_re='^[0-9]+'
     local rc=$1; shift
-    local message="$@"
+    local message="${@:-No message specified}"
     [[ $rc =~ $num_re ]] || return
     ((rc)) && {
-        log_error "$message"
+        log_fatal "$message"
         dump_trace "$@"
         exit $rc
     }
