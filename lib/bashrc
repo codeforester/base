@@ -2,24 +2,32 @@
 # .bashrc
 #
 
-[[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1
-base_debug() { [[ $BASE_DEBUG ]] && printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "DEBUG ${BASH_SOURCE[0]} $@" >&2; }
-base_error() {                      printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "ERROR ${BASH_SOURCE[0]} $@" >&2; }
-base_debug "Running .bashrc"
+do_init() {
+    [[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1
+    base_debug() {
+        [[ $BASE_DEBUG ]] &&
+            printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "DEBUG ${BASH_SOURCE[0]} $@" >&2
+    }
+    base_error() {
+        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "ERROR ${BASH_SOURCE[0]} $@" >&2
+    }
+    base_debug "Running .bashrc"
+}
 
 #
 # Source global bashrc
 #
-global_bashrc=/etc/bashrc
-if [ -f $global_bashrc ]; then
-    base_debug "Sourcing $global_bashrc"
-    source "$global_bashrc"
-fi
+global_init() {
+    local global_bashrc=/etc/bashrc
+    if [[ -f $global_bashrc ]]; then
+        base_debug "Sourcing $global_bashrc"
+        source "$global_bashrc"
+    fi
+}
 
 #
 # base stuff
 #
-
 base_init() {
     local script
     
@@ -52,4 +60,6 @@ base_init() {
     fi
 }
 
+do_init
+global_init
 base_init

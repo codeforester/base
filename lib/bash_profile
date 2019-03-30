@@ -2,27 +2,39 @@
 # .bash_profile
 #
 
-[[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1
-base_debug() { [[ $BASE_DEBUG ]] && printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "DEBUG ${BASH_SOURCE[0]}:$LINENO $@" >&2; }
-
-base_debug "Running .bash_profile"
+do_init() {
+    [[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1
+    base_debug() {
+        [[ $BASE_DEBUG ]] &&
+            printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "DEBUG ${BASH_SOURCE[0]}:$LINENO $@" >&2
+    }
+    base_debug "Running .bash_profile"
+}
 
 #
 # Source global profile
 #
-if shopt -q login_shell; then
-    global_profile=/etc/profile
-    if [ -f $global_profile ]; then
-        base_debug "Sourcing $global_profile"
-        source "$global_profile"
+source_global_profile() {
+    if shopt -q login_shell; then
+        local global_profile=/etc/profile
+        if [[ -f $global_profile ]]; then
+            base_debug "Sourcing $global_profile"
+            source "$global_profile"
+        fi
     fi
-fi
+}
 
 #
 # Source .bashrc
 #
-bashrc=$HOME/.bashrc
-if [ -f $bashrc ]; then
-    base_debug "Invoking $bashrc from .bash_profile"
-    source "$bashrc"
-fi
+source_bashrc() {
+    local bashrc=$HOME/.bashrc
+    if [[ -f $bashrc ]]; then
+        base_debug "Invoking $bashrc from .bash_profile"
+        source "$bashrc"
+    fi
+}
+
+do_init
+source_global_profile
+source_bashrc
