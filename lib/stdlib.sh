@@ -117,9 +117,12 @@ _print_log() {
     log_level="${_log_levels[$in_level]}"
     log_level_set="${_loggers_level_map[$logger]}"
     if [[ $log_level_set ]]; then
-        ((log_level_set >= log_level)) && printf '%(%Y-%m-%d:%H:%M:%S)T %s %s\n' -1 "$in_level ${BASH_SOURCE[2]}:${BASH_LINENO[1]}" "$@" >&2
+        ((log_level_set >= log_level)) && {
+            printf '%(%Y-%m-%d:%H:%M:%S)T %s %s' -1 "$in_level ${BASH_SOURCE[2]}:${BASH_LINENO[1]}"
+            printf '%s\n' "$@"
+        }
     else
-        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'" >&2
+        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'"
     fi
 }
 
@@ -140,7 +143,7 @@ _print_log_file()   {
             log_debug "=== file output end ==="
         fi
     else
-        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'" >&2
+        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'"
     fi
 }
 
