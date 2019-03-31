@@ -75,10 +75,11 @@ import_libs_and_profiles() {
     local lib script team
     local -A teams
 
-    source_it    "$BASE_HOME/lib/stdlib.sh"      # common library
-    source_it -i "$BASE_HOME/company/lib/bashrc" # company-specific bashrc for interactive shells
-    source_it -i "$BASE_HOME/user/$USER.sh"      # user-specific bashrc for interactive shells
-    add_to_path  "$BASE_HOME/company/bin"        # add company bin to PATH
+    source_it    "$BASE_HOME/lib/stdlib.sh"          # common library
+    source_it    "$BASE_HOME/company/lib/company.sh" # company specific library
+    source_it -i "$BASE_HOME/company/lib/bashrc"     # company specific bashrc for interactive shells
+    source_it -i "$BASE_HOME/user/$USER.sh"          # user specific bashrc for interactive shells
+    add_to_path  "$BASE_HOME/company/bin"            # add company bin to PATH
 
     #
     # team specific actions
@@ -95,8 +96,8 @@ import_libs_and_profiles() {
     teams=()
     for team in $BASE_TEAM $BASE_SHARED_TEAMS "${BASE_SHARED_TEAMS[@]}"; do
         [[ ${teams[$team]} ]] && continue                    # skip if team was seen already
+        source_it    "$BASE_HOME/team/$team/lib/$team.sh"    # team specific library
         source_it -i "$BASE_HOME/team/$team/lib/bashrc"      # team specific bashrc for interactive shells
-        source_it    "$BASE_HOME/team/$team/lib/$team.sh"    # team specific startup library
         add_to_path  "$BASE_HOME/team/$team/bin"             # add team bin to PATH (gets priority over company bin)
         teams[$team]=1
     done
@@ -159,7 +160,7 @@ base_main() {
     [[ $- = *i* ]] && _interactive=1 || _interactive=0
     set_base_home
     if [[ -d $BASE_HOME ]]; then
-        import_libs_and_profiles   
+        import_libs_and_profiles
         add_to_path "$BASE_HOME/bin"
     else
         base_error "BASE_HOME '$BASE_HOME' is not a directory or is not accessible"
