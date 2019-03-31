@@ -6,6 +6,9 @@
 # lib/bashrc invokes this
 #
 
+[[ $__base_init_sourced__ ]] && return
+__base_init_sourced__=1
+
 do_init() {
     local rc=0
     [[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1

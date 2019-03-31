@@ -7,6 +7,9 @@
 ###     - logging
 ###
 
+[[ $__stdlib_sourced__ ]] && return
+__stdlib_sourced__=1
+
 #
 # import: source a library from $BASE_HOME
 # Example:
