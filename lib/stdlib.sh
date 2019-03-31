@@ -183,7 +183,10 @@ exit_if_error() {
     local num_re='^[0-9]+'
     local rc=$1; shift
     local message="${@:-No message specified}"
-    [[ $rc =~ $num_re ]] || return
+    if ! [[ $rc =~ $num_re ]]; then
+        log_error "'$rc' is not a valid exit code; it needs to be a number greater than zero. Treating it as 1."
+        rc=1
+    fi
     ((rc)) && {
         log_fatal "$message"
         dump_trace "$@"
@@ -191,3 +194,8 @@ exit_if_error() {
     }
 }
 
+fatal_error() {
+    local ec=$?                # grab the current exit code
+    ((ec == 0)) && ec=1        # if it is zero, set exit code to 1
+    exit_if_error "$ec" "$@" 
+}
