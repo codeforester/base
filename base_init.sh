@@ -1,7 +1,9 @@
+#!/usr/bin/env bash
+
 #
 # base_init.sh: top level script that should be sourced in by login/interactive shells
 #
-# lib/bashrce invokes this
+# lib/bashrc invokes this
 #
 
 do_init() {
@@ -22,16 +24,17 @@ do_init() {
         rc=1
     fi
 
-    export BASE_SOURCES=()
-    export BASE_OS=$(uname -s)
-    export BASE_HOST=$(hostname -s)
+    BASE_OS=$(uname -s)
+    BASE_HOST=$(hostname -s)
+    export BASE_SOURCES=() BASE_OS BASE_HOST
     return $rc
 }
 
 set_base_home() {
     script=$HOME/.baserc
-    [[ -f $script ]] && [[ ! $_baserc_sourced ]] && {
+    [[ -f $script ]] && [[ -z $_baserc_sourced ]] && {
         base_debug "Sourcing $script"
+        # shellcheck source=/dev/null
         source "$script"
         _baserc_sourced=1
     }
@@ -56,8 +59,10 @@ source_it() {
     [[ $1 = "-i" ]] && { iflag=1; shift; }
     lib=$1
     if ((iflag)); then
+        # shellcheck source=/dev/null
         ((_interactive)) && [[ -f $lib ]] && { base_debug "(interactive) Sourcing $lib"; source "$lib"; sourced=1; }
     else
+        # shellcheck source=/dev/null
         [[ -f $lib ]] && { base_debug "Sourcing $lib"; source "$lib"; sourced=1; }
     fi
     ((sourced)) && BASE_SOURCES+=("$lib")
@@ -67,13 +72,13 @@ source_it() {
 # source in libraries, starting from the top (lowest precedence) to the bottom (highest precedence)
 #
 import_libs_and_profiles() {
-    local lib script bin team
+    local lib script team
     local -A teams
 
     source_it    "$BASE_HOME/lib/stdlib.sh"      # common library
     source_it -i "$BASE_HOME/company/lib/bashrc" # company-specific bashrc for interactive shells
     source_it -i "$BASE_HOME/user/$USER.sh"      # user-specific bashrc for interactive shells
-    add_to_path "$BASE_HOME/company/bin"         # add company bin to PATH
+    add_to_path  "$BASE_HOME/company/bin"        # add company bin to PATH
 
     #
     # team specific actions
@@ -88,7 +93,7 @@ import_libs_and_profiles() {
     # We source the team specific startup script add the team bin directory to PATH, in the same order
     #
     teams=()
-    for team in $BASE_TEAM $BASE_SHARED_TEAMS ${BASE_SHARED_TEAMS[@]}; do
+    for team in $BASE_TEAM $BASE_SHARED_TEAMS "${BASE_SHARED_TEAMS[@]}"; do
         [[ ${teams[$team]} ]] && continue                    # skip if team was seen already
         source_it -i "$BASE_HOME/team/$team/lib/bashrc"      # team specific bashrc for interactive shells
         source_it    "$BASE_HOME/team/$team/lib/$team.sh"    # team specific startup library
@@ -103,8 +108,7 @@ import_libs_and_profiles() {
 #
 base_update() (
     [[ -d $BASE_HOME ]] && {
-        cd "$BASE_HOME"
-        git pull --rebase
+        cd "$BASE_HOME" && git pull --rebase
     }
 )
 
@@ -124,6 +128,7 @@ base_wrapper() {
     [[ -d $BASE_HOME ]] || { printf '%s\n' "ERROR: BASE_HOME '$BASE_HOME'is not a directory or is not readable" >&2; exit 1; }
     script=$BASE_HOME/base_init.sh
     [[ -f $script ]]    || { printf '%s\n' "ERROR: base_init script '$script'is not present or is not readable" >&2; exit 1; }
+    # shellcheck source=/dev/null
     source "$script"
     ((grab_debug)) && {
         #
