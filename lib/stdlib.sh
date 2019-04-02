@@ -11,6 +11,14 @@
 __stdlib_sourced__=1
 
 #
+# define colors
+#
+[[ $COLOR_RED ]]    || COLOR_RED="\e[1;31m"
+[[ $COLOR_YELLOW ]] || COLOR_YELLOW="\e[1;33m"
+[[ $COLOR_OFF ]]    || COLOR_OFF="\e[0m"
+readonly COLOR_RED COLOR_YELLOW COLOR_OFF
+
+#
 # import: source a library from $BASE_HOME
 # Example:
 #     import lib/assertions.sh company/lib/xyz.sh ...
@@ -201,4 +209,20 @@ fatal_error() {
     local ec=$?                # grab the current exit code
     ((ec == 0)) && ec=1        # if it is zero, set exit code to 1
     exit_if_error "$ec" "$@" 
+}
+
+# print an error message to stderr
+print_error() {
+    {
+        printf "${COLOR_RED}ERROR: "
+        printf '%s\n' "$@"
+        printf "$COLOR_OFF"
+    } >&2
+}
+
+# print a warning message to stdout
+print_warn() {
+    printf "${COLOR_YELLO}WARN: "
+    printf '%s\n' "$@"
+    printf "$COLOR_OFF"
 }
