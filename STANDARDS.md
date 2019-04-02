@@ -12,8 +12,8 @@
  6. Make sure all local variables inside functions are declared local.
  7. Use __func__ naming convention for special purpose variables and functions.
  8. Double quote all variable expansions, except:
-        - inside [[ ]] or (( ))
-        - places where we need word splitting to take place
+      - inside [[ ]] or (( ))
+      - places where we need word splitting to take place
 
  9. Use [[ $var ]] to check if var has non-zero length, instead of [[ -n $var ]].
 10. Make sure the code passes https://shellcheck.net checks.
