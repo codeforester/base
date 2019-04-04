@@ -16,10 +16,12 @@ It can benefit anyone who engages with Mac/Linux command line to get things done
 
 Set up is easy.  Essentially, this is what you have to do:
 
-* Check out Base. The standard convention is $HOME/git/base.  In case your git directory is elsewhere, symlink it to `$HOME/git` or specify the path by setting `BASE_HOME` in `$HOME/.baserc` file.
+* Check out Base. The standard location for Base is $HOME/git/base.  In case your git directory is elsewhere, symlink `$HOME/git` to it or specify the path by setting `BASE_HOME` in `$HOME/.baserc` file.
 * Consolidate your individual settings from your current `.bash_profile` and `.bashrc` into `$USER.sh` file.  Place this file under `base/user` directory and check it in to git.
 * Make a backup of your `.bash_profile`.  Replace this file with a symlink to `base/lib/bash_profile`.
 * Make a backup of your `.bashrc`.  Replace this file with a symlink to `base/lib/bashrc`.
+
+Log out and log back in or just do `exec bash` and you are all set!
 
 Here is an example:
 
@@ -37,17 +39,19 @@ Here is an example:
     
 # **How does Base work?**
 
-In a typical setting `.bashrc` sources in `$BASE_HOME/base_init.sh` which does the following:
+In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does the following:
 
 * source in `lib/stdlib.sh`
+* source in `company/lib/company.sh` if it exists
 * source in `company/lib/bashrc` if it exists, if the shell is interactive
 * source in `user/$USER.sh` if it exists and if the shell is interactive
 * source in team specific bashrc from team/<team>/lib/bashrc for each team defined in BASE_TEAM and BASE_SHARED_TEAMS variables, if the shell is interactive
-* source in team specific library from team/<team>/lib/<team.sh> for each team defined in BASE_TEAM and BASE_SHARED_TEAMS variables
+* source in team specific library from team/<team>/lib/<team.sh> for each team defined in BASE_TEAM and BASE_SHARED_TEAMS variables, if they exist
 * update `$PATH` to include the relevant `bin` directories
-    * `$BASE_HOME/company/bin` is always added
+    * `$BASE_HOME/bin` is always added
     * `$BASE_HOME/team/$BASE_TEAM/bin` is added if `$BASE_TEAM` is set in `user/$USER.sh`
     * `$BASE_HOME/team/$BASE_TEAM/bin` is added for each team defined in `$BASE_SHARED_TEAMS` (space-separated string), set in `user/$USER.sh`
+    * `$BASE_HOME/company/bin` is always added
 
 # **Directory structure**
 
