@@ -73,13 +73,13 @@ In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does 
 
 You can either
 
-* specify your base location in `$HOME/.baserc`, like
+* specify your Base location in `$HOME/.baserc`, like
       
   BASE_HOME=/path/to/base
 
 * symlink `$HOME/git/base` to the right place
 
-You need to do this on every host where you want base.
+You need to do this on every host where you want Base.
 
 ## I don't want to keep my personal settings private, and not in git.  What should I do?
 
@@ -93,7 +93,7 @@ Add this to your `user/$USER.sh` file:
 
     import lib/base_defaults.sh
 
-## I want to make sure I keep my base repository updated always.  How can I do it?
+## I want to make sure I keep my Base repository updated always.  How can I do it?
 
 Add this to your `user/$USER.sh` file:
 
@@ -101,4 +101,5 @@ Add this to your `user/$USER.sh` file:
 
 # **Debugging**
 
-You can turn on debug mode by touching `$HOME/.base_debug` file.  You can also do the same by setting environment variable `BASE_DEBUG` to 1. You can add `set -x` to `$HOME/.baserc` file to trace the execution.
+* You can turn on debug mode by touching `$HOME/.base_debug` file.  You can also do the same by setting environment variable `BASE_DEBUG` to 1.
+* You can add `set -x` to `$HOME/.baserc` file to trace the execution in detail.
