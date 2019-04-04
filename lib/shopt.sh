@@ -1,4 +1,9 @@
-declare -A _shopt_restore
+#
+# shopt.sh: Make it easy to turn shopt options on/off and restore the earlier settings
+#           in a clean way, preventing any side effects.
+#
+
+declare -gA _shopt_restore
 shopt_set() {
     local opt count
     for opt; do
