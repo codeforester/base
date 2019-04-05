@@ -2,7 +2,7 @@
 
  0. Use four spaces for indentation. No tabs.
  1. Shell/local variables and function names follow "snake_case" - only lowercase letters, underscores, and digits.
- 2. Environment variables use all uppercase names. For example, BASE_HOME, BASE_HOME, BASE_OS, BASE_SOURCES.
+ 2. Environment variables use all uppercase names. For example, BASE_HOME, BASE_HOST, BASE_OS, BASE_SOURCES.
  3. In rare cases of global variables being shared between library functions and their callers use all uppercase names.
  4. Place most code inside functions.
  5. In libraries, have top level code that prevents the file from being sourced more than once.  For example:
