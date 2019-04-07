@@ -1,9 +1,11 @@
 import lib/stdlib.sh
 
 test_log_func() {
+    [[ $1 = "-e" ]] && { local sub=_enter; shift; }
+    [[ $1 = "-l" ]] && { local sub=_leave; shift; }
     local level=$1 func=$2 expected=$3 log rc=0
     set_log_level "$level"
-    log=$(log_$func "test $level" 2>&1)
+    log=$(log_$func$sub "test $level" 2>&1)
     if ((expected)) && ! [[ $log ]]; then
         printf 'Log level %-7s function %-11s: %s\n' "$level" "log_$func" FAIL
         ((fail++))
@@ -45,6 +47,18 @@ test_logging() {
     test_log_func VERBOSE info    1
     test_log_func VERBOSE debug   1
     test_log_func VERBOSE verbose 1
+
+    for func_type in e l; do
+        test_log_func -$func_type INFO    info    1
+        test_log_func -$func_type INFO    debug   0
+        test_log_func -$func_type INFO    verbose 0
+        test_log_func -$func_type DEBUG   info    1
+        test_log_func -$func_type DEBUG   debug   1
+        test_log_func -$func_type DEBUG   verbose 0
+        test_log_func -$func_type VERBOSE info    1
+        test_log_func -$func_type VERBOSE debug   1
+        test_log_func -$func_type VERBOSE verbose 1
+    done
 
     ((fail)) && rc=1
     exit $rc
