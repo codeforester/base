@@ -3,20 +3,19 @@
 ###
 ### Areas covered:
 ###     - PATH manipulation
-###     - error handling
 ###     - logging
+###     - error handling
 ###
 
 [[ $__stdlib_sourced__ ]] && return
 __stdlib_sourced__=1
 
 #
-# define colors
+# The only code that executes when the library is sourced
 #
-[[ $COLOR_RED ]]    || COLOR_RED="\e[1;31m"
-[[ $COLOR_YELLOW ]] || COLOR_YELLOW="\e[1;33m"
-[[ $COLOR_OFF ]]    || COLOR_OFF="\e[0m"
-readonly COLOR_RED COLOR_YELLOW COLOR_OFF
+__lib_init__() {
+    __log_init__
+}
 
 #
 # import: source a library from $BASE_HOME
@@ -83,20 +82,28 @@ print_path() {
 ## Logging
 ########################################################################################################################
 
-#
-# map log level strings (FATAL, ERROR, etc.) to numeric values
-#
-# Note the '-g' option passed to declare - it is essential
-#
-unset _log_levels _loggers_level_map
-declare -gA _log_levels _loggers_level_map
-_log_levels=([FATAL]=0 [ERROR]=1 [WARN]=2 [INFO]=3 [DEBUG]=4 [VERBOSE]=5)
+__log_init__() {
+    # colors for logging
+    [[ $COLOR_RED ]]    || COLOR_RED="\e[1;31m"
+    [[ $COLOR_YELLOW ]] || COLOR_YELLOW="\e[1;33m"
+    [[ $COLOR_OFF ]]    || COLOR_OFF="\e[0m"
+    readonly COLOR_RED COLOR_YELLOW COLOR_OFF
 
-#
-# hash to map loggers to their log levels
-# the default logger "default" has INFO as its default log level
-#
-_loggers_level_map["default"]=3  # the log level for the default logger is INFO
+    #
+    # map log level strings (FATAL, ERROR, etc.) to numeric values
+    #
+    # Note the '-g' option passed to declare - it is essential
+    #
+    unset _log_levels _loggers_level_map
+    declare -gA _log_levels _loggers_level_map
+    _log_levels=([FATAL]=0 [ERROR]=1 [WARN]=2 [INFO]=3 [DEBUG]=4 [VERBOSE]=5)
+
+    #
+    # hash to map loggers to their log levels
+    # the default logger "default" has INFO as its default log level
+    #
+    _loggers_level_map["default"]=3  # the log level for the default logger is INFO
+}
 
 #
 # set_log_level
@@ -110,11 +117,11 @@ set_log_level() {
         if [[ $l ]]; then
             _loggers_level_map[$logger]=$l
         else
-            printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown log level '$in_level' for logger '$logger'; setting to INFO"
+            printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s\n' -1 WARN "${BASH_SOURCE[2]}:${BASH_LINENO[1]} Unknown log level '$in_level' for logger '$logger'; setting to INFO"
             _loggers_level_map[$logger]=3
         fi
     else
-        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Option '-l' needs an argument" >&2
+        printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s\n' -1 WARN "${BASH_SOURCE[2]}:${BASH_LINENO[1]} Option '-l' needs an argument" >&2
     fi
 }
 
@@ -129,11 +136,11 @@ _print_log() {
     log_level_set="${_loggers_level_map[$logger]}"
     if [[ $log_level_set ]]; then
         ((log_level_set >= log_level)) && {
-            printf '%(%Y-%m-%d:%H:%M:%S)T %s %s' -1 "$in_level ${BASH_SOURCE[2]}:${BASH_LINENO[1]}"
+            printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s ' -1 "$in_level" "${BASH_SOURCE[2]}:${BASH_LINENO[1]}"
             printf '%s\n' "$@"
         }
     else
-        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'"
+        printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s\n' -1 WARN "${BASH_SOURCE[2]}:${BASH_LINENO[1]} Unknown logger '$logger'"
     fi
 }
 
@@ -154,7 +161,7 @@ _print_log_file()   {
             log_debug "=== file output end ==="
         fi
     else
-        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[0]}:${BASH_LINENO[1]} Unknown logger '$logger'"
+        printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[2]}:${BASH_LINENO[1]} Unknown logger '$logger'"
     fi
 }
 
@@ -167,11 +174,20 @@ log_warn()    { _print_log WARN    "$@"; }
 log_info()    { _print_log INFO    "$@"; }
 log_debug()   { _print_log DEBUG   "$@"; }
 log_verbose() { _print_log VERBOSE "$@"; }
+
 #
 # shortcut functions for logging files
 #
 log_debug_file()   { _print_log_file DEBUG "$@";   }
 log_verbose_file() { _print_log_file VERBOSE "$@"; }
+
+# logging for function entry and exit
+log_info_enter()    { _print_log INFO    "Entering function ${FUNCNAME[1]}"; }
+log_debug_enter()   { _print_log DEBUG   "Entering function ${FUNCNAME[1]}"; }
+log_verbose_enter() { _print_log VERBOSE "Entering function ${FUNCNAME[1]}"; }
+log_info_leave()    { _print_log INFO    "Leaving function ${FUNCNAME[1]}"; }
+log_debug_leave()   { _print_log DEBUG   "Leaving function ${FUNCNAME[1]}"; }
+log_verbose_leave() { _print_log VERBOSE "Leaving function ${FUNCNAME[1]}"; }
 
 ########################################################################################################################
 ## Error handling
@@ -226,3 +242,5 @@ print_warn() {
     printf '%s\n' "$@"
     printf "$COLOR_OFF"
 }
+
+__lib_init__
