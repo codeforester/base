@@ -11,7 +11,7 @@
     __stdlib_sourced__=1
     ```
  6. Make sure all local variables inside functions are declared local.
- 7. Use __func__ naming convention for special purpose variables and functions.
+ 7. Use __func__ naming convention for special purpose variables and functions. Use a leading underscore for "private" variables and functions.
  8. Double quote all variable expansions, except:
       - inside [[ ]] or (( ))
       - places where we need word splitting to take place
