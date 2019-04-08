@@ -13,7 +13,7 @@ __stdlib_sourced__=1
 #
 # The only code that executes when the library is sourced
 #
-__lib_init__() {
+__stdlib_init__() {
     __log_init__
 }
 
@@ -126,7 +126,7 @@ set_log_level() {
 }
 
 #
-# core logging function
+# core and private log printing logic to be called by all logging functions
 #
 _print_log() {
     local in_level=$1; shift
@@ -156,9 +156,8 @@ _print_log_file()   {
     log_level_set="${_loggers_level_map[$logger]}"
     if [[ $log_level_set ]]; then
         if ((log_level_set >= log_level)) && [[ -f $file ]]; then
-            log_debug "=== file output start ==="
-            cat "$1"
-            log_debug "=== file output end ==="
+            log_debug "Contents of file '$1':" 
+            cat -- "$1"
         fi
     else
         printf '%(%Y-%m-%d:%H:%M:%S)T %s\n' -1 "WARN ${BASH_SOURCE[2]}:${BASH_LINENO[1]} Unknown logger '$logger'"
@@ -166,7 +165,7 @@ _print_log_file()   {
 }
 
 #
-# shortcut functions for each log level
+# main logging functions
 #
 log_fatal()   { _print_log FATAL   "$@"; }
 log_error()   { _print_log ERROR   "$@"; }
@@ -174,19 +173,20 @@ log_warn()    { _print_log WARN    "$@"; }
 log_info()    { _print_log INFO    "$@"; }
 log_debug()   { _print_log DEBUG   "$@"; }
 log_verbose() { _print_log VERBOSE "$@"; }
-
 #
-# shortcut functions for logging files
+# logging file content
 #
-log_debug_file()   { _print_log_file DEBUG "$@";   }
+log_info_file()    { _print_log_file INFO    "$@"; }
+log_debug_file()   { _print_log_file DEBUG   "$@"; }
 log_verbose_file() { _print_log_file VERBOSE "$@"; }
-
+#
 # logging for function entry and exit
+#
 log_info_enter()    { _print_log INFO    "Entering function ${FUNCNAME[1]}"; }
 log_debug_enter()   { _print_log DEBUG   "Entering function ${FUNCNAME[1]}"; }
 log_verbose_enter() { _print_log VERBOSE "Entering function ${FUNCNAME[1]}"; }
-log_info_leave()    { _print_log INFO    "Leaving function ${FUNCNAME[1]}"; }
-log_debug_leave()   { _print_log DEBUG   "Leaving function ${FUNCNAME[1]}"; }
+log_info_leave()    { _print_log INFO    "Leaving function ${FUNCNAME[1]}";  }
+log_debug_leave()   { _print_log DEBUG   "Leaving function ${FUNCNAME[1]}";  }
 log_verbose_leave() { _print_log VERBOSE "Leaving function ${FUNCNAME[1]}"; }
 
 ########################################################################################################################
@@ -224,7 +224,7 @@ exit_if_error() {
 fatal_error() {
     local ec=$?                # grab the current exit code
     ((ec == 0)) && ec=1        # if it is zero, set exit code to 1
-    exit_if_error "$ec" "$@" 
+    exit_if_error "$ec" "$@"
 }
 
 # print an error message to stderr
@@ -243,4 +243,4 @@ print_warn() {
     printf "$COLOR_OFF"
 }
 
-__lib_init__
+__stdlib_init__
