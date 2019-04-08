@@ -45,3 +45,7 @@ log_warn    "This is a warning"
 
 test_func
 test_file_logging
+
+print_error "This is a plain error"
+print_warn  "This is a plain warning"
+print_info  "This is a plain info"
