@@ -7,6 +7,9 @@
 ###     - error handling
 ###
 
+#
+# make sure we do nothing in case the library is sourced more than once in the same shell
+#
 [[ $__stdlib_sourced__ ]] && return
 __stdlib_sourced__=1
 
@@ -86,6 +89,7 @@ __log_init__() {
     # colors for logging
     [[ $COLOR_RED ]]    || COLOR_RED="\e[1;31m"
     [[ $COLOR_YELLOW ]] || COLOR_YELLOW="\e[1;33m"
+    [[ $COLOR_BLUE ]]   || COLOR_BLUE="\e[1;34m"
     [[ $COLOR_OFF ]]    || COLOR_OFF="\e[0m"
     readonly COLOR_RED COLOR_YELLOW COLOR_OFF
 
@@ -187,7 +191,7 @@ log_debug_enter()   { _print_log DEBUG   "Entering function ${FUNCNAME[1]}"; }
 log_verbose_enter() { _print_log VERBOSE "Entering function ${FUNCNAME[1]}"; }
 log_info_leave()    { _print_log INFO    "Leaving function ${FUNCNAME[1]}";  }
 log_debug_leave()   { _print_log DEBUG   "Leaving function ${FUNCNAME[1]}";  }
-log_verbose_leave() { _print_log VERBOSE "Leaving function ${FUNCNAME[1]}"; }
+log_verbose_leave() { _print_log VERBOSE "Leaving function ${FUNCNAME[1]}";  }
 
 ########################################################################################################################
 ## Error handling
@@ -238,7 +242,13 @@ print_error() {
 
 # print a warning message to stdout
 print_warn() {
-    printf "${COLOR_YELLO}WARN: "
+    printf "${COLOR_YELLOW}WARN: "
+    printf '%s\n' "$@"
+    printf "$COLOR_OFF"
+}
+
+print_info() {
+    printf "$COLOR_BLUE"
     printf '%s\n' "$@"
     printf "$COLOR_OFF"
 }
