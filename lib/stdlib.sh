@@ -7,7 +7,7 @@
 ###     - error handling
 ###
 
-################################################# PATH MANIPULATION ####################################################
+################################################# INITIALIZATION #######################################################
 
 #
 # make sure we do nothing in case the library is sourced more than once in the same shell
