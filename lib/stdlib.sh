@@ -7,6 +7,8 @@
 ###     - error handling
 ###
 
+################################################# PATH MANIPULATION ####################################################
+
 #
 # make sure we do nothing in case the library is sourced more than once in the same shell
 #
@@ -43,9 +45,7 @@ import() {
     return $rc
 }
 
-########################################################################################################################
-## PATH related functions
-########################################################################################################################
+################################################# PATH MANIPULATION ####################################################
 
 # add a new directory to $PATH
 add_to_path() {
@@ -81,9 +81,7 @@ print_path() {
     for dir in "${dirs[@]}"; do printf '%s\n' "$dir"; done
 }
 
-########################################################################################################################
-## Logging
-########################################################################################################################
+#################################################### LOGGING ###########################################################
 
 __log_init__() {
     # colors for logging
@@ -193,9 +191,29 @@ log_info_leave()    { _print_log INFO    "Leaving function ${FUNCNAME[1]}";  }
 log_debug_leave()   { _print_log DEBUG   "Leaving function ${FUNCNAME[1]}";  }
 log_verbose_leave() { _print_log VERBOSE "Leaving function ${FUNCNAME[1]}";  }
 
-########################################################################################################################
-## Error handling
-########################################################################################################################
+# print an error message to stderr
+print_error() {
+    {
+        printf "${COLOR_RED}ERROR: "
+        printf '%s\n' "$@"
+        printf "$COLOR_OFF"
+    } >&2
+}
+
+# print a warning message to stdout
+print_warn() {
+    printf "${COLOR_YELLOW}WARN: "
+    printf '%s\n' "$@"
+    printf "$COLOR_OFF"
+}
+
+print_info() {
+    printf "$COLOR_BLUE"
+    printf '%s\n' "$@"
+    printf "$COLOR_OFF"
+}
+
+################################################## ERROR HANDLING ######################################################
 
 dump_trace() {
     local frame=0 line func source n=0
@@ -231,26 +249,6 @@ fatal_error() {
     exit_if_error "$ec" "$@"
 }
 
-# print an error message to stderr
-print_error() {
-    {
-        printf "${COLOR_RED}ERROR: "
-        printf '%s\n' "$@"
-        printf "$COLOR_OFF"
-    } >&2
-}
-
-# print a warning message to stdout
-print_warn() {
-    printf "${COLOR_YELLOW}WARN: "
-    printf '%s\n' "$@"
-    printf "$COLOR_OFF"
-}
-
-print_info() {
-    printf "$COLOR_BLUE"
-    printf '%s\n' "$@"
-    printf "$COLOR_OFF"
-}
+#################################################### END OF FUNCTIONS ##################################################
 
 __stdlib_init__
