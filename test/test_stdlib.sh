@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Note: this script needs to be run from the test directory itself.
+#
+
 source ../lib/stdlib.sh
 
 test_log_func() {
