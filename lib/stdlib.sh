@@ -24,25 +24,6 @@ __stdlib_init__() {
     # call future init functions here
 }
 
-#
-# For functions that need to return a single value, we use the global variable OUTPUT.
-# For functions that need to return a more than one value, we use the global variable OUTPUT_ARRAY.
-# These global variables eliminate the need for a subshell when the caller wants to retrieve the
-# returned values.
-#
-# Each function that makes use of these global variables would call __clear_output__ as the very first step.
-#
-__clear_output__() { unset OUTPUT OUTPUT_ARRAY; }
-
-#
-# return path to parent script's source directory
-#
-get_source_dir() {
-    __clear_output__
-    # Reference: https://stackoverflow.com/a/246128/6862601
-    OUTPUT="$(cd "$(dirname "${BASH_SOURCE[1]}")" >/dev/null 2>&1 && pwd -P)"
-}
-
 ################################################# LIBRARY IMPORTER #####################################################
 
 #
@@ -273,6 +254,27 @@ fatal_error() {
     local ec=$?                # grab the current exit code
     ((ec == 0)) && ec=1        # if it is zero, set exit code to 1
     exit_if_error "$ec" "$@"
+}
+
+################################################# MISC FUNCTIONS #######################################################
+#
+# For functions that need to return a single value, we use the global variable OUTPUT.
+# For functions that need to return multiple values, we use the global variable OUTPUT_ARRAY.
+# These global variables eliminate the need for a subshell when the caller wants to retrieve the
+# returned values.
+#
+# Each function that makes use of these global variables would call __clear_output__ as the very first step.
+#
+__clear_output__() { unset OUTPUT OUTPUT_ARRAY; }
+
+#
+# return path to parent script's source directory
+#
+get_source_dir() {
+    __clear_output__
+
+    # Reference: https://stackoverflow.com/a/246128/6862601
+    OUTPUT="$(cd "$(dirname "${BASH_SOURCE[1]}")" >/dev/null 2>&1 && pwd -P)"
 }
 
 #################################################### END OF FUNCTIONS ##################################################
