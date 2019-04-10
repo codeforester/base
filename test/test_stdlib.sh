@@ -1,9 +1,11 @@
-import lib/stdlib.sh
+#!/usr/bin/env bash
+
+source ../lib/stdlib.sh
 
 test_log_func() {
     [[ $1 = "-e" ]] && { local sub=_enter; shift; }
     [[ $1 = "-l" ]] && { local sub=_leave; shift; }
-    local level=$1 func=$2 expected=$3 log rc=0
+    local level=$1 func=$2 expected=$3 log
     set_log_level "$level"
     log=$(log_$func$sub "test $level" 2>&1)
     if ((expected)) && ! [[ $log ]]; then
@@ -59,9 +61,18 @@ test_logging() {
         test_log_func -$func_type VERBOSE debug   1
         test_log_func -$func_type VERBOSE verbose 1
     done
+}
 
-    ((fail)) && rc=1
-    exit $rc
+test_get_source_dir() {
+    get_source_dir
+    [[ $OUTPUT != $PWD ]] && {
+        ((++fail))
+        printf '%s\n' "get_source_dir: expected '$PWD' as output, but got '$OUTPUT' - FAIL"
+    }
 }
 
 test_logging
+test_get_source_dir
+
+((fail)) && rc=1
+exit $rc

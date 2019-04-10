@@ -20,7 +20,30 @@ __stdlib_sourced__=1
 #
 __stdlib_init__() {
     __log_init__
+
+    # call future init functions here
 }
+
+#
+# For functions that need to return a single value, we use the global variable OUTPUT.
+# For functions that need to return a more than one value, we use the global variable OUTPUT_ARRAY.
+# These global variables eliminate the need for a subshell when the caller wants to retrieve the
+# returned values.
+#
+# Each function that makes use of these global variables would call __clear_output__ as the very first step.
+#
+__clear_output__() { unset OUTPUT OUTPUT_ARRAY; }
+
+#
+# return path to parent script's source directory
+#
+get_source_dir() {
+    __clear_output__
+    # Reference: https://stackoverflow.com/a/246128/6862601
+    OUTPUT="$(cd "$(dirname "${BASH_SOURCE[1]}")" >/dev/null 2>&1 && pwd -P)"
+}
+
+################################################# LIBRARY IMPORTER #####################################################
 
 #
 # import: source a library from $BASE_HOME
@@ -44,6 +67,9 @@ import() {
     done
     return $rc
 }
+
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 ################################################# PATH MANIPULATION ####################################################
 
