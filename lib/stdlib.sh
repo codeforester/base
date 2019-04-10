@@ -1,5 +1,6 @@
 ###
 ### stdlib.sh - foundation library for Bash scripts
+###             Need Bash version 4.3 or above - see http://tiswww.case.edu/php/chet/bash/NEWS
 ###
 ### Areas covered:
 ###     - PATH manipulation
@@ -48,9 +49,6 @@ import() {
     done
     return $rc
 }
-
-
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 ################################################# PATH MANIPULATION ####################################################
 
@@ -135,7 +133,9 @@ set_log_level() {
 }
 
 #
-# core and private log printing logic to be called by all logging functions
+# Core and private log printing logic to be called by all logging functions.
+# Note that we don't make use of any external commands like 'date' and hence we don't fork at all.
+# We use the Bash's printf builtin instead.
 #
 _print_log() {
     local in_level=$1; shift
