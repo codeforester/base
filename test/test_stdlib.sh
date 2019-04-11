@@ -21,9 +21,6 @@ test_log_func() {
 }
 
 test_logging() {
-    local rc
-
-    fail=0 verbose=0 rc=0
     test_log_func ERROR error   1
     test_log_func ERROR warn    0
     test_log_func ERROR info    0
@@ -67,16 +64,23 @@ test_logging() {
     done
 }
 
-test_get_source_dir() {
-    get_source_dir
-    [[ $OUTPUT != $PWD ]] && {
+test_get_my_source_dir() {
+    get_my_source_dir
+    if [[ $OUTPUT != $PWD ]]; then
         ((++fail))
-        printf '%s\n' "get_source_dir: expected '$PWD' as output, but got '$OUTPUT' - FAIL"
-    }
+        printf '%s\n' "get_my_source_dir: expected '$PWD' as output, but got '$OUTPUT' - FAIL"
+    else
+        ((verbose)) && printf '%s\n' "get_my_source_dir returned '$OUTPUT' - SUCCESS"
+    fi
 }
 
-test_logging
-test_get_source_dir
+main() {
+    verbose=0 fail=0
+    [[ $1 = -v ]] && verbose=1
+    test_logging
+    test_get_my_source_dir
+    ((fail)) || rc=1
+    exit $rc
+}
 
-((fail)) && rc=1
-exit $rc
+main "$@"

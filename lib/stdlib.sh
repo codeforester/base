@@ -270,7 +270,7 @@ __clear_output__() { unset OUTPUT OUTPUT_ARRAY; }
 #
 # return path to parent script's source directory
 #
-get_source_dir() {
+get_my_source_dir() {
     __clear_output__
 
     # Reference: https://stackoverflow.com/a/246128/6862601
