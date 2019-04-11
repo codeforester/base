@@ -3,8 +3,10 @@
  0. Use four spaces for indentation. No tabs.
  1. Shell/local variables and function names follow "snake_case" - only lowercase letters, underscores, and digits.
  2. Environment variables use all uppercase names. For example, BASE_HOME, BASE_HOST, BASE_OS, BASE_SOURCES.
+    See: https://stackoverflow.com/a/42290320/6862601
  3. In rare cases of global variables being shared between library functions and their callers, use all uppercase names.
- 4. Place most code inside functions.
+    For example: OUTPUT and OUTPUT_ARRAY
+ 4. Place most code inside functions and invoke the main function at the bottom of the script.
  5. In libraries, have top level code that prevents the file from being sourced more than once.  For example:
     ```bash
     [[ $__stdlib_sourced__ ]] && return
@@ -17,6 +19,7 @@
       - places where we need word splitting to take place
 
  9. Use [[ $var ]] to check if var has non-zero length, instead of [[ -n $var ]].
+    See: https://stackoverflow.com/a/49825114/6862601
 10. Use "compact" style for if statements and loops:
     ```bash
     if condition; then
