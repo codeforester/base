@@ -1,5 +1,9 @@
 # **What is Base?**
 
+```
+                        Great things are done by a series of small things brought together.
+                                                                         - Vincent van Gogh
+```
 Base is a sharing platform for shell settings, libraries, and light-weight tools. It gives a structured way for Bash users to organize the following across multiple hosts:
 
 * .bash_profile
