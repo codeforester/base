@@ -1,6 +1,7 @@
 # Logging demo
 
 ``` bash
+$ ./logging_demo.sh
 2019-04-09:14:08:04 DEBUG   ./logging_demo.sh:31 This is a debug log
 2019-04-09:14:08:04 INFO    ./logging_demo.sh:32 This is an info log
 2019-04-09:14:08:04 WARN    ./logging_demo.sh:33 This is a warning
@@ -33,6 +34,7 @@ This is a plain info
 # Error handling demo
 
 ```bash
+$ ./error_handling_demo.sh
 2019-04-09:14:07:33 DEBUG   ./error_handling_demo.sh:10 Entering function test_func1
 2019-04-09:14:07:33 INFO    ./error_handling_demo.sh:11 Calling test_func2
 2019-04-09:14:07:33 DEBUG   ./error_handling_demo.sh:18 Entering function test_func2
