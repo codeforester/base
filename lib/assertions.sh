@@ -2,6 +2,9 @@
 ## Assertions
 ##
 
+[[ $__assertions_sourced__ ]] && return
+__assertions_sourced__=1
+
 #
 # Given a version like x.y, where x and y are numbers, asserts that
 # bash version is at least x.y
@@ -76,4 +79,13 @@ assert_not_null() {
     return 1
   fi
   return 0
+}
+
+#
+# assert if $1 is a valid URL
+#
+assert_valid_url() {
+    (($#)) || return 0
+    url=$1
+    curl --fail --head -o /dev/null --silent "$url" || fatal_error "Invalid URL - '$url'"
 }
