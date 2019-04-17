@@ -124,11 +124,13 @@ set_log_level() {
         if [[ $l ]]; then
             _loggers_level_map[$logger]=$l
         else
-            printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s\n' -1 WARN "${BASH_SOURCE[2]}:${BASH_LINENO[1]} Unknown log level '$in_level' for logger '$logger'; setting to INFO"
+            printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s\n' -1 WARN \
+                "${BASH_SOURCE[2]}:${BASH_LINENO[1]} Unknown log level '$in_level' for logger '$logger'; setting to INFO"
             _loggers_level_map[$logger]=3
         fi
     else
-        printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s\n' -1 WARN "${BASH_SOURCE[2]}:${BASH_LINENO[1]} Option '-l' needs an argument" >&2
+        printf '%(%Y-%m-%d:%H:%M:%S)T %-7s %s\n' -1 WARN \
+            "${BASH_SOURCE[2]}:${BASH_LINENO[1]} Option '-l' needs an argument" >&2
     fi
 }
 
