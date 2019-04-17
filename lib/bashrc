@@ -30,7 +30,7 @@ global_init() {
 #
 base_init() {
     local script
-    
+
     script=$HOME/.baserc
     [[ -f $script ]] && {
         base_debug "Sourcing $script"

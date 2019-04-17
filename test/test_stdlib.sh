@@ -75,11 +75,11 @@ test_get_my_source_dir() {
 }
 
 main() {
-    verbose=0 fail=0
+    verbose=0 fail=0 rc=0
     [[ $1 = -v ]] && verbose=1
     test_logging
     test_get_my_source_dir
-    ((fail)) || rc=1
+    ((fail)) && rc=1
     exit $rc
 }
 
