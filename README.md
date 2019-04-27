@@ -49,8 +49,8 @@ In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does 
 * source in `company/lib/company.sh` if it exists
 * source in `company/lib/bashrc` if it exists, if the shell is interactive
 * source in `user/$USER.sh` if it exists and if the shell is interactive
-* source in team specific bashrc from team/<team>/lib/bashrc for each team defined in BASE_TEAM and BASE_SHARED_TEAMS variables, if the shell is interactive
-* source in team specific library from team/<team>/lib/<team.sh> for each team defined in BASE_TEAM and BASE_SHARED_TEAMS variables, if they exist
+* source in team specific bashrc from `team/<team>/lib/bashrc` for each team defined in `BASE_TEAM` and `BASE_SHARED_TEAMS` variables, if the shell is interactive
+* source in team specific library from `team/<team>/lib/<team>.sh` for each team defined in `BASE_TEAM` and `BASE_SHARED_TEAMS` variables, if they exist
 * update `$PATH` to include the relevant `bin` directories
     * `$BASE_HOME/bin` is always added
     * `$BASE_HOME/team/$BASE_TEAM/bin` is added if `$BASE_TEAM` is set in `user/$USER.sh`
@@ -70,6 +70,12 @@ In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does 
 * BASE_OS
 * BASE_HOST
 * BASE_SOURCES
+
+# **Functions exported by base_init.sh**
+
+* import       - sources in libraries from any place under `BASE_HOME` directory
+* base_wrapper - initializes Base inside scripts
+* base_update  - does a `git pull` on Base git directory; add it to `user/<user>.sh` to "auto update" Base
 
 # **FAQ**
 
