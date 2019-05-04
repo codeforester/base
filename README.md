@@ -14,7 +14,7 @@ Base is a sharing platform for shell settings, libraries, and light-weight tools
 * user specific settings (aliases, functions, Bash settings)
 * Bash libraries, commands, and configuration that are shared across teams
 
-It can benefit anyone who engages with Mac/Linux command line to get things done.
+It can benefit anyone who engages with Mac/Linux command line to get their work done.
 
 # **How can I get set up?**
 
