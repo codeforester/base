@@ -49,7 +49,7 @@ In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does 
 * source in `company/lib/company.sh` if it exists
 * source in `company/lib/bashrc` if it exists, if the shell is interactive
 * source in `user/$USER.sh` if it exists and if the shell is interactive
-* source in team specific bashrc from `team/<team>/lib/bashrc` for each team defined in `BASE_TEAM` and `BASE_SHARED_TEAMS` variables, if the shell is interactive
+* source in team specific bashrc from `team/<team>/lib/bashrc` for each team defined in `BASE_TEAM` and `BASE_SHARED_TEAMS` variables, if the shell is interactive.  Note that `BASE_TEAM` and `BASE_SHARED_TEAMS` should be ideally set in `user/$USER.sh`.
 * source in team specific library from `team/<team>/lib/<team>.sh` for each team defined in `BASE_TEAM` and `BASE_SHARED_TEAMS` variables, if they exist
 * update `$PATH` to include the relevant `bin` directories
     * `$BASE_HOME/bin` is always added
@@ -91,11 +91,13 @@ You can either
 
 You need to do this on every host where you want Base.
 
-## I don't want to keep my personal settings private, and not in git.  What should I do?
+## I want to keep my personal settings private, and not in git.  What should I do?
 
 * write a one-liner in `user/$USER.sh` like this:
 
     source /path/to/your.settings
+
+You would need to manage this file outside of Base.
 
 ## I do want to use the default settings.  What should I do?
 
