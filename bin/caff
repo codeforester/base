@@ -1,0 +1,47 @@
+#
+# caff: call caffeinate for a named process
+#
+
+_help() {
+	cat << EOUSAGE
+$description
+Usage: caff process_name
+EOUSAGE
+}
+
+_describe() {
+	printf '%s\n' "$description"
+}
+
+main() {
+	(($# != 1)) && {
+		print_error "need an argument"
+		_help
+		exit 2
+	}
+
+	process_name=$1
+    local vpid=$(pgrep "$process_name")
+    if [[ ! $vpid ]]; then
+        print_warn "'$process_name' process not running"
+        exit 1
+    fi
+    local cpid=$(pgrep caffeinate)
+    if [[ $cpid ]]; then
+        caffeinate_pid=$(ps -o args -p "$cpid" | awk 'NR==2 {print $3}')
+        if [[ $caffeinate_pid == $vpid ]]; then
+            printf '%s\n' "Alreading caffeinating, pid=$cpid"
+            exit 0
+        fi
+    fi
+
+    printf '%s\n' "Caffeinating PID $vpid"
+    caffeinate -iw "$vpid" & disown
+    exit $?
+}
+
+description="Caffeinate a named process"
+base_wrapper -d "$@" || {
+	printf '%s\n' "You need to initialize Base before running this script." >&2
+	exit 1
+}
