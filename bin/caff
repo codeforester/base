@@ -1,7 +1,11 @@
 #
-# caff: call caffeinate for a named process
+# caff: invoke caffeinate for a named process on macOS
+#
+# For example: this script can be used for watching over the VPN process so that it doesn't terminate the connection
+#              due to inactivity
 #
 
+description="Caffeinate a named process"
 _help() {
 	cat << EOUSAGE
 $description
@@ -9,9 +13,7 @@ Usage: caff process_name
 EOUSAGE
 }
 
-_describe() {
-	printf '%s\n' "$description"
-}
+_describe() { printf '%s\n' "$description"; } 
 
 main() {
 	(($# != 1)) && {
@@ -40,7 +42,9 @@ main() {
     exit $?
 }
 
-description="Caffeinate a named process"
+#
+# Note: base_wrapper calls the main function
+#
 base_wrapper -d "$@" || {
 	printf '%s\n' "You need to initialize Base before running this script." >&2
 	exit 1
