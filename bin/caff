@@ -3,14 +3,14 @@
 #
 
 _help() {
-	cat << EOUSAGE
+    cat << EOUSAGE
 $description
 Usage: caff process_name
 EOUSAGE
 }
 
 _describe() {
-	printf '%s\n' "$description"
+    printf '%s\n' "$description"
 }
 
 main() {
@@ -19,13 +19,13 @@ main() {
         exit 1
     fi
 
-	(($# != 1)) && {
-		print_error "need an argument"
-		_help
-		exit 2
-	}
+    (($# != 1)) && {
+        print_error "need an argument"
+        _help
+        exit 2
+    }
 
-	process_name=$1
+    process_name=$1
     local vpid=$(pgrep "$process_name")
     if [[ ! $vpid ]]; then
         print_warn "'$process_name' process not running"
@@ -47,6 +47,6 @@ main() {
 
 description="Caffeinate a named process"
 base_wrapper -d "$@" || {
-	printf '%s\n' "You need to initialize Base before running this script." >&2
-	exit 1
+    printf '%s\n' "You need to initialize Base before running this script." >&2
+    exit 1
 }
