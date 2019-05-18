@@ -35,7 +35,7 @@ Here is an example:
 
     cd $HOME
     mkdir git && cd git
-    git clone ssh://git.corp.linkedin.com:29418/tools-sre/base
+    git clone git@github.com:codeforester/base.git
     cd $HOME
     mv .bash_profile .bash_profile.safe && ln -sf $HOME/git/base/lib/bash_profile .bash_profile
     mv .bashrc       .bashrc.safe       && ln -sf $HOME/git/base/lib/bashrc       .bashrc
