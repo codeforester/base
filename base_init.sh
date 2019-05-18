@@ -9,6 +9,45 @@
 [[ $__base_init_sourced__ ]] && return
 __base_init_sourced__=1
 
+check_bash_version() {
+    local major=${1:-4}
+    local minor=$2
+    local rc=0
+    local num_re='^[0-9]+$'
+
+    if [[ ! $major =~ $num_re ]] || [[ $minor && ! $minor =~ $num_re ]]; then
+        printf '%s\n' "ERROR: version numbers should be numeric"
+        return 1
+    fi
+    if [[ $minor ]]; then
+        local bv=${BASH_VERSINFO[0]}${BASH_VERSINFO[1]}
+        local vstring=$major.$minor
+        local vnum=$major$minor
+    else
+        local bv=${BASH_VERSINFO[0]}
+        local vstring=$major
+        local vnum=$major
+    fi
+    ((bv < vnum)) && {
+        printf '%s\n' "ERROR: Base needs Bash version $vstring or above, your version is ${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}"
+        rc=1
+    }
+    return $rc
+}
+
+base_deactivate() {
+    if [[ $_old_vars_saved ]]; then
+        PATH=$_old_PATH
+        PS1=$_old_PS1
+        [[ $_old_BASE_HOME ]] && BASE_HOME=$_old_BASE_HOME
+
+        unset _old_PATH _old_PS1 _old_vars_saved _old_BASE_HOME
+        unset BASE_OS BASE_HOST BASE_DEBUG BASE_SOURCES
+        unset -f check_bash_version do_init base_debug base_error set_base_home source_it \
+                import_libs_and_profiles base_update base_wrapper base_main
+    fi
+}
+
 do_init() {
     local rc=0
     [[ -f $HOME/.base_debug ]] && export BASE_DEBUG=1
@@ -30,6 +69,15 @@ do_init() {
     BASE_OS=$(uname -s)
     BASE_HOST=$(hostname -s)
     export BASE_SOURCES=() BASE_OS BASE_HOST
+
+    #
+    # save variables that need to be restored in deactivate
+    #
+    _old_vars_saved=1
+    _old_PATH=$PATH
+    _old_PS1=$PS1
+    _old_BASE_HOME=$BASE_HOME
+
     return $rc
 }
 
@@ -159,6 +207,7 @@ base_wrapper() {
 }
 
 base_main() {
+    check_bash_version 4 2 || return $?
     do_init || return $?
     [[ $- = *i* ]] && _interactive=1 || _interactive=0
     set_base_home
