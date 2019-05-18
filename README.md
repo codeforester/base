@@ -16,6 +16,10 @@ Base is a sharing platform for shell settings, libraries, and light-weight tools
 
 It can benefit anyone who engages with Mac/Linux command line to get their work done.
 
+# **Requirements**
+
+Base needs Bash version 4.2 or above.
+
 # **How can I get set up?**
 
 Set up is easy.  Essentially, this is what you have to do:
@@ -31,7 +35,7 @@ Here is an example:
 
     cd $HOME
     mkdir git && cd git
-    git clone git@github.com:codeforester/base.git
+    git clone ssh://git.corp.linkedin.com:29418/tools-sre/base
     cd $HOME
     mv .bash_profile .bash_profile.safe && ln -sf $HOME/git/base/lib/bash_profile .bash_profile
     mv .bashrc       .bashrc.safe       && ln -sf $HOME/git/base/lib/bashrc       .bashrc
@@ -110,6 +114,26 @@ Add this to your `user/$USER.sh` file:
 Add this to your `user/$USER.sh` file:
 
     base_update
+
+## I don't want to reorganize my `.bash_profile` or `.bashrc`.  Can I still use Base?
+
+Yes, you can, though you will lose the flexibility of keeping your `.bash_profile` and `.bashrc` synced across hosts in case you are working with multiple hosts.
+
+To turn on Base upon login, add this to your `.bash_profile`:
+
+    source "$BASE_HOME/base_init.sh"
+
+after making sure you have the base repo checked out under `$BASE_HOME` directory.
+
+If you don't want to change your `.bash_profile` at all, you can still turn Base on and off as needed.
+
+To turn it on:
+
+    source "$BASE_HOME/base_init.sh"
+
+To turn it off:
+
+    base_deactivate
 
 # **Debugging**
 
