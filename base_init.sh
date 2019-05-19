@@ -35,6 +35,23 @@ check_bash_version() {
     return $rc
 }
 
+base_activate() {
+    local rc=0
+    if [[ ! $BASE_HOME ]]; then
+        printf '%s\n' "ERROR: BASE_HOME is not set"
+        rc=1
+    else
+        local script=$BASE_HOME/base_init.sh
+        if [[ -f "$script" ]]; then
+            source "$script"
+        else
+            printf '%s\n' "ERROR: Base init script '$script' does not exist"
+            rc=1
+        fi
+    fi
+    return $rc
+}
+
 base_deactivate() {
     if [[ $_old_vars_saved ]]; then
         PATH=$_old_PATH
@@ -44,7 +61,8 @@ base_deactivate() {
         unset _old_PATH _old_PS1 _old_vars_saved _old_BASE_HOME
         unset BASE_OS BASE_HOST BASE_DEBUG BASE_SOURCES
         unset -f check_bash_version do_init base_debug base_error set_base_home source_it \
-                import_libs_and_profiles base_update base_wrapper base_main
+                import_libs_and_profiles base_update base_wrapper base_main \
+                base_deactivate
     fi
 }
 
