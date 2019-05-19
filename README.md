@@ -45,6 +45,8 @@ Here is an example:
     git commit -m "Adding the initial version of $USER.sh"
     git push
     
+If you don't want to disturb your `.bash_profile` and `.bashrc`, you can still use Base in a less full-fledged manner.  See the FAQ section for details.
+
 # **How does Base work?**
 
 In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does the following:
