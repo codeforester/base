@@ -43,7 +43,8 @@ base_activate() {
     else
         local script=$BASE_HOME/base_init.sh
         if [[ -f "$script" ]]; then
-            source "$script"
+            unset __base_init_sourced__ # bypass the "idempotence" check
+            source "$script"            # which makes sure the script really gets sourced
         else
             printf '%s\n' "ERROR: Base init script '$script' does not exist"
             rc=1
@@ -63,6 +64,7 @@ base_deactivate() {
         unset -f check_bash_version do_init base_debug base_error set_base_home source_it \
                 import_libs_and_profiles base_update base_wrapper base_main \
                 base_deactivate
+        unset __base_init_sourced__
     fi
 }
 
@@ -239,7 +241,7 @@ base_main() {
     #
     # these functions need to be available to user's subprocesses
     #
-    export -f base_update base_wrapper import
+    export -f base_update base_wrapper import base_activate base_deactivate
 }
 
 #
