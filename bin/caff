@@ -6,6 +6,7 @@ _help() {
     cat << EOUSAGE
 $description
 Usage: caff process_name
+If process_name matches multiple running process, we pick up the first one.
 EOUSAGE
 }
 
@@ -26,7 +27,7 @@ main() {
     }
 
     process_name=$1
-    local vpid=$(pgrep "$process_name")
+    local vpid=$(pgrep "$process_name" | head -1)
     if [[ ! $vpid ]]; then
         print_warn "'$process_name' process not running"
         exit 1
