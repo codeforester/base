@@ -36,7 +36,7 @@ main() {
     if [[ $cpid ]]; then
         caffeinate_pid=$(ps -o args -p "$cpid" | awk 'NR==2 {print $3}')
         if [[ $caffeinate_pid == $vpid ]]; then
-            printf '%s\n' "Alreading caffeinating, pid=$cpid"
+            printf '%s\n' "Alreading caffeinating: $process_name pid=$vpid, caffeinate pid=$cpid"
             exit 0
         fi
     fi
