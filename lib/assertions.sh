@@ -77,3 +77,17 @@ assert_valid_url() {
     url=$1
     curl --fail --head -o /dev/null --silent "$url" || fatal_error "Invalid URL - '$url'"
 }
+
+#
+# assert if one are more directories do exist
+#
+assert_dir_exists() {
+    local dir ec=0
+    for dir; do
+        if [[ ! -d $dir ]]; then
+            ec=1
+            log_error "'$dir' does not exist or it is not a directory"
+        fi
+    done
+    exit_if_error "$ec" "assert_dir_exists: assertion failure"
+}
