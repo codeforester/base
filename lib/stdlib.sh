@@ -258,6 +258,15 @@ fatal_error() {
     exit_if_error "$ec" "$@"
 }
 
+#
+# run a simple command (no compound statements or pipelines) and exit if it exits with non-zero 
+#
+run_simple() {
+    log_debug "Running command: $*"
+    "$@"
+    exit_if_error $? "run failed: $@"
+}
+
 ################################################# MISC FUNCTIONS #######################################################
 #
 # For functions that need to return a single value, we use the global variable OUTPUT.
