@@ -52,9 +52,9 @@ assert_regex_match() {
 # assert if variables are set
 # if any variable is not set, exit 1 (when -f option is set) or return 1 otherwise
 #
-# Usage: assert_not_null [-f] variable ...
+# Usage: assert_var_not_null [-f] variable ...
 #
-assert_not_null() {
+assert_var_not_null() {
     local fatal var num_null=0
     [[ "$1" = "-f" ]] && { shift; fatal=1; }
     for var in "$@"; do
@@ -79,15 +79,16 @@ assert_valid_url() {
 }
 
 #
-# assert if one are more directories do exist
+# assert if directories do exist
 #
 assert_dir_exists() {
-    local dir ec=0
+    local dir
+    rc=0
     for dir; do
-        if [[ ! -d $dir ]]; then
-            ec=1
-            log_error "'$dir' does not exist or it is not a directory"
+        if [[ ! -d "$dir" ]]; then
+            log_error "Directory '$dir' does not exist"
+            ((rc++))
         fi
     done
-    exit_if_error "$ec" "assert_dir_exists: assertion failure"
+    ((rc)) && exit 1
 }
