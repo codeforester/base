@@ -1,0 +1,3 @@
+owners: [ rpadmana ]
+paths: ['.*']
+whitelist: []
