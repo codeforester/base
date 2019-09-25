@@ -123,17 +123,18 @@ Yes, you can, though you will lose the flexibility of keeping your `.bash_profil
 
 To turn on Base upon login, add this to your `.bash_profile`:
 
+    export BASE_HOME=/path/to/base
     source "$BASE_HOME/base_init.sh"
 
 after making sure you have the base repo checked out under `$BASE_HOME` directory.
 
-If you don't want to change your `.bash_profile` at all, you can still turn Base on and off as needed.
+If you don't want to change your `.bash_profile` at all, you can still turn Base on and off as needed. First, make sure BASE_HOME is set appropriately, ideally in your `.bash_profile`.
 
-To turn it on:
+Run this command to turn Base on:
 
     source "$BASE_HOME/base_init.sh"
 
-To turn it off:
+Run this command to turn Base off:
 
     base_deactivate
 
