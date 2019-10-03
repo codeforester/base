@@ -61,7 +61,7 @@ assert_var_not_null() {
         [[ -z "${!var}" ]] && printf '%s\n' "Variable '$var' not set" >&2 &&
         ((num_null++))
     done
-  
+
     if ((num_null > 0)); then
         [[ "$fatal" ]] && exit 1
         return 1
@@ -74,7 +74,7 @@ assert_var_not_null() {
 #
 assert_valid_url() {
     (($#)) || return 0
-    url=$1
+    local url=$1
     curl --fail --head -o /dev/null --silent "$url" || fatal_error "Invalid URL - '$url'"
 }
 
@@ -83,7 +83,7 @@ assert_valid_url() {
 #
 assert_dir_exists() {
     local dir
-    rc=0
+    local rc=0
     for dir; do
         if [[ ! -d "$dir" ]]; then
             log_error "Directory '$dir' does not exist"
@@ -91,4 +91,29 @@ assert_dir_exists() {
         fi
     done
     ((rc)) && exit 1
+}
+
+#
+# assert if directories do exist
+#
+assert_file_exists() {
+    local file
+    local rc=0
+    for file; do
+        if [[ ! -f "$file" ]]; then
+            log_error "File '$file' does not exist"
+            ((rc++))
+        fi
+    done
+    ((rc)) && exit 1
+}
+
+#
+# assert that we are running on the right OS
+#
+assert_os() {
+    (($#)) || return
+    if [[ $BASE_OS != "$1" ]]; then
+        fatal_error "Required OS: $1, current OS: $BASE_OS"
+    fi
 }
