@@ -250,6 +250,7 @@ exit_if_error() {
         dump_trace "$@"
         exit $rc
     }
+    return 0
 }
 
 fatal_error() {
