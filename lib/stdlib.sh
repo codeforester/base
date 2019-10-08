@@ -268,6 +268,15 @@ run_simple() {
     exit_if_error $? "run failed: $@"
 }
 
+#
+# safe cd
+#
+base_cd() {
+    local dir=$1
+    [[ $dir ]]   || fatal_error "No arguments or an empty string passed to base_cd"
+    cd -- "$dir" || fatal_error "Can't cd to '$dir'"
+}
+
 ################################################# MISC FUNCTIONS #######################################################
 #
 # For functions that need to return a single value, we use the global variable OUTPUT.
