@@ -1,6 +1,7 @@
 ##
 ## file related functions
 ##
+
 dirname2() {
   local path=$1
   [[ $path =~ ^[^/]+$ ]] && dir=. || {              # if path has no slashes, set dir to .
@@ -15,4 +16,24 @@ dirname2() {
   }
 
   [[ $dir ]] && printf '%s\n' "$dir"                # print only if not empty
+}
+
+#
+# Attempt to create a list of directories; throw fatal error lazily in case any mkdir fails
+#
+base_mkdir() {
+    local dir fails=0 failed_dirs=()
+    for dir; do
+        mkdir -p -- "$dir"
+        if (($? != 0)); then
+            ((fails++))
+            failed_dirs+=("$dir")
+        fi
+    done
+    if ((fails == 1)); then
+        fatal_error "Couldn't create directory '${failed_dirs[0]}'"
+    elif ((fails > 1)); then
+        fatal_error "Couldn't create these directories: ${failed_dirs[@]}"
+    fi
+    return 0
 }
