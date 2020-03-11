@@ -77,7 +77,7 @@ verify_base() {
 }
 
 do_install() {
-    local repo="ssh://git.corp.linkedin.com:29418/tools-sre/base"
+    local repo="git@github.com:codeforester/base.git"
     if [[ -d $BASE_HOME ]]; then
         printf '%s\n' "base is already installed at '$BASE_HOME'"
     else
