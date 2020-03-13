@@ -15,11 +15,16 @@ install - install Base
 embrace - override .bash_profile and .bashrc so that Base gets enabled upon login
 update  - update Base by running 'git pull' in BASE_HOME directory
 run     - run the rest of the command line after initializing Base
+shell   - create an interactive Bash shell with Base initialized
 status  - check if Base is installed or not
 help    - show this help message
 
-When invoked without any arguments, base gives you an interactive bash shell with Base initialized.
+When invoked without any arguments, it does the same thing as 'base shell'.
 EOF
+}
+
+init_globals() {
+    glb_marker="# BASE_MARKER, do not delete"
 }
 
 base_init() {
@@ -69,7 +74,7 @@ verify_base() {
         done
         cd -- "$oldpwd"
         if (( ${#missing[@]} > 0)); then
-            glb_error_message="Files missing in base repo: ${missing[@]}"
+            glb_error_message="Files missing in Base repo: ${missing[@]}"
             return 1
         fi
     fi
@@ -77,13 +82,13 @@ verify_base() {
 }
 
 do_install() {
-    local repo="git@github.com:codeforester/base.git"
+    local repo="ssh://git.corp.linkedin.com:29418/tools-sre/base"
     if [[ -d $BASE_HOME ]]; then
-        printf '%s\n' "base is already installed at '$BASE_HOME'"
+        printf '%s\n' "Base is already installed at '$BASE_HOME'"
     else
         git clone "$repo" "$BASE_HOME"
-        exit_if_error $? "Couldn't install base"
-        printf '%s\n' "Installed base at '$BASE_HOME'"
+        exit_if_error $? "Couldn't install Base"
+        printf '%s\n' "Installed Base at '$BASE_HOME'"
         #
         # patch .baserc
         # This is how we remember custom BASE_HOME path and BASE_TEAM values.
@@ -92,20 +97,19 @@ do_install() {
         #
         local baserc=$HOME/.baserc
         local baserc_temp=$HOME/.baserc.temp
-        local marker="# BASE_MARKER, do not delete"
         if [[ ! -f $baserc ]]; then
             touch -- "$baserc"
             exit_if_error $? "Couldn't create '$baserc'"
-        else
-            local base_text_array=("export BASE_HOME=$BASE_HOME $marker"
-                                   "export BASE_TEAM=$BASE_TEam $marker")
-            local base_text
-            printf -v base_text '%s\n' "${base_text_array[@]}"
-            cat <(grep -v -- "$marker" "$baserc") - <<< "base_text" > "$baserc_temp"
-            exit_if_error $? "Couldn't create '$baserc_temp'"
-            mv -f -- "$baserc_temp" "$baserc"
-            exit_if_error $? "Couldn't overwrite '$baserc'"
         fi
+
+        local base_text_array=("export BASE_HOME=$BASE_HOME $glb_marker")
+        [[ $BASE_TEAM ]] && base_text_array+=("export BASE_TEAM=$BASE_TEAM $glb_marker")
+        local base_text
+        printf -v base_text '%s\n' "${base_text_array[@]}"
+        cat <(grep -v -- "$glb_marker" "$baserc") - <<< "$base_text" > "$baserc_temp"
+        exit_if_error $? "Couldn't create '$baserc_temp'"
+        mv -f -- "$baserc_temp" "$baserc"
+        exit_if_error $? "Couldn't overwrite '$baserc'"
     fi
     exit 0
 }
@@ -132,7 +136,9 @@ do_embrace() {
         local bash_profile_backup=$HOME/.bash_profile.$current_time
         printf '%s\n' "Backing up $bash_profile to $bash_profile_backup and overriding it with $base_bash_profile"
         if cp -- "$bash_profile" "$bash_profile_backup"; then
-            ln -sf -- "$base_bash_profile" "$bash_profile"
+            if ln -sf -- "$base_bash_profile" "$bash_profile"; then
+                printf '%s\n' "Symlinked '$bash_profile' to '$base_bash_profile'"
+            fi
         else
             exit_if_error $? "ERROR: can't create a backup of $bash_profile"
         fi
@@ -143,7 +149,9 @@ do_embrace() {
         local bashrc_backup=$HOME/.bashrc.$current_time
         printf '%s\n' "Backing up $bashrc to $bashrc_backup and overriding it with $base_bashrc"
         if cp -- "$bashrc" "$bashrc_backup"; then
-            ln -sf -- "$base_bashrc" "$bashrc"
+            if ln -sf -- "$base_bashrc" "$bashrc"; then
+                printf '%s\n' "Symlinked '$bash_profile' to '$base_bash_profile'"
+            fi
         else
             exit_if_error $? "ERROR: can't create a backup of $bashrc"
         fi
@@ -155,7 +163,7 @@ do_update() {
         cd -- "$BASE_HOME" || error_exit "Can't cd to BASE_HOME at '$BASE_HOME'"
         git pull
     else
-        printf '%s\n' "ERROR: base is not installed at BASE_HOME '$BASE_HOME'"
+        printf '%s\n' "ERROR: Base is not installed at BASE_HOME '$BASE_HOME'"
         exit 1
     fi
 }
@@ -167,14 +175,14 @@ do_run() {
 
 do_status() {
     if [[ ! -d $BASE_HOME ]]; then
-        printf '%s\n' "base is not installed at '$BASE_HOME'"
+        printf '%s\n' "Base is not installed at '$BASE_HOME'"
         exit 1
     fi
 
     if ! verify_base; then
         error_exit "$glb_error_message"
     else
-        printf '%s\n' "base is installed at $BASE_HOME"
+        printf '%s\n' "Base is installed at $BASE_HOME"
     fi
     exit 0
 }
@@ -226,7 +234,7 @@ main() {
     help)
         show_common_help
         ;;
-    "")
+    ""|shell)
         do_shell
         ;;
     *)
