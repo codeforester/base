@@ -277,6 +277,25 @@ base_cd() {
     cd -- "$dir" || fatal_error "Can't cd to '$dir'"
 }
 
+base_cd_nonfatal() {
+    local dir=$1
+    [[ $dir ]] || return 1
+    cd -- "$dir" || return 1
+    return 0
+}
+
+#
+# safe_unalias
+#
+safe_unalias() {
+	# Ref: https://stackoverflow.com/a/61471333/6862601
+    local alias_name
+    for alias_name; do
+        [[ ${BASH_ALIASES[$alias_name]} ]] && unalias "$alias_name"
+    done
+    return 0
+}
+
 ################################################# MISC FUNCTIONS #######################################################
 #
 # For functions that need to return a single value, we use the global variable OUTPUT.

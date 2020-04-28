@@ -1,30 +1,50 @@
 #!/usr/bin/env bash
 
+#
+# base.sh
+#
+# This is a wrapper or a common entry point for Base. It helps in two main ways:
+#
+# 1. Install base or change Base settings  (install, embrace, set-team, set-shared-team)
+# 2. Do things with the installed version of Base (status, run, shell)
+#
+# In shell mode, we would create a Bash shell:
+# a) using Base's bash_profile in case Base is installed
+# b) using the in-line common bash_profile in case Base is not installed
+#
+
 error_exit()    { printf '%s\n' "$@" >&2; exit 1; }
 exit_if_error() { local ec=$1; shift; (($ec)) && error_exit "$@"; }
 cd_base()       { cd -- "$BASE_HOME" || exit_if_error 1 "Can't cd to BASE_HOME at '$BASE_HOME'"; }
+usage_error() {
+    printf '%s\n' "$@" >&2
+    show_common_help >&2
+    exit 2
+}
 
 show_common_help() {
     cat << EOF
-Usage: base [-b DIR] [-t TEAM] [-x] [install|embrace|update|run|status|help] ...
--b DIR  - use DIR as BASE_HOME directory
--t TEAM - use TEAM as BASE_TEAM
--x      - turn on bash debug mode
+Usage: base [-b DIR] [-t TEAM] [-x] [install|embrace|update|run|status|shell|help] ...
+-b DIR     - use DIR as BASE_HOME directory
+-t TEAM    - use TEAM as BASE_TEAM
+-s TEAM    - use TEAM as BASE_SHARED_TEAMS [use space delimited strings for multiple teams]
+-v         - show the CLI version
+-x         - turn on bash debug mode
 
-install - install Base
-embrace - override .bash_profile and .bashrc so that Base gets enabled upon login
-update  - update Base by running 'git pull' in BASE_HOME directory
-run     - run the rest of the command line after initializing Base
-shell   - create an interactive Bash shell with Base initialized
-status  - check if Base is installed or not
-help    - show this help message
+install              - install Base
+embrace              - override .bash_profile and .bashrc so that Base gets enabled upon login
+update               - update Base by running 'git pull' in BASE_HOME directory
+run                  - run the rest of the command line after initializing Base
+shell                - if Base is installed, create an interactive Bash shell with Base initialized
+                       if Base is not installed, create an interactive Bash shell with default settings
+status               - check if Base is installed or not
+set-team TEAM        - set BASE_TEAM in $HOME/.baserc
+set-shared-team TEAM - set shared BASE_SHARED_TEAMS in $HOME/.baserc [use space delimited strings for multiple teams]
+version              - show the CLI version
+help                 - show this help message
 
-When invoked without any arguments, it does the same thing as 'base shell'.
+Invoking without any arguments would result in an interactive Bash shell with default settings.
 EOF
-}
-
-init_globals() {
-    glb_marker="# BASE_MARKER, do not delete"
 }
 
 base_init() {
@@ -33,6 +53,13 @@ base_init() {
 }
 
 get_base_home() {
+    if [[ ! $HOME ]]; then
+        error_exit "Environment variable 'HOME' is not set!"
+    fi
+    if [[ ! -d $HOME ]]; then
+        error_exit "\$HOME '$HOME' is not a directory!"
+    fi
+
     # if BASE_HOME is not already set, source .baserc to see it is defined there
     if [[ ! $BASE_HOME ]]; then
         local baserc=$HOME/.baserc
@@ -81,8 +108,30 @@ verify_base() {
     return 0
 }
 
+patch_baserc() {
+    local var value base_text_array=()
+    local marker="# BASE_MARKER, do not delete"
+    local baserc=$HOME/.baserc baserc_temp=$HOME/.baserc.temp
+    for var; do
+        value=${!var}
+        if [[ $value ]]; then
+            base_text_array+=("export $var=\"$value\" $marker")
+        fi
+    done
+    if [[ ! -f $baserc ]]; then
+        touch -- "$baserc"
+        exit_if_error $? "Couldn't create '$baserc'"
+    fi
+    grep -v -- "$marker" "$baserc" > "$baserc_temp"
+    exit_if_error $? "Couldn't create '$baserc_temp'"
+    printf '%s\n' "${base_text_array[@]}" >> "$baserc_temp"
+    exit_if_error $? "Couldn't append to '$baserc_temp'"
+    mv -f -- "$baserc_temp" "$baserc"
+    exit_if_error $? "Couldn't overwrite '$baserc'"
+}
+
 do_install() {
-    local repo="ssh://git.corp.linkedin.com:29418/tools-sre/base"
+    local repo="ssh://git@github.com:codeforester/base.git"
     if [[ -d $BASE_HOME ]]; then
         printf '%s\n' "Base is already installed at '$BASE_HOME'"
     else
@@ -95,21 +144,8 @@ do_install() {
         # The user is free to put custom code into the .baserc file.
         # A marker is appended to the lines managed by base CLI
         #
-        local baserc=$HOME/.baserc
-        local baserc_temp=$HOME/.baserc.temp
-        if [[ ! -f $baserc ]]; then
-            touch -- "$baserc"
-            exit_if_error $? "Couldn't create '$baserc'"
-        fi
 
-        local base_text_array=("export BASE_HOME=$BASE_HOME $glb_marker")
-        [[ $BASE_TEAM ]] && base_text_array+=("export BASE_TEAM=$BASE_TEAM $glb_marker")
-        local base_text
-        printf -v base_text '%s\n' "${base_text_array[@]}"
-        cat <(grep -v -- "$glb_marker" "$baserc") - <<< "$base_text" > "$baserc_temp"
-        exit_if_error $? "Couldn't create '$baserc_temp'"
-        mv -f -- "$baserc_temp" "$baserc"
-        exit_if_error $? "Couldn't overwrite '$baserc'"
+        patch_baserc BASE_HOME BASE_TEAM BASE_SHARED_TEAMS
     fi
     exit 0
 }
@@ -169,6 +205,9 @@ do_update() {
 }
 
 do_run() {
+    if ! verify_base; then
+        error_exit "$glb_error_message"
+    fi
     base_init
     "$@"
 }
@@ -188,8 +227,47 @@ do_status() {
 }
 
 do_shell() {
-    export BASE_SHELL=1
-    exec bash --rcfile "$BASE_HOME/lib/bash_profile"
+    local base_bash_profile=$BASE_HOME/lib/bash_profile
+    if [[ -d $BASE_HOME && -f $base_bash_profile ]]; then
+        export BASE_SHELL=1
+        exec bash --rcfile "$base_bash_profile"
+    else
+        do_common_shell
+    fi
+}
+
+do_common_shell() {
+    local common_bash_profile=${0%/*}/bash_profile
+    if [[ -f $common_bash_profile ]]; then
+        exec bash --rcfile "$common_bash_profile"
+    else
+        error_exit "Common bash profile '$common_bash_profile' not found"
+    fi
+}
+
+do_version() {
+    printf '%s\n' "base version $BASE_VERSION"
+}
+
+do_set_team() {
+    if (($# > 1)); then
+        usage_error "Got too many arguments"
+    else
+        [[ $BASE_TEAM ]] || BASE_TEAM=$1
+        if [[ ! $BASE_TEAM ]]; then
+            usage_error "Usage: base set-team TEAM"
+        fi
+    fi
+
+    patch_baserc BASE_TEAM
+}
+
+do_set_shared_teams() {
+    [[ $BASE_SHARED_TEAMS ]] || BASE_SHARED_TEAMS=$*
+    if [[ ! $BASE_SHARED_TEAMS ]]; then
+        usage_error "Usage: base set-shared-teams TEAM ..."
+    fi
+    patch_baserc BASE_SHARED_TEAMS
 }
 
 main() {
@@ -198,17 +276,17 @@ main() {
         exit 0
     fi
 
-    while getopts "hb:t:x" opt; do
+    unset BASE_TEAM BASE_SHARED_TEAM
+    while getopts "hb:s:t:vx" opt; do
         case $opt in
-        b) export BASE_HOME=$OPTARG
-           ;;
-        t) export BASE_TEAM=$OPTARG
-           ;;
-        x) set -x
-           ;;
+        b) export BASE_HOME=$OPTARG;;
+        t) export BASE_TEAM=$OPTARG;;
+        s) export BASE_SHARED_TEAMS=$OPTARG;;
+        v) do_version
+           exit 0;;
+        x) set -x;;
         *) show_common_help >&2
-           exit 2
-           ;;
+           exit 2;;
         esac
     done
     shift $((OPTIND-1))
@@ -216,32 +294,18 @@ main() {
     shift 2>/dev/null
     get_base_home
     case $command in
-    install)
-        do_install
-        ;;
-    update)
-        do_update
-        ;;
-    embrace)
-        do_embrace
-        ;;
-    run)
-        do_run "$@"
-        ;;
-    status)
-        do_status
-        ;;
-    help)
-        show_common_help
-        ;;
-    ""|shell)
-        do_shell
-        ;;
-    *)
-        printf '%s\n' "Unrecognized command: $command" >&2
-        show_common_help >&2
-        exit 2
-        ;;
+    embrace)          do_embrace;;
+    help)             show_common_help;;
+    install)          do_install;;
+    run)              do_run "$@";;
+    set-shared-teams) do_set_shared_teams "$@";;
+    set-team)         do_set_team "$@";;
+    shell)            do_shell;;
+    status)           do_status;;
+    update)           do_update;;
+    version)          do_version;;
+    "")               do_common_shell;;
+    *)                usage_error "Unrecognized command: $command";;
     esac
 }
 

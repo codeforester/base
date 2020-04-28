@@ -37,3 +37,31 @@ base_mkdir() {
     fi
     return 0
 }
+
+#
+# Simple copy with error check
+#
+base_simple_cp() {
+    local src=$1 dest=$2
+    if (($# != 2)); then
+        fatal_error "Usage: base_simple_cp source dest"
+    fi
+
+    if ! command cp -- "$src" "$dest"; then
+        fatal_error "Can't cp '$src' to '$dest'"
+    fi
+}
+
+#
+# Simple move with error check
+#
+base_simple_mv() {
+    local src=$1 dest=$2
+    if (($# != 2)); then
+        fatal_error "Usage: base_simple_mv source dest"
+    fi
+
+    if ! command mv -- "$src" "$dest"; then
+        fatal_error "Can't mv '$src' to '$dest'"
+    fi
+}
