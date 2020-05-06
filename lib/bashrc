@@ -40,7 +40,7 @@ base_init() {
 
     # set BASE_HOME to default in case it is not set
     [[ -z $BASE_HOME ]] && {
-        dir=$HOME/git/base
+        dir=$HOME/base
         base_debug "Defaulting BASE_HOME to '$dir'"
         export BASE_HOME=$dir
     }
