@@ -112,7 +112,7 @@ set_base_home() {
 
     # set BASE_HOME to default in case it is not set
     [[ -z $BASE_HOME ]] && {
-        local dir=$HOME/git/base
+        local dir=$HOME/base
         base_debug "BASE_HOME not set; defaulting it to '$dir'"
         BASE_HOME=$dir
     }

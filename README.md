@@ -24,7 +24,7 @@ Base needs Bash version 4.2 or above.
 
 Set up is easy.  Essentially, this is what you have to do:
 
-* Check out Base. The standard location for Base is $HOME/git/base.  In case your git directory is elsewhere, symlink `$HOME/git` to it or specify the path by setting `BASE_HOME` in `$HOME/.baserc` file.
+* Check out Base. The standard location for Base is $HOME/base.  In case your git directory is elsewhere, symlink `$HOME/git` to it or specify the path by setting `BASE_HOME` in `$HOME/.baserc` file.
 * Consolidate your individual settings from your current `.bash_profile` and `.bashrc` into `$USER.sh` file.  Place this file under `base/user` directory and check it in to git.
 * Make a backup of your `.bash_profile`.  Replace this file with a symlink to `base/lib/bash_profile`.
 * Make a backup of your `.bashrc`.  Replace this file with a symlink to `base/lib/bashrc`.
@@ -37,10 +37,10 @@ Here is an example:
     mkdir git && cd git
     git clone git@github.com:codeforester/base.git
     cd $HOME
-    mv .bash_profile .bash_profile.safe && ln -sf $HOME/git/base/lib/bash_profile .bash_profile
-    mv .bashrc       .bashrc.safe       && ln -sf $HOME/git/base/lib/bashrc       .bashrc
-    cp $USER.sh $HOME/git/base/user
-    cd $HOME/git/base
+    mv .bash_profile .bash_profile.safe && ln -sf $HOME/base/lib/bash_profile .bash_profile
+    mv .bashrc       .bashrc.safe       && ln -sf $HOME/base/lib/bashrc       .bashrc
+    cp $USER.sh $HOME/base/user
+    cd $HOME/base
     git add user/$USER.sh
     git commit -m "Adding the initial version of $USER.sh"
     git push
@@ -85,7 +85,7 @@ In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does 
 
 # **FAQ**
 
-## My git location is not `$HOME/git/base`.  What should I do?
+## My git location is not `$HOME/base`.  What should I do?
 
 You can either
 
@@ -93,7 +93,7 @@ You can either
       
   BASE_HOME=/path/to/base
 
-* symlink `$HOME/git/base` to the right place
+* symlink `$HOME/base` to the right place
 
 You need to do this on every host where you want Base.
 
