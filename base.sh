@@ -28,6 +28,7 @@ Usage: base [-b DIR] [-t TEAM] [-x] [install|embrace|update|run|status|shell|hel
 -b DIR     - use DIR as BASE_HOME directory
 -t TEAM    - use TEAM as BASE_TEAM
 -s TEAM    - use TEAM as BASE_SHARED_TEAMS [use space delimited strings for multiple teams]
+-f         - ignore the existing installation and force install [relevant only for 'base install' command]
 -v         - show the CLI version
 -x         - turn on bash debug mode
 
@@ -122,8 +123,9 @@ patch_baserc() {
         touch -- "$baserc"
         exit_if_error $? "Couldn't create '$baserc'"
     fi
+    rm -f "$baserc_temp"
     grep -v -- "$marker" "$baserc" > "$baserc_temp"
-    exit_if_error $? "Couldn't create '$baserc_temp'"
+    [[ -f $baserc_temp ]] || exit_if_error 1 "Couldn't create '$baserc_temp'"
     printf '%s\n' "${base_text_array[@]}" >> "$baserc_temp"
     exit_if_error $? "Couldn't append to '$baserc_temp'"
     mv -f -- "$baserc_temp" "$baserc"
@@ -133,20 +135,31 @@ patch_baserc() {
 do_install() {
     local repo="ssh://git@github.com:codeforester/base.git"
     if [[ -d $BASE_HOME ]]; then
-        printf '%s\n' "Base is already installed at '$BASE_HOME'"
-    else
-        git clone "$repo" "$BASE_HOME"
-        exit_if_error $? "Couldn't install Base"
-        printf '%s\n' "Installed Base at '$BASE_HOME'"
-        #
-        # patch .baserc
-        # This is how we remember custom BASE_HOME path and BASE_TEAM values.
-        # The user is free to put custom code into the .baserc file.
-        # A marker is appended to the lines managed by base CLI
-        #
-
-        patch_baserc BASE_HOME BASE_TEAM BASE_SHARED_TEAMS
+        if ((force_install)); then
+            local base_home_backup=$BASE_HOME.$current_time
+            if mv -- "$BASE_HOME" "$base_home_backup"; then
+                printf '%s\n' "Moved current base home directory '$BASE_HOME' to '$base_home_backup'"
+            else
+                exit_if_error 1 "Couldn't move current base home directory '$BASE_HOME' to '$base_home_backup'"
+            fi
+        else
+            printf '%s\n' "Base is already installed at '$BASE_HOME'"
+            exit 0
+        fi
     fi
+
+    git clone "$repo" "$BASE_HOME"
+    exit_if_error $? "Couldn't install Base"
+    printf '%s\n' "Installed Base at '$BASE_HOME'"
+
+    #
+    # patch .baserc
+    # This is how we remember custom BASE_HOME path and BASE_TEAM values.
+    # The user is free to put custom code into the .baserc file.
+    # A marker is appended to the lines managed by base CLI.
+    #
+    patch_baserc BASE_HOME BASE_TEAM BASE_SHARED_TEAMS
+
     exit 0
 }
 
@@ -164,8 +177,6 @@ do_embrace() {
     if [[ -L $bashrc ]]; then
         local bashrc_link=$(readlink "$bashrc")
     fi
-    local current_time
-    printf -v current_time '%(%Y-%m-%d:%H:%M:%S)T' -1
     if [[ $bash_profile_link = $base_bash_profile ]]; then
         printf '%s\n' "$bash_profile is already symlinked to $base_bash_profile"
     else
@@ -277,11 +288,14 @@ main() {
     fi
 
     unset BASE_TEAM BASE_SHARED_TEAM
-    while getopts "hb:s:t:vx" opt; do
+    force_install=0
+    printf -v current_time '%(%Y-%m-%d:%H:%M:%S)T' -1
+    while getopts "fhb:s:t:vx" opt; do
         case $opt in
         b) export BASE_HOME=$OPTARG;;
         t) export BASE_TEAM=$OPTARG;;
         s) export BASE_SHARED_TEAMS=$OPTARG;;
+        f) force_install=1;;
         v) do_version
            exit 0;;
         x) set -x;;
