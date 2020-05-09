@@ -1,7 +1,11 @@
 #!/usr/bin/env base-wrapper
 
 #
-# test command
+# see bin/test-command1 to understand the structure of a Base-wrapped script
+#
+
+#
+# test command for team
 #
 main() {
     log_info "Starting"
