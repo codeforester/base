@@ -62,7 +62,7 @@ base_deactivate() {
         unset _old_PATH _old_PS1 _old_vars_saved _old_BASE_HOME
         unset BASE_OS BASE_HOST BASE_DEBUG BASE_SOURCES
         unset -f check_bash_version do_init base_debug base_error set_base_home source_it \
-                import_libs_and_profiles base_update base_wrapper base_main \
+                import_libs_and_profiles base_update base_main \
                 base_deactivate
         unset __base_init_sourced__
     fi
@@ -186,48 +186,6 @@ base_update() (
     }
 )
 
-#
-# base_wrapper
-#
-# This function is meant to be called by scripts that are built on top of base.
-# base_wrapper is exported so that it is visible to sub processes started from the login shell.
-# It discovers base_init and sources it.  It also looks at the command line arguments and interprets a few of those,
-# like --debug.  It calls the main function the modified argument list.  The main function is expected to be defined by
-# the calling script.
-#
-base_wrapper() {
-    local grab_debug=0 arg args script
-    [[ $1 = "-d" ]] && { grab_debug=1; shift; }
-    [[ $BASE_HOME ]]    || { printf '%s\n' "ERROR: BASE_HOME is not set" >&2; exit 1; }
-    [[ -d $BASE_HOME ]] || { printf '%s\n' "ERROR: BASE_HOME '$BASE_HOME'is not a directory or is not readable" >&2; exit 1; }
-    script=$BASE_HOME/base_init.sh
-    [[ -f $script ]]    || { printf '%s\n' "ERROR: base_init script '$script'is not present or is not readable" >&2; exit 1; }
-    # shellcheck source=/dev/null
-    source "$script"
-    ((grab_debug)) && {
-        #
-        # grab out '-debug' or '--debug' from argument list and set a global variable to turn on debug mode
-        #
-        for arg; do
-            if [[ $arg = "-debug" ||  $arg = "--debug" ]]; then
-                BASE_DEBUG=1
-            elif [[ $arg = "-describe" ||  $arg = "--describe" ]]; then
-                _describe
-                exit $?
-            elif [[ $arg = "-help" ||  $arg = "--help" ]]; then
-                _help
-                exit $?
-            else
-                args+=("$arg")
-            fi
-        done
-
-        set -- "${args[@]}"
-    }
-
-    main "$@"
-}
-
 base_main() {
     check_bash_version 4 2 || return $?
     do_init || return $?
@@ -243,7 +201,7 @@ base_main() {
     #
     # these functions need to be available to user's subprocesses
     #
-    export -f base_update base_wrapper import base_activate base_deactivate
+    export -f base_update import base_activate base_deactivate
 }
 
 #

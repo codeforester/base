@@ -80,7 +80,6 @@ In a typical setting, `.bashrc` sources in `$BASE_HOME/base_init.sh` which does 
 # **Functions exported by base_init.sh**
 
 * import       - sources in libraries from any place under `BASE_HOME` directory
-* base_wrapper - initializes Base inside scripts
 * base_update  - does a `git pull` on Base git directory; add it to `user/<user>.sh` to "auto update" Base
 
 # **FAQ**

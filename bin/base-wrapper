@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+#
+# base_wrapper
+#
+# This script is meant to be used in the shebang line of Base scripts, like this:
+#
+# #!/usr/bin/env base-wrapper
+#
+# What does this wrapper do?
+#
+# It discovers base_init and sources it.  It also looks at the command line options and interprets a few of those,
+# like --debug, --help, --describe etc.  It calls the main function with the special options removed from the argument list.
+# The main function is expected to be defined by the wrapped script.
+#
+
+_check_and_execute() {
+    local cmd=$1; shift
+    if command -v -- "$cmd" &>/dev/null; then
+        "$cmd" "$@"
+        exit $?
+    else
+        print_error "Function '$cmd' not implemented"
+        exit 1
+    fi
+}
+
+base_wrapper() {
+    local arg args script
+
+    ##
+    ## Do Base set up
+    ##
+
+    [[ $1 = "-d" ]] && { grab_debug=1; shift; }
+    [[ $BASE_HOME ]]    || { printf '%s\n' "ERROR: BASE_HOME is not set" >&2; exit 1; }
+    [[ -d $BASE_HOME ]] || { printf '%s\n' "ERROR: BASE_HOME '$BASE_HOME'is not a directory or is not readable" >&2; exit 1; }
+    script=$BASE_HOME/base_init.sh
+    [[ -f $script ]]    || { printf '%s\n' "ERROR: base_init script '$script'is not present or is not readable" >&2; exit 1; }
+    # shellcheck source=/dev/null
+    source "$script"
+    import lib/stdlib.sh
+
+    ##
+    ## Execute the script after processing the special command line arguments
+    ##
+
+    source "$1"
+    shift
+    for arg; do
+        if [[ $arg = "-debug" ||  $arg = "--debug" ]]; then
+            BASE_DEBUG=1
+            set -x
+        elif [[ $arg = "-describe" ||  $arg = "--describe" ]]; then
+            _check_and_execute base_describe
+        elif [[ $arg = "-help" ||  $arg = "--help" || $arg = "-h" ]]; then
+            _check_and_execute base_help
+        else
+            args+=("$arg")
+        fi
+    done
+
+    set -- "${args[@]}"
+    _check_and_execute main "$@"
+}
+
+base_wrapper "$@"

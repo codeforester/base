@@ -1,3 +1,5 @@
+#!/usr/bin/env base-wrapper
+
 #
 # test command
 #
@@ -6,5 +8,3 @@ main() {
     # do something
     log_info "Finished"
 }
-
-base_wrapper "$@" || { printf '%s\n' "ERROR: base environment not initialized; make sure you have sourced base_init.sh before invoking this script" >&2; exit 1; }

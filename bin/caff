@@ -1,8 +1,12 @@
+#!/usr/bin/env base-wrapper
+
 #
 # caff: call caffeinate for a named process
 #
 
-_help() {
+name=caff
+description="Caffeinate a named process"
+base_help() {
     cat << EOUSAGE
 $description
 Usage: caff process_name
@@ -10,7 +14,7 @@ If process_name matches multiple running process, we pick up the first one.
 EOUSAGE
 }
 
-_describe() {
+base_describe() {
     printf '%s\n' "$description"
 }
 
@@ -27,7 +31,7 @@ main() {
 
     (($# != 1)) && {
         print_error "need an argument"
-        _help
+        base_help
         exit 2
     }
 
@@ -49,10 +53,4 @@ main() {
     printf '%s\n' "Caffeinating PID $vpid"
     caffeinate -iw "$vpid" & disown
     exit $?
-}
-
-description="Caffeinate a named process"
-base_wrapper -d "$@" || {
-    printf '%s\n' "You need to initialize Base before running this script." >&2
-    exit 1
 }
