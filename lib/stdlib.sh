@@ -89,12 +89,18 @@ print_path() {
 #################################################### LOGGING ###########################################################
 
 __log_init__() {
-    # colors for logging
-    [[ $COLOR_RED ]]    || COLOR_RED="\e[1;31m"
-    [[ $COLOR_YELLOW ]] || COLOR_YELLOW="\e[1;33m"
-    [[ $COLOR_BLUE ]]   || COLOR_BLUE="\e[1;34m"
-    [[ $COLOR_OFF ]]    || COLOR_OFF="\e[0m"
-    readonly COLOR_RED COLOR_YELLOW COLOR_OFF
+    if [[ -t 1 ]]; then
+        # colors for logging in interactive mode
+        [[ $COLOR_RED ]]    || COLOR_RED="\033[0;31m"
+        [[ $COLOR_GREEN ]]  || COLOR_GREEN="\033[0;34m"
+        [[ $COLOR_YELLOW ]] || COLOR_YELLOW="\033[0;33m"
+        [[ $COLOR_BLUE ]]   || COLOR_BLUE="\033[0;32m"
+        [[ $COLOR_OFF ]]    || COLOR_OFF="\033[0m"
+    else
+        # no colors to be used if non-interactive
+        COLOR_RED= COLOR_GREEN= COLOR_YELLOW= COLOR_BLUE= COLOR_OFF=
+    fi
+    readonly COLOR_RED COLOR_GREEN COLOR_YELLOW COLOR_BLUE COLOR_OFF
 
     #
     # map log level strings (FATAL, ERROR, etc.) to numeric values
@@ -200,7 +206,10 @@ log_info_leave()    { _print_log INFO    "Leaving function ${FUNCNAME[1]}";  }
 log_debug_leave()   { _print_log DEBUG   "Leaving function ${FUNCNAME[1]}";  }
 log_verbose_leave() { _print_log VERBOSE "Leaving function ${FUNCNAME[1]}";  }
 
-# print an error message to stderr
+#
+# THe print routines don't prefix the messages with the timestamp
+#
+
 print_error() {
     {
         printf "${COLOR_RED}ERROR: "
@@ -209,7 +218,6 @@ print_error() {
     } >&2
 }
 
-# print a warning message to stdout
 print_warn() {
     printf "${COLOR_YELLOW}WARN: "
     printf '%s\n' "$@"
@@ -220,6 +228,16 @@ print_info() {
     printf "$COLOR_BLUE"
     printf '%s\n' "$@"
     printf "$COLOR_OFF"
+}
+
+print_success() {
+    printf "${COLOR_GREEN}SUCCESS: "
+    printf '%s\n' "$@"
+    printf "$COLOR_OFF"
+}
+
+print_message() {
+    printf '%s\n' "$@"
 }
 
 ################################################## ERROR HANDLING ######################################################
@@ -288,7 +306,7 @@ base_cd_nonfatal() {
 # safe_unalias
 #
 safe_unalias() {
-	# Ref: https://stackoverflow.com/a/61471333/6862601
+    # Ref: https://stackoverflow.com/a/61471333/6862601
     local alias_name
     for alias_name; do
         [[ ${BASH_ALIASES[$alias_name]} ]] && unalias "$alias_name"
