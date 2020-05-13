@@ -13,7 +13,7 @@
 # b) using the in-line common bash_profile in case Base is not installed
 #
 
-error_exit()    { printf '%s\n' "$@" >&2; exit 1; }
+error_exit()    { printf 'ERROR: %s\n' "$@" >&2; exit 1; }
 exit_if_error() { local ec=$1; shift; (($ec)) && error_exit "$@"; }
 cd_base()       { cd -- "$BASE_HOME" || exit_if_error 1 "Can't cd to BASE_HOME at '$BASE_HOME'"; }
 usage_error() {
@@ -85,16 +85,16 @@ verify_base() {
     # now make sure BASE_HOME directory is actually a git repo
     local git=$BASE_HOME/.git
     if [[ ! -d $git ]]; then
-        glb_error_message="Directory '$BASE_HOME' isn't a git repo"
+        glb_error_message="Directory '$BASE_HOME' isn't a git repo; check if Base is installed"
         return 1
     else
         local oldpwd=$PWD
         cd -- "$git" || { glb_error_message="Can't cd to '$git' directory"; return 1; }
         if ! git rev-parse --git-dir &>/dev/null; then
-            glb_error_message="Directory '$git' isn't a git repo"
+            glb_error_message="Directory '$git' isn't a git repo; check if Base is installed"
             return 1
         fi
-        local file missing
+        local file missing=()
         for file in base_init.sh lib/bash_profile lib/bashrc; do
             if [[ ! -f $BASE_HOME/$file ]]; then
                 missing+=($file)
@@ -179,7 +179,7 @@ do_embrace() {
     fi
     if [[ $bash_profile_link = $base_bash_profile ]]; then
         printf '%s\n' "$bash_profile is already symlinked to $base_bash_profile"
-    else
+    elif [[ -f $bash_profile ]]; then
         local bash_profile_backup=$HOME/.bash_profile.$current_time
         printf '%s\n' "Backing up $bash_profile to $bash_profile_backup and overriding it with $base_bash_profile"
         if cp -- "$bash_profile" "$bash_profile_backup"; then
@@ -192,7 +192,7 @@ do_embrace() {
     fi
     if [[ $bashrc_link = $base_bashrc ]]; then
         printf '%s\n' "$bashrc is already symlinked to $base_bashrc"
-    else
+    elif [[ -f $bashrc ]]; then
         local bashrc_backup=$HOME/.bashrc.$current_time
         printf '%s\n' "Backing up $bashrc to $bashrc_backup and overriding it with $base_bashrc"
         if cp -- "$bashrc" "$bashrc_backup"; then
@@ -281,7 +281,16 @@ do_set_shared_teams() {
     patch_baserc BASE_SHARED_TEAMS
 }
 
+assert_bash_version() {
+    local curr_version=$1 min_needed_version=$2
+    if ((curr_version < min_needed_version)); then
+        print_error "Need Bash version >= $min_needed_version; your version is $curr_version"
+        exit 1
+    fi
+}
+
 main() {
+    local bash_version="${BASH_VERSINFO[0]}${BASH_VERSINFO[1]}" timefmt="%Y-%m-%d:%H:%M:%S"
     if [[ $1 =~ -h|--help|-help|help ]]; then
         show_common_help
         exit 0
@@ -289,7 +298,11 @@ main() {
 
     unset BASE_TEAM BASE_SHARED_TEAM
     force_install=0
-    printf -v current_time '%(%Y-%m-%d:%H:%M:%S)T' -1
+    if ((bash_version >= 42)); then
+        printf -v current_time "%($timefmt)T" -1
+    else
+        current_time=$(date +"$timefmt")
+    fi
     while getopts "fhb:s:t:vx" opt; do
         case $opt in
         b) export BASE_HOME=$OPTARG;;
@@ -310,7 +323,7 @@ main() {
     case $command in
     embrace)          do_embrace;;
     help)             show_common_help;;
-    install)          do_install;;
+    install)          assert_bash_version "$bash_version" 42; do_install;;
     run)              do_run "$@";;
     set-shared-teams) do_set_shared_teams "$@";;
     set-team)         do_set_team "$@";;
