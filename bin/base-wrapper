@@ -14,7 +14,9 @@
 # The main function is expected to be defined by the wrapped script.
 #
 
-_check_and_execute() {
+_bw_name="base-wrapper"
+_bw_description="Run shell scripts in a standardized environment enriched with Base features"
+_bw_check_and_execute() {
     local cmd=$1; shift
     if command -v -- "$cmd" &>/dev/null; then
         "$cmd" "$@"
@@ -23,6 +25,15 @@ _check_and_execute() {
         print_error "Function '$cmd' not implemented"
         exit 1
     fi
+}
+
+_bw_describe() {
+    printf '%s\n' "$_bw_description"
+}
+
+_bw_usage() {
+    printf '%s\n' "$_bw_name: $_bw_description"
+    printf '%s\n' "Usage: $_bw_name file"
 }
 
 base_wrapper() {
@@ -45,6 +56,15 @@ base_wrapper() {
     ## Execute the script after processing the special command line arguments
     ##
 
+    script=$1
+    if [[ ! $script ]]; then
+        _bw_usage >&2
+        exit 2
+    elif [[ ! -f $script ]]; then
+        print_error "Script '$script' does not exist"
+        _bw_usage >&2
+        exit 1
+    fi
     source "$1"
     shift
     for arg; do
@@ -52,16 +72,16 @@ base_wrapper() {
             BASE_DEBUG=1
             set -x
         elif [[ $arg = "-describe" ||  $arg = "--describe" ]]; then
-            _check_and_execute base_describe
+            _bw_check_and_execute base_describe
         elif [[ $arg = "-help" ||  $arg = "--help" || $arg = "-h" ]]; then
-            _check_and_execute base_help
+            _bw_check_and_execute base_help
         else
             args+=("$arg")
         fi
     done
 
     set -- "${args[@]}"
-    _check_and_execute main "$@"
+    _bw_check_and_execute main "$@"
 }
 
 base_wrapper "$@"
