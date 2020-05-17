@@ -150,7 +150,7 @@ import_libs_and_profiles() {
     source_it    "$BASE_HOME/company/lib/company.sh" # company specific library
     source_it -i "$BASE_HOME/company/lib/bashrc"     # company specific bashrc for interactive shells
     source_it -i "$BASE_HOME/user/$USER.sh"          # user specific bashrc in the repo for interactive shells
-    source_it -i "$BASE_HOME/.baserc-$USER"          # user specific bashrc outside the repo for interactive shells
+    source_it -i "$HOME/.baserc-$USER"               # user specific bashrc outside the repo for interactive shells
 
     #
     # team specific actions
