@@ -129,13 +129,12 @@ after making sure you have the base repo checked out under `$BASE_HOME` director
 
 If you don't want to change your `.bash_profile` at all, you can still turn Base on and off as needed. First, make sure BASE_HOME is set appropriately, ideally in your `.bash_profile`.
 
-Run this command to turn Base on:
+Run this command to turn get a shell with Base turned on:
 
-    source "$BASE_HOME/base_init.sh"
+    $BASE_HOME/base.sh shell
 
-Run this command to turn Base off:
-
-    base_deactivate
+or
+    $BASE_HOME/base.sh
 
 # **Debugging**
 
