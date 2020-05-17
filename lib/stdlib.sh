@@ -335,6 +335,14 @@ get_my_source_dir() {
     OUTPUT="$(cd "$(dirname "${BASH_SOURCE[1]}")" >/dev/null 2>&1 && pwd -P)"
 }
 
+#
+# wait for user to hit Enter key
+#
+wait_for_enter() {
+    local prompt=${1:-"Press Enter to continue"}
+    read -r -n1 -s -p "Press Enter to continue" </dev/tty
+}
+
 #################################################### END OF FUNCTIONS ##################################################
 
 __stdlib_init__
