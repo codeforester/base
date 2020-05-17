@@ -68,12 +68,12 @@ base_wrapper() {
     source "$1"
     shift
     for arg; do
-        if [[ $arg = "-debug" ||  $arg = "--debug" ]]; then
+        if [[ $arg =~ -debug|--debug ]]; then
             BASE_DEBUG=1
             set -x
-        elif [[ $arg = "-describe" ||  $arg = "--describe" ]]; then
+        elif [[ $arg =~ -describe|--describe|-desc|--desc ]]; then
             _bw_check_and_execute base_describe
-        elif [[ $arg = "-help" ||  $arg = "--help" || $arg = "-h" ]]; then
+        elif [[ $arg =~ -help|--help|-h|--help ]]; then
             _bw_check_and_execute base_help
         else
             args+=("$arg")
