@@ -43,6 +43,7 @@ set-team TEAM        - set BASE_TEAM in $HOME/.baserc
 set-shared-team TEAM - set shared BASE_SHARED_TEAMS in $HOME/.baserc [use space delimited strings for multiple teams]
 version              - show the CLI version
 help                 - show this help message
+man                  - print one line summary of all Base scripts, use '-t team' to filter by team
 
 Invoking without any arguments would result in an interactive Bash shell with default settings.
 EOF
@@ -110,7 +111,7 @@ verify_base() {
 }
 
 patch_baserc() {
-    local var value base_text_array=()
+    local var value base_text_array=() grep_expr
     local marker="# BASE_MARKER, do not delete"
     local baserc=$HOME/.baserc baserc_temp=$HOME/.baserc.temp
     for var; do
@@ -118,18 +119,28 @@ patch_baserc() {
         if [[ $value ]]; then
             base_text_array+=("export $var=\"$value\" $marker")
         fi
+        if [[ $grep_expr ]]; then
+            grep_expr="$grep_expr|$var=.*$marker"
+        else
+            grep_expr="$var=.*$marker"
+        fi
     done
     if [[ ! -f $baserc ]]; then
         touch -- "$baserc"
         exit_if_error $? "Couldn't create '$baserc'"
     fi
     rm -f "$baserc_temp"
-    grep -v -- "$marker" "$baserc" > "$baserc_temp"
+    if [[ $grep_expr ]]; then
+        grep -Ev -- "$grep_expr" "$baserc" > "$baserc_temp"
+    else
+        touch -- "$baserc_temp"
+    fi
     [[ -f $baserc_temp ]] || exit_if_error 1 "Couldn't create '$baserc_temp'"
     printf '%s\n' "${base_text_array[@]}" >> "$baserc_temp"
     exit_if_error $? "Couldn't append to '$baserc_temp'"
     mv -f -- "$baserc_temp" "$baserc"
     exit_if_error $? "Couldn't overwrite '$baserc'"
+    return 0
 }
 
 do_install() {
@@ -158,6 +169,8 @@ do_install() {
     # The user is free to put custom code into the .baserc file.
     # A marker is appended to the lines managed by base CLI.
     #
+    BASE_TEAM=$base_team
+    BASE_SHARED_TEAMS=$base_shared_teams
     patch_baserc BASE_HOME BASE_TEAM BASE_SHARED_TEAMS
 
     exit 0
@@ -179,28 +192,30 @@ do_embrace() {
     fi
     if [[ $bash_profile_link = $base_bash_profile ]]; then
         printf '%s\n' "$bash_profile is already symlinked to $base_bash_profile"
-    elif [[ -f $bash_profile ]]; then
-        local bash_profile_backup=$HOME/.bash_profile.$current_time
-        printf '%s\n' "Backing up $bash_profile to $bash_profile_backup and overriding it with $base_bash_profile"
-        if cp -- "$bash_profile" "$bash_profile_backup"; then
-            if ln -sf -- "$base_bash_profile" "$bash_profile"; then
-                printf '%s\n' "Symlinked '$bash_profile' to '$base_bash_profile'"
+    else
+        if [[ -f $bash_profile ]]; then
+            local bash_profile_backup=$HOME/.bash_profile.$current_time
+            printf '%s\n' "Backing up $bash_profile to $bash_profile_backup and overriding it with $base_bash_profile"
+            if ! cp -- "$bash_profile" "$bash_profile_backup"; then
+                exit_if_error $? "ERROR: can't create a backup of $bash_profile"
             fi
-        else
-            exit_if_error $? "ERROR: can't create a backup of $bash_profile"
+        fi
+        if ln -sf -- "$base_bash_profile" "$bash_profile"; then
+            printf '%s\n' "Symlinked '$bash_profile' to '$base_bash_profile'"
         fi
     fi
     if [[ $bashrc_link = $base_bashrc ]]; then
         printf '%s\n' "$bashrc is already symlinked to $base_bashrc"
-    elif [[ -f $bashrc ]]; then
-        local bashrc_backup=$HOME/.bashrc.$current_time
-        printf '%s\n' "Backing up $bashrc to $bashrc_backup and overriding it with $base_bashrc"
-        if cp -- "$bashrc" "$bashrc_backup"; then
-            if ln -sf -- "$base_bashrc" "$bashrc"; then
-                printf '%s\n' "Symlinked '$bash_profile' to '$base_bash_profile'"
+    else
+        if [[ -f $bashrc ]]; then
+            local bashrc_backup=$HOME/.bashrc.$current_time
+            printf '%s\n' "Backing up $bashrc to $bashrc_backup and overriding it with $base_bashrc"
+            if ! cp -- "$bashrc" "$bashrc_backup"; then
+                exit_if_error $? "ERROR: can't create a backup of $bashrc"
             fi
-        else
-            exit_if_error $? "ERROR: can't create a backup of $bashrc"
+        fi
+        if ln -sf -- "$base_bashrc" "$bashrc"; then
+            printf '%s\n' "Symlinked '$bash_profile' to '$base_bash_profile'"
         fi
     fi
 }
@@ -260,11 +275,45 @@ do_version() {
     printf '%s\n' "base version $BASE_VERSION"
 }
 
+do_man() {
+    local dir bin desc dirs team
+    local -A teams
+    dirs=(bin company/bin)
+    [[ $base_team ]] || base_team=$BASE_TEAM
+    if [[ $base_team ]]; then
+        dirs+=(team/$base_team/bin)
+        teams[$base_team]=1
+    fi
+    # note: BASE_SHARED_TEAMS could be a space delimited string or an array
+    for team in $BASE_SHARED_TEAMS "${BASE_SHARED_TEAMS[@]}"; do
+        [[ ${teams[$team]} ]] && continue
+        dirs+=(team/$team/bin)
+        teams[$team]=1
+    done
+    for dir in "${dirs[@]}"; do
+        dir=$BASE_HOME/$dir
+        [[ -d $dir ]] || continue
+        cd -- "$dir" || continue
+        printf '%s\n' "${dir#$BASE_HOME/}:"
+        for bin in *; do
+            [[ -f $bin ]] || continue
+            if head -1 "$bin" | grep -Eq '!/usr/bin/env[[:space:]]+base-wrapper[[:space:]]*'; then
+                desc=$(./"$bin" --describe)
+                printf '\t\t%s\n' "$bin: $desc"
+            fi
+        done
+    done
+}
+
 do_set_team() {
     if (($# > 1)); then
         usage_error "Got too many arguments"
     else
-        [[ $BASE_TEAM ]] || BASE_TEAM=$1
+        if [[ $1 ]]; then
+            BASE_TEAM=$1
+        else
+            BASE_TEAM=$base_team
+        fi
         if [[ ! $BASE_TEAM ]]; then
             usage_error "Usage: base set-team TEAM"
         fi
@@ -274,8 +323,11 @@ do_set_team() {
 }
 
 do_set_shared_teams() {
-    [[ $BASE_SHARED_TEAMS ]] || BASE_SHARED_TEAMS=$*
-    if [[ ! $BASE_SHARED_TEAMS ]]; then
+    if (($# > 0)); then
+        BASE_SHARED_TEAMS=$*
+    elif [[ $base_shared_teams ]]; then
+        BASE_SHARED_TEAMS=$base_shared_teams
+    else
         usage_error "Usage: base set-shared-teams TEAM ..."
     fi
     patch_baserc BASE_SHARED_TEAMS
@@ -295,8 +347,10 @@ main() {
         show_common_help
         exit 0
     fi
-
-    unset BASE_TEAM BASE_SHARED_TEAM
+    if [[ $1 =~ --version|-version|-v ]]; then
+        do_version
+        exit 0
+    fi
     force_install=0
     if ((bash_version >= 42)); then
         printf -v current_time "%($timefmt)T" -1
@@ -306,8 +360,8 @@ main() {
     while getopts "fhb:s:t:vx" opt; do
         case $opt in
         b) export BASE_HOME=$OPTARG;;
-        t) export BASE_TEAM=$OPTARG;;
-        s) export BASE_SHARED_TEAMS=$OPTARG;;
+        t) export base_team=$OPTARG;;
+        s) export base_shared_teams=$OPTARG;;
         f) force_install=1;;
         v) do_version
            exit 0;;
@@ -331,6 +385,7 @@ main() {
     status)           do_status;;
     update)           do_update;;
     version)          do_version;;
+    man)              do_man;;
     "")               do_common_shell;;
     *)                usage_error "Unrecognized command: $command";;
     esac
