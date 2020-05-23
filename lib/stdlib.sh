@@ -240,6 +240,13 @@ print_message() {
     printf '%s\n' "$@"
 }
 
+# print only if output is going to terminal
+print_tty() {
+    if [[ -t 1 ]]; then
+        printf '%s\n' "$@"
+    fi
+}
+
 ################################################## ERROR HANDLING ######################################################
 
 dump_trace() {
