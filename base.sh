@@ -5,7 +5,7 @@
 #
 # This is a wrapper or a common entry point for Base. It helps in two main ways:
 #
-# 1. Install base or change Base settings  (install, embrace, set-team, set-shared-team)
+# 1. Install base or change Base settings  (install, embrace, set-team, set-shared-teams)
 # 2. Do things with the installed version of Base (status, run, shell)
 #
 # In shell mode, we would create a Bash shell:
@@ -24,7 +24,7 @@ usage_error() {
 
 show_common_help() {
     cat << EOF
-Usage: base [-b DIR] [-t TEAM] [-x] [install|embrace|update|run|status|shell|help] ...
+Usage: base [-b DIR] [-t TEAM] [-x] [install|embrace|update|run|status|shell|set-team|set-shared-teams|version|help] ...
 -b DIR     - use DIR as BASE_HOME directory
 -t TEAM    - use TEAM as BASE_TEAM
 -s TEAM    - use TEAM as BASE_SHARED_TEAMS [use space delimited strings for multiple teams]
@@ -32,17 +32,17 @@ Usage: base [-b DIR] [-t TEAM] [-x] [install|embrace|update|run|status|shell|hel
 -v         - show the CLI version
 -x         - turn on bash debug mode
 
-install              - install Base
-embrace              - override .bash_profile and .bashrc so that Base gets enabled upon login
-update               - update Base by running 'git pull' in BASE_HOME directory
-run                  - run the rest of the command line after initializing Base
-shell                - if Base is installed, create an interactive Bash shell with Base initialized
-                       if Base is not installed, create an interactive Bash shell with default settings
-status               - check if Base is installed or not
-set-team TEAM        - set BASE_TEAM in $HOME/.baserc
-set-shared-team TEAM - set shared BASE_SHARED_TEAMS in $HOME/.baserc [use space delimited strings for multiple teams]
-version              - show the CLI version
-help                 - show this help message
+install               - install Base
+embrace               - override .bash_profile and .bashrc so that Base gets enabled upon login
+update                - update Base by running 'git pull' in BASE_HOME directory
+run                   - run the rest of the command line after initializing Base
+shell                 - if Base is installed, create an interactive Bash shell with Base initialized
+                        if Base is not installed, create an interactive Bash shell with default settings
+status                - check if Base is installed or not
+set-team TEAM         - set BASE_TEAM in $HOME/.baserc
+set-shared-teams TEAM - set shared BASE_SHARED_TEAMS in $HOME/.baserc [use space delimited strings for multiple teams]
+version               - show the CLI version
+help                  - show this help message
 man                  - print one line summary of all Base scripts, use '-t team' to filter by team
 
 Invoking without any arguments would result in an interactive Bash shell with default settings.
@@ -278,6 +278,12 @@ do_version() {
 do_man() {
     local dir bin desc dirs team
     local -A teams
+    if ! verify_base; then
+        error_exit "$glb_error_message"
+    fi
+	if ! command -v base-wrapper >/dev/null; then
+		error_exit "base-wrapper needs to be in your \$PATH to be able to run this command."
+	fi
     dirs=(bin company/bin)
     [[ $base_team ]] || base_team=$BASE_TEAM
     if [[ $base_team ]]; then
@@ -336,8 +342,7 @@ do_set_shared_teams() {
 assert_bash_version() {
     local curr_version=$1 min_needed_version=$2
     if ((curr_version < min_needed_version)); then
-        print_error "Need Bash version >= $min_needed_version; your version is $curr_version"
-        exit 1
+        error_exit "Need Bash version >= $min_needed_version; your version is $curr_version"
     fi
 }
 
