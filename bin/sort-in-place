@@ -7,7 +7,7 @@
 name=sort-in-place
 description="Sort text files in place"
 base_describe() {
-    print '%s\n' "$description"
+    printf '%s\n' "$description"
 }
 
 base_help() {
