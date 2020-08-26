@@ -69,9 +69,10 @@ base_wrapper() {
     shift
     for arg; do
         if [[ $arg =~ ^-debug$|^--debug$ ]]; then
-            BASE_DEBUG=1
-            set -x
+            export BASE_DEBUG=1
             set_log_level DEBUG
+        elif [[ $arg =~ ^-shell-debug$|^--shell-debug$ ]]; then
+            set -x
         elif [[ $arg =~ ^-describe$|^--describe$|^-desc$|^--desc$ ]]; then
             _bw_check_and_execute base_describe
         elif [[ $arg =~ ^-help$|^--help$|^-h$|^--help$ ]]; then
