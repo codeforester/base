@@ -33,7 +33,14 @@ _bw_describe() {
 
 _bw_usage() {
     printf '%s\n' "$_bw_name: $_bw_description"
-    printf '%s\n' "Usage: $_bw_name file"
+    printf '%s\n' "Usage: $_bw_name [options] script [args]"
+    cat << EOF
+Options:
+-debug|--debug             - Turn on DEBUG logging
+-shell-debug|--shell-debug - Turn shell debug on through 'set -x'
+-describe|--describe       - Invoke base_describe function if defined in script
+-help|--help               - Invoke base_help function if defined in script; if no script specified, show this help
+EOF
 }
 
 base_wrapper() {
@@ -57,7 +64,7 @@ base_wrapper() {
     ##
 
     script=$1
-    if [[ ! $script ]]; then
+    if [[ ! $script || $script = -* ]]; then
         _bw_usage >&2
         exit 2
     elif [[ ! -f $script ]]; then
