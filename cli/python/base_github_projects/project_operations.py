@@ -59,7 +59,7 @@ class ProjectOperations:
     ProjectUsageError: type[Exception]
     add_project_item: Callable[[str, str], str]
     apply_missing_project_item_defaults: Callable[[str, tuple[ProjectField, ...], dict[str, str]], FieldCopySummary]
-    backfill_repository_issues: Callable[[str, str], int]
+    backfill_repository_issues: Callable[[str, str], tuple[int, ...]]
     compare_schema: Callable[[tuple[ProjectField, ...], ProjectSchema], tuple[Finding, ...]]
     configuration_plan: ConfigurationPlan
     copy_missing_project_item_fields: Callable[[str, str], FieldCopySummary]

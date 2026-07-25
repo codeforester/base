@@ -343,19 +343,19 @@ def fetch_issue_id(owner: str, name: str, number: int) -> str:
     return issue["id"]
 
 
-def fetch_repository_issue_ids(repo: str) -> tuple[str, ...]:
+def fetch_repository_issues(repo: str) -> tuple[tuple[str, int], ...]:
     owner, name = split_repo(repo)
-    issue_ids: list[str] = []
+    issues_found: list[tuple[str, int]] = []
     cursor: str | None = None
     while True:
-        payload = run_graphql(queries.FETCH_REPOSITORY_ISSUE_IDS, {"owner": owner, "name": name, "cursor": cursor})
+        payload = run_graphql(queries.FETCH_REPOSITORY_ISSUES, {"owner": owner, "name": name, "cursor": cursor})
         repository = payload["data"].get("repository")
         if repository is None:
             raise ProjectError(f"Repository '{repo}' was not found.")
         issues = repository["issues"]
-        issue_ids.extend(node["id"] for node in issues["nodes"])
+        issues_found.extend((node["id"], node["number"]) for node in issues["nodes"])
         if not issues["pageInfo"]["hasNextPage"]:
-            return tuple(issue_ids)
+            return tuple(issues_found)
         cursor = issues["pageInfo"]["endCursor"]
 
 
@@ -377,16 +377,16 @@ def fetch_project_issue_content_ids(project_id: str) -> set[str]:
         cursor = items["pageInfo"]["endCursor"]
 
 
-def backfill_repository_issues(project_id: str, repo: str) -> int:
+def backfill_repository_issues(project_id: str, repo: str) -> tuple[int, ...]:
     existing = fetch_project_issue_content_ids(project_id)
-    added = 0
-    for issue_id in fetch_repository_issue_ids(repo):
+    added: list[int] = []
+    for issue_id, issue_number in fetch_repository_issues(repo):
         if issue_id in existing:
             continue
         add_project_item(project_id, issue_id)
         existing.add(issue_id)
-        added += 1
-    return added
+        added.append(issue_number)
+    return tuple(sorted(added))
 
 
 def find_project_item_id(project_id: str, issue_id: str) -> str | None:

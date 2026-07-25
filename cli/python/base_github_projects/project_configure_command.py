@@ -160,8 +160,12 @@ def link_and_backfill_project(project_id: str, repo: str | None, ops: ProjectOpe
     if not repo:
         return
     ops.link_project_to_repository(project_id, repo)
-    count = ops.backfill_repository_issues(project_id, repo)
-    print(f"✓ Backfilled {count} issue(s) from {repo}")
+    added_issue_numbers = ops.backfill_repository_issues(project_id, repo)
+    if added_issue_numbers:
+        issue_list = ", ".join(f"#{number}" for number in added_issue_numbers)
+        print(f"✓ Backfilled {len(added_issue_numbers)} issue(s) from {repo}: {issue_list}")
+    else:
+        print(f"✓ Backfilled 0 issue(s) from {repo} (already up to date)")
 
 
 def copy_replacement_project_fields(

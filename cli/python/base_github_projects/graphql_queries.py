@@ -108,12 +108,12 @@ query($owner: String!, $name: String!, $number: Int!) {
 }
 """
 
-FETCH_REPOSITORY_ISSUE_IDS = """
+FETCH_REPOSITORY_ISSUES = """
 query($owner: String!, $name: String!, $cursor: String) {
   repository(owner: $owner, name: $name) {
     issues(first: 100, after: $cursor, states: [OPEN, CLOSED], orderBy: {field: CREATED_AT, direction: ASC}) {
       pageInfo { hasNextPage endCursor }
-      nodes { id }
+      nodes { id number }
     }
   }
 }
