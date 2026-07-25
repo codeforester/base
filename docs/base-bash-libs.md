@@ -171,7 +171,7 @@ The Base contract is external-required:
   bootstrap.
 - Homebrew Base consumes the Homebrew `base-bash-libs` package declared by the
   tap formula.
-- Base CI pins the source checkout to the immutable `base-bash-libs` v1.3.0
+- Base CI pins the source checkout to the immutable `base-bash-libs` v1.4.0
   release commit; runtime compatibility remains a 1.x minimum-version contract.
 - `basectl check` and `basectl doctor` emit `BASE-D007` as ok when the external
   source is explicit, sibling, or Homebrew.

@@ -9,6 +9,8 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Changed
 
+- Updated Base CI and source-checkout contract coverage to consume the
+  published `base-bash-libs` v1.4.0 release commit.
 - Refined basectl logs with comma-separated --command filters, the
   --latest path action, and the explicit last-failed report command.
 - Clarified basectl logs action conflicts and help for --latest, --tail, and
