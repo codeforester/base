@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from base_github_projects import engine, project_model
@@ -106,7 +108,7 @@ def test_configure_command_replace_project_skips_replacement_for_standard_views(
     monkeypatch.setattr(
         engine,
         "backfill_repository_issues",
-        lambda project_id, repo: backfilled.append((project_id, repo)) or 3,
+        lambda project_id, repo: backfilled.append((project_id, repo)) or (1, 2, 3),
     )
     monkeypatch.setattr(
         engine,
@@ -247,7 +249,7 @@ def test_configure_command_replace_project_renames_copies_backfills_and_closes_l
     monkeypatch.setattr(
         engine,
         "backfill_repository_issues",
-        lambda project_id, repo: backfilled.append((project_id, repo)) or 7,
+        lambda project_id, repo: backfilled.append((project_id, repo)) or (1, 2, 3),
     )
     monkeypatch.setattr(
         engine,
@@ -278,6 +280,30 @@ def test_configure_command_replace_project_renames_copies_backfills_and_closes_l
     assert field_copies == [("legacy-project", "new-project")]
     output = capsys.readouterr().out
     assert "Renamed existing Project base-demo to base-demo-legacy-20260619-120000" in output
-    assert "Backfilled 7 issue(s) from codeforester/base-demo" in output
+    assert "Backfilled 3 issue(s) from codeforester/base-demo: #1, #2, #3" in output
     assert "Copied 12 Project item field value(s) from base-demo-legacy-20260619-120000" in output
     assert "Closed legacy GitHub Project base-demo-legacy-20260619-120000" in output
+
+
+def test_link_and_backfill_reports_added_issue_numbers(capsys: pytest.CaptureFixture[str]) -> None:
+    linked: list[tuple[str, str]] = []
+    ops = SimpleNamespace(
+        link_project_to_repository=lambda project_id, repo: linked.append((project_id, repo)),
+        backfill_repository_issues=lambda project_id, repo: (1614, 1615),
+    )
+
+    project_configure_command.link_and_backfill_project("project-id", "codeforester/base-demo", ops)
+
+    assert linked == [("project-id", "codeforester/base-demo")]
+    assert capsys.readouterr().out == "✓ Backfilled 2 issue(s) from codeforester/base-demo: #1614, #1615\n"
+
+
+def test_link_and_backfill_reports_up_to_date_project(capsys: pytest.CaptureFixture[str]) -> None:
+    ops = SimpleNamespace(
+        link_project_to_repository=lambda project_id, repo: None,
+        backfill_repository_issues=lambda project_id, repo: (),
+    )
+
+    project_configure_command.link_and_backfill_project("project-id", "codeforester/base-demo", ops)
+
+    assert capsys.readouterr().out == "✓ Backfilled 0 issue(s) from codeforester/base-demo (already up to date)\n"

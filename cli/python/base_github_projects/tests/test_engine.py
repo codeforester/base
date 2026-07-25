@@ -557,7 +557,7 @@ def test_configure_command_copies_template_for_repo_project_and_backfills_issues
     monkeypatch.setattr(
         engine,
         "backfill_repository_issues",
-        lambda project_id, repo: backfilled.append((project_id, repo)),
+        lambda project_id, repo: backfilled.append((project_id, repo)) or (),
     )
 
     status = engine.configure_command(
@@ -605,7 +605,7 @@ def test_configure_command_copies_missing_project_fields_when_requested(
     monkeypatch.setattr(engine, "update_single_select_field", lambda field, spec: None)
     monkeypatch.setattr(engine, "fetch_project_views", lambda project_id: project_model.STANDARD_TEMPLATE_VIEWS)
     monkeypatch.setattr(engine, "link_project_to_repository", lambda project_id, repo: None)
-    monkeypatch.setattr(engine, "backfill_repository_issues", lambda project_id, repo: 0)
+    monkeypatch.setattr(engine, "backfill_repository_issues", lambda project_id, repo: ())
     monkeypatch.setattr(
         engine,
         "copy_missing_project_item_fields",
@@ -693,7 +693,7 @@ def test_configure_command_applies_issue_defaults_from_project_config(
     monkeypatch.setattr(engine, "create_single_select_field", lambda project_id, spec: None)
     monkeypatch.setattr(engine, "update_single_select_field", lambda field, spec: None)
     monkeypatch.setattr(engine, "link_project_to_repository", lambda project_id, repo: None)
-    monkeypatch.setattr(engine, "backfill_repository_issues", lambda project_id, repo: 0)
+    monkeypatch.setattr(engine, "backfill_repository_issues", lambda project_id, repo: ())
     monkeypatch.setattr(
         engine,
         "apply_missing_project_item_defaults",
@@ -902,7 +902,11 @@ def test_plan_project_item_field_defaults_skips_existing_values_and_missing_opti
 def test_backfill_repository_issues_adds_only_missing_project_items(monkeypatch: pytest.MonkeyPatch) -> None:
     added: list[tuple[str, str]] = []
 
-    monkeypatch.setattr(engine, "fetch_repository_issue_ids", lambda repo: ("issue-1", "issue-2", "issue-3"))
+    monkeypatch.setattr(
+        engine,
+        "fetch_repository_issues",
+        lambda repo: (("issue-1", 3), ("issue-2", 2), ("issue-3", 1)),
+    )
     monkeypatch.setattr(engine, "fetch_project_issue_content_ids", lambda project_id: {"issue-2"})
     monkeypatch.setattr(
         engine,
@@ -910,9 +914,10 @@ def test_backfill_repository_issues_adds_only_missing_project_items(monkeypatch:
         lambda project_id, issue_id: added.append((project_id, issue_id)) or f"item-{issue_id}",
     )
 
-    engine.backfill_repository_issues("project-id", "codeforester/base-demo")
+    issue_numbers = engine.backfill_repository_issues("project-id", "codeforester/base-demo")
 
     assert added == [("project-id", "issue-1"), ("project-id", "issue-3")]
+    assert issue_numbers == (1, 3)
 
 
 def test_link_project_to_repository_skips_existing_link(monkeypatch: pytest.MonkeyPatch) -> None:
