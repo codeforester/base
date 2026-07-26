@@ -237,8 +237,8 @@ basectl doctor --ci <project> --format json
 
 It sets CI-safe defaults, avoids prompts, and reuses the same manifest and
 diagnostic paths as local development. It does not run project tests, launch
-GitHub Actions locally, or create Ubuntu/Multipass VMs. `basectl ci` remains a
-compatibility alias for older automation.
+GitHub Actions locally, or create Ubuntu/Multipass VMs. The former `basectl ci`
+alias was removed; use `--ci` on the underlying lifecycle command.
 
 Read more: [CI-safe mode](../basectl-ci.md)
 

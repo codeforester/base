@@ -31,11 +31,9 @@ path directly, plus `--profile <list>` for opt-in prerequisite profiles.
 The default mode is non-interactive. If a required action cannot be performed
 without prompting, the command fails with a clear fix message.
 
-`basectl ci setup|check|doctor` remains a backward-compatible alias for the
-same behavior. The alias prepends `--ci` and passes all remaining arguments to
-the underlying command unchanged, so that command's help, option validation,
-and exit codes are authoritative. New docs and automation should prefer the
-`--ci` flag on the underlying command.
+The former top-level `basectl ci setup|check|doctor` compatibility alias was
+removed. Migrate scripts and documentation to the `--ci` flag on the
+underlying command; no CI behavior changed.
 
 ## Behavior
 

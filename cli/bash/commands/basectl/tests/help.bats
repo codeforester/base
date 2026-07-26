@@ -18,8 +18,6 @@ load ./basectl_helpers.bash
     [[ "$output" == *"build [project] [target...] [options]"* ]]
     [[ "$output" == *"run [project] <command> [options]"* ]]
     [[ "$output" == *"repo <init|clone|check|configure|agent-guidance|installer-template> [options]"* ]]
-    [[ "$output" == *"ci <setup|check|doctor> [project] [options]"* ]]
-    [[ "$output" == *"Compatibility alias for setup, check, and doctor --ci."* ]]
     [[ "$output" == *"release <check|plan|notes|publish> --version <version> [options]"* ]]
     [[ "$output" == *"prompt <list|name> [options]"* ]]
     [[ "$output" == *"docs [options]"* ]]
@@ -65,10 +63,17 @@ load ./basectl_helpers.bash
     [[ "$output" == *"Workspace and repositories:"* ]]
     [[ "$output" == *"Release and sharing:"* ]]
     [[ "$output" == *"Diagnostics and maintenance:"* ]]
-    [[ "$output" == *"Compatibility:"* ]]
     [[ "$output" == *"Install and bootstrap the local Base CLI environment on macOS or Ubuntu/Debian."* ]]
-    [[ "$output" == *"Compatibility alias for setup, check, and doctor --ci."* ]]
     [[ "$output" != *"environment on macOS."* ]]
+}
+
+@test "basectl rejects the removed ci command" {
+    run_basectl ci
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"ERROR: Unrecognized command: ci"* ]]
+    [[ "$output" == *"setup [options] [project]"* ]]
+    [[ "$output" != *"ci <setup|check|doctor>"* ]]
 }
 
 @test "basectl help omits legacy leftover commands" {
@@ -93,7 +98,6 @@ load ./basectl_helpers.bash
     grep -Fqx '  devcontainer [project] [options]' <<<"$output"
     grep -Fqx '  devenv-report [project] [options]' <<<"$output"
     grep -Fqx '  repo <init|clone|check|configure|agent-guidance|installer-template> [options]' <<<"$output"
-    grep -Fqx '  ci <setup|check|doctor> [project] [options]' <<<"$output"
     grep -Fqx '  release <check|plan|notes|publish> --version <version> [options]' <<<"$output"
     grep -Fqx '  prompt <list|name> [options]' <<<"$output"
     grep -Fqx '  docs [options]' <<<"$output"
@@ -161,7 +165,7 @@ load ./basectl_helpers.bash
         "workspace onboarding" "workspace agent-brief" "workspace clone"
         "workspace pull" "workspace init" "workspace configure" "repo init"
         "repo clone" "repo check" "repo configure" "repo agent-guidance"
-        "repo installer-template" "ci setup" "ci check" "ci doctor"
+        "repo installer-template"
         "release check" "release plan" "release notes" "release publish"
         "prompt list" "prompt product-self-review" "docs" "clean" "logs"
         "logs last-failed" "history" "config path" "config show" "config doctor" "gh issue list"

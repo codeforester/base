@@ -382,11 +382,12 @@ Use `basectl --help` for the journey-oriented command map. For a group or leaf,
 public usage without exposing private Python runtime options.
 
 `--ci` runs setup, check, and doctor with CI-safe defaults such as
-non-interactive behavior and JSON-capable output. The legacy `basectl ci`
-wrapper remains as a compatibility alias. Neither surface runs project tests,
-launches GitHub Actions locally, or creates Ubuntu/Multipass VMs. Use
-`basectl test` for a project's declared test command and `bin/base-test` for
-Base's full source-checkout validation suite. See
+non-interactive behavior and JSON-capable output. The former `basectl ci`
+compatibility alias was removed; use the flag on the underlying command.
+The CI-safe lifecycle commands do not run project tests, launch GitHub Actions
+locally, or create Ubuntu/Multipass VMs. Use `basectl test` for a project's
+declared test command and `bin/base-test` for Base's full source-checkout
+validation suite. See
 [CI-safe mode](docs/basectl-ci.md) for the CI contract, and
 [Command Quick Reference](docs/command-reference.md) for a scannable command
 lookup table.
