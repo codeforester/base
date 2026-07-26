@@ -230,31 +230,54 @@ basectl_normalize_script_name() {
     printf '%s\n' "$script_name"
 }
 
+basectl_reject_removed_wrapper_options() {
+    local argument
+    local parse_options=1
+
+    for argument in "$@"; do
+        if ((parse_options)) && [[ "$argument" == "--" ]]; then
+            parse_options=0
+            continue
+        fi
+        if ((parse_options)) && [[ "$argument" == "--verbose-wrapper" ]]; then
+            printf "ERROR: Option '--verbose-wrapper' has been removed. Use '--debug-wrapper' for startup diagnostics.\n" >&2
+            return 2
+        fi
+    done
+
+    return 0
+}
+
 basectl_filter_runtime_args() {
+    local parse_options=1
+
     basectl_runtime_args=()
 
     while (($#)); do
-        case "$1" in
-            --debug-wrapper|--verbose-wrapper)
-                # base_init.sh receives the original arguments, so lib_std.sh still
-                # applies DEBUG vs VERBOSE precisely after it is sourced. Before
-                # stdlib exists, both modes only have the LOG_DEBUG environment
-                # contract available for downstream tools.
-                export LOG_DEBUG=1
-                ;;
-            --utc-wrapper)
-                export LOG_UTC=1
-                ;;
-            --color)
-                # Propagate the explicit color choice to Python-backed child
-                # commands. The Bash stdlib consumes the flag itself, while
-                # Python logging needs an environment signal after delegation.
-                export BASE_CLI_COLOR=1
-                ;;
-            *)
-                basectl_runtime_args+=("$1")
-                ;;
-        esac
+        if ((parse_options)) && [[ "$1" == "--" ]]; then
+            basectl_runtime_args+=("$1")
+            parse_options=0
+        elif ((parse_options)); then
+            case "$1" in
+                --debug-wrapper)
+                    export LOG_DEBUG=1
+                    ;;
+                --utc-wrapper)
+                    export LOG_UTC=1
+                    ;;
+                --color)
+                    # Propagate the explicit color choice to Python-backed child
+                    # commands. The Bash stdlib consumes the flag itself, while
+                    # Python logging needs an environment signal after delegation.
+                    export BASE_CLI_COLOR=1
+                    ;;
+                *)
+                    basectl_runtime_args+=("$1")
+                    ;;
+            esac
+        else
+            basectl_runtime_args+=("$1")
+        fi
         shift
     done
 }
@@ -337,6 +360,7 @@ main() {
     local command_name
 
     basectl_ensure_supported_bash "$@"
+    basectl_reject_removed_wrapper_options "$@" || return $?
     base_home="$(basectl_base_home)" || basectl_die "Unable to resolve Base home."
 
     if [[ "${1:-}" == "--version" ]]; then

@@ -39,10 +39,21 @@ load ./basectl_helpers.bash
     [[ "$output" == *"--version"* ]]
     [[ "$output" == *"Wrapper options:"* ]]
     [[ "$output" == *"--debug-wrapper"* ]]
-    [[ "$output" == *"--verbose-wrapper"* ]]
+    [[ "$output" != *"--verbose-wrapper"* ]]
     [[ "$output" == *"--utc-wrapper"* ]]
     [[ "$output" == *"--keep-temp"* ]]
     [[ "$output" == *"--color"* ]]
+}
+
+@test "basectl rejects removed verbose wrapper option before runtime initialization" {
+    run env \
+        HOME="$TEST_HOME" \
+        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        BASE_BASH_LIBS_DIR="$TEST_TMPDIR/missing-base-bash-libs" \
+        "$BASE_REPO_ROOT/bin/basectl" --verbose-wrapper --help
+
+    [ "$status" -eq 2 ]
+    [ "$output" = "ERROR: Option '--verbose-wrapper' has been removed. Use '--debug-wrapper' for startup diagnostics." ]
 }
 
 @test "basectl groups default help by user journey and describes supported setup platforms" {

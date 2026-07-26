@@ -119,7 +119,6 @@ Options:
 Wrapper options:
   Advanced startup diagnostics; normal command flags are documented by leaf help.
   --debug-wrapper    Enable DEBUG logging before the Base runtime is loaded.
-  --verbose-wrapper  Enable verbose runtime argument handling before dispatch.
   --utc-wrapper      Print wrapper/runtime log timestamps in UTC.
   --keep-temp        Preserve temporary run files after the command completes.
   --color            Preserve color-aware wrapper argument handling.

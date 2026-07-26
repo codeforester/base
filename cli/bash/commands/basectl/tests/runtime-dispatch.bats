@@ -482,22 +482,45 @@ EOF
     [[ "$output" == *"ARGS=-m base_setup --dry-run demo"* ]]
 }
 
-@test "basectl propagates --color to explicit Base scripts" {
-    local script_path="$TEST_TMPDIR/color-script"
+@test "basectl propagates supported wrapper diagnostics to explicit Base scripts" {
+    local script_path="$TEST_TMPDIR/wrapper-diagnostics-script"
 
     cat > "$script_path" <<'EOF'
 main() {
+    printf 'LOG_DEBUG=%s\n' "${LOG_DEBUG:-unset}"
+    printf 'LOG_UTC=%s\n' "${LOG_UTC:-unset}"
     printf 'BASE_CLI_COLOR=%s\n' "${BASE_CLI_COLOR:-unset}"
+    printf 'args=%s\n' "$*"
 }
 EOF
 
     run env \
         HOME="$TEST_HOME" \
         PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
-        "$BASE_REPO_ROOT/bin/basectl" "$script_path" --color
+        "$BASE_REPO_ROOT/bin/basectl" "$script_path" --debug-wrapper --utc-wrapper --color
 
     [ "$status" -eq 0 ]
+    [[ "$output" == *"LOG_DEBUG=1"* ]]
+    [[ "$output" == *"LOG_UTC=1"* ]]
     [[ "$output" == *"BASE_CLI_COLOR=1"* ]]
+    grep -Fqx 'args=' <<<"$output"
+}
+
+@test "basectl preserves removed wrapper spelling after the argument terminator" {
+    local script_path="$TEST_TMPDIR/delegated-wrapper-argument-script"
+
+    cat > "$script_path" <<'EOF'
+main() {
+    printf 'arg1=%s\n' "$1"
+    printf 'arg2=%s\n' "$2"
+}
+EOF
+
+    run_basectl "$script_path" -- --verbose-wrapper
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"arg1=--"* ]]
+    [[ "$output" == *"arg2=--verbose-wrapper"* ]]
 }
 
 @test "basectl treats path-like arguments as scripts before command names" {

@@ -1737,8 +1737,8 @@ runtime is loaded and the selected command is dispatched. For earlier startup
 debugging, use wrapper options that are consumed by `bin/basectl` before
 `base_init.sh` is sourced:
 
-- `--debug-wrapper` and `--verbose-wrapper` enable `LOG_DEBUG=1` before runtime
-  initialization.
+- `--debug-wrapper` enables `LOG_DEBUG=1` before runtime initialization,
+  including DEBUG diagnostics from reusable Bash libraries.
 - `--utc-wrapper` enables UTC log timestamps before runtime initialization.
 - `--color` preserves color-aware wrapper argument handling while keeping the flag
   out of command arguments.

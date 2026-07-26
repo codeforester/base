@@ -12,7 +12,10 @@ syntax.
 `basectl` exposes `-v` as the command-level debug switch. Direct `base_cli`
 package standard options such as `--debug`, `--quiet`, `--log-file`,
 `--config`, `--environment`, and `--keep-temp` are not public `basectl`
-options.
+options. Pre-runtime diagnostics use `--debug-wrapper`, and
+`--utc-wrapper` switches wrapper/runtime log presentation to UTC.
+`--verbose-wrapper` has been removed; use `--debug-wrapper` for startup and
+reusable-layer DEBUG diagnostics.
 
 ## Current Public Commands
 
