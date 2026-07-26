@@ -16,6 +16,11 @@ and Base versions are tracked in the repo-root `VERSION` file.
 - Clarified basectl logs action conflicts and help for --latest, --tail, and
   --open.
 
+### Removed
+
+- Removed the redundant `basectl --verbose-wrapper` compatibility option; use
+  `--debug-wrapper` for startup and reusable-layer DEBUG diagnostics.
+
 ### Fixed
 
 - Prevented `basectl activate` from reusing a virtual environment override owned
