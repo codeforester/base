@@ -1,5 +1,18 @@
 # Base FAQ
 
+## What Is Base?
+
+Base is a local operating contract for deterministic readiness and handoff
+across independent Git repositories. Its durable loop is:
+
+```text
+inventory -> prepare -> verify -> trust -> onboard -> hand off
+```
+
+Base makes a participating repo set understandable and locally ready while
+projects keep ownership of their application behavior, services, and
+project-specific setup.
+
 ## First-Time Installation
 
 ### What should I run on a blank macOS machine?
