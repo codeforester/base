@@ -12,6 +12,36 @@ ACTIVE_WORKFLOW_GUIDANCE_FILES = (
     REPO_ROOT / "CONTRIBUTING.md",
 )
 GITHUB_WORKFLOW_DOC = REPO_ROOT / "docs" / "github-workflow.md"
+CANONICAL_POSITIONING_DOCS = tuple(
+    REPO_ROOT / relative_path
+    for relative_path in (
+        "AGENTS.md",
+        ".github/copilot-instructions.md",
+        "CONTRIBUTING.md",
+        "skills.md",
+        "FAQ.md",
+        "docs/README.md",
+        "docs/technical-overview.md",
+        "docs/base-bash-libs.md",
+        "docs/presentations/README.md",
+        "docs/presentations/base-newcomer-orientation.md",
+    )
+)
+LOOP_POSITIONING_DOCS = tuple(
+    REPO_ROOT / relative_path
+    for relative_path in (
+        "AGENTS.md",
+        ".github/copilot-instructions.md",
+        "CONTRIBUTING.md",
+        "FAQ.md",
+        "docs/README.md",
+        "docs/technical-overview.md",
+        "docs/presentations/base-newcomer-orientation.md",
+    )
+)
+RETIRED_POSITIONING_TERMS = ("workspace control plane",)
+CURRENT_POSITIONING_PHRASE = "local operating contract"
+PRODUCT_LOOP = "inventory -> prepare -> verify -> trust -> onboard -> hand off"
 
 
 def contract_registry_rows() -> list[dict[str, str]]:
@@ -69,6 +99,20 @@ def test_active_project_guidance_uses_repo_named_project_language() -> None:
     assert "use that title only as the migration source" in issue_metadata_section
 
 
+def test_canonical_positioning_docs_keep_current_thesis_and_loop() -> None:
+    for path in CANONICAL_POSITIONING_DOCS:
+        text = " ".join(path.read_text(encoding="utf-8").lower().split())
+        label = path.relative_to(REPO_ROOT)
+
+        assert CURRENT_POSITIONING_PHRASE in text, label
+        for retired_term in RETIRED_POSITIONING_TERMS:
+            assert retired_term not in text, f"{label} reintroduced {retired_term!r}"
+
+    for path in LOOP_POSITIONING_DOCS:
+        text = " ".join(path.read_text(encoding="utf-8").lower().split())
+        assert PRODUCT_LOOP in text, path.relative_to(REPO_ROOT)
+
+
 def test_superseded_pr_cleanup_guidance_is_shared_across_ai_tools() -> None:
     agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
     skills = (REPO_ROOT / "skills.md").read_text(encoding="utf-8")
@@ -107,6 +151,7 @@ def test_contract_registry_maps_initial_review_contracts_to_enforcement() -> Non
         "Base-owned remote shell installer policy": "tests/test_remote_installer_policy.py",
         "CLI docs, help, and completion drift": "cli/bash/commands/basectl/tests/completions.bats",
         "CLI local log file privacy": "lib/python/base_cli/tests/test_logging.py",
+        "Canonical positioning documentation": "tests/test_contract_hardening.py",
     }
     for contract, enforcement in expected_entries.items():
         assert contract in text
@@ -131,6 +176,7 @@ def test_contract_registry_rows_have_complete_enforcement_metadata() -> None:
         "Public command and JSON stability tiers",
         "Read-only inspection JSON",
         "Project metadata defaults",
+        "Canonical positioning documentation",
     }
     for row in rows:
         assert row["Source of truth"], row
