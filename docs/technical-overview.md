@@ -1,5 +1,8 @@
 # Base — Technical and Product Overview
 
+Status: maintained product and technical reference
+Last reviewed: 2026-07-25
+
 ## What It Is
 
 **Base** is a macOS-first local operating contract for developers who work across

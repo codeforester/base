@@ -1,5 +1,8 @@
 # Base Execution Model
 
+Status: maintained runtime reference
+Last reviewed: 2026-07-25
+
 This document describes the current `basectl` execution contract. It is about
 what happens after a user invokes Base, not the future project-discovery or
 Python orchestration layers.

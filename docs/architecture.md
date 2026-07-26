@@ -1,5 +1,8 @@
 # Base Architecture
 
+Status: maintained architecture reference
+Last reviewed: 2026-07-25
+
 ## Overview
 
 Base is an opinionated macOS-primary implementation of a local operating

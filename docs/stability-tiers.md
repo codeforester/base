@@ -1,5 +1,8 @@
 # Base Stability Tiers
 
+Status: maintained compatibility reference
+Last reviewed: 2026-07-25
+
 Base exposes several surfaces that users and automation can depend on: CLI
 commands, JSON payloads, finding IDs, manifest schemas, generated files, and
 internal helper APIs. This page defines the stability vocabulary for those

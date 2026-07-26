@@ -1,5 +1,8 @@
 # basectl Quick Reference
 
+Status: maintained command reference
+Last reviewed: 2026-07-25
+
 This page is a compact lookup table for the current `basectl` command surface.
 Run `basectl help <nested path>` or append `--help` to that path for the same
 leaf-specific usage. Run `basectl --help` for the journey-oriented command map.
