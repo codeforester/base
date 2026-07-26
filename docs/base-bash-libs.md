@@ -4,7 +4,8 @@ Base's reusable Bash libraries live in the standalone
 [`basefoundry/base-bash-libs`](https://github.com/basefoundry/base-bash-libs)
 repository. That repository lets scripts use Base's Bash logging, argument
 parsing, command execution, filesystem, Git, GitHub CLI, list, and string helper
-conventions without adopting the full Base workspace control plane.
+conventions without adopting Base's full local operating contract for
+multi-repository readiness and handoff.
 
 This page documents the Base-side consumption and post-migration contract. Library
 APIs and standalone examples live in the `base-bash-libs` repository.

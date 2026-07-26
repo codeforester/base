@@ -17,6 +17,11 @@ see [Release Process](release-process.md).
 For self-guided or live walkthrough material, see
 [Presentations](presentations/README.md).
 
+Base's product outcome is a local operating contract for deterministic readiness
+and handoff across independent Git repositories. The durable loop is
+inventory -> prepare -> verify -> trust -> onboard -> hand off. See [Why Base](why-base.md)
+for the concise product framing; the map below links to the deeper references.
+
 ## Internal Planning Artifacts
 
 The `docs/superpowers/` directory contains agent-written planning artifacts
@@ -104,7 +109,8 @@ reference. The filename should answer "what is this about?"
 - [Base Presentations](presentations/README.md) documents the presentation
   source-of-truth and export policy.
 - [Base Newcomer Orientation](presentations/base-newcomer-orientation.md)
-  introduces Base as a workspace control plane for multi-repo development.
+  introduces Base as a local operating contract for deterministic readiness and
+  handoff across independent repositories.
 
 ## Feature And Boundary Documents
 

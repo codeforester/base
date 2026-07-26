@@ -1,5 +1,18 @@
 # Base FAQ
 
+## What Is Base?
+
+Base is a local operating contract for deterministic readiness and handoff
+across independent Git repositories. Its durable loop is:
+
+```text
+inventory -> prepare -> verify -> trust -> onboard -> hand off
+```
+
+Base makes a participating repo set understandable and locally ready while
+projects keep ownership of their application behavior, services, and
+project-specific setup.
+
 ## First-Time Installation
 
 ### What should I run on a blank macOS machine?
@@ -148,8 +161,8 @@ while `base_cli` answers "how should a Base Python CLI behave?" See the
 
 Base's reusable Bash helpers live in the standalone
 `basefoundry/base-bash-libs` repository so other scripts can reuse the logging,
-command execution, filesystem, and Git conventions without depending on the
-full Base workspace control plane.
+command execution, filesystem, and Git conventions without depending on Base's
+full local operating contract for multi-repository readiness and handoff.
 
 That separation also keeps the Homebrew packaging path cleaner: `base-bash-libs`
 can mature as its own formula, and a future Homebrew/core Base formula can

@@ -1,7 +1,9 @@
 # Contributing to Base
 
 Base is a developer tooling repository. Contributions should keep the project
-opinionated, testable, and useful as a shared workspace control plane.
+opinionated, testable, and useful as a local operating contract for deterministic
+readiness and handoff across independent Git repositories. The durable product
+loop is inventory -> prepare -> verify -> trust -> onboard -> hand off.
 
 ## AI-Assisted Development
 

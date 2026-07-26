@@ -642,7 +642,7 @@ def test_copilot_repository_instructions_stay_anchored_to_base_guidance() -> Non
     assert "STANDARDS.md" in text
     assert ".ai-context/" in text
     assert "issue-backed" in text
-    assert "Base focused as the shared developer workspace control plane" in text
+    assert "Keep Base focused as the local operating contract for deterministic readiness" in text
     assert "Do not require GitHub Copilot" in text
 
 

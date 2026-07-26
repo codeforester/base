@@ -5,10 +5,11 @@ exist to point Copilot at the same repository-owned rules used by other coding
 agents; they do not replace `AGENTS.md`, `CONTRIBUTING.md`, `STANDARDS.md`, or
 the `.ai-context/` orientation files.
 
-Keep Base focused as the shared developer workspace control plane. Project
-application code, project-specific setup, service behavior, and one-off local
-machine preferences belong in the owning project unless Base is explicitly the
-right shared layer.
+Keep Base focused as the local operating contract for deterministic readiness
+and handoff across independent Git repositories. Its durable loop is inventory
+-> prepare -> verify -> trust -> onboard -> hand off. Project application code,
+project-specific setup, service behavior, and one-off local machine preferences
+belong in the owning project unless Base is explicitly the right shared layer.
 
 For implementation work, use Base's issue-backed workflow:
 

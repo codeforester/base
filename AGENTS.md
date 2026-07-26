@@ -7,7 +7,9 @@ them.
 ## Working Agreement
 
 - Follow `CONTRIBUTING.md` for workflow and `STANDARDS.md` for code standards.
-- Keep Base focused as the shared developer workspace control plane.
+- Keep Base focused as the local operating contract for deterministic readiness
+  and handoff across independent Git repositories. Its durable loop is
+  inventory -> prepare -> verify -> trust -> onboard -> hand off.
 - Keep project-specific setup, service code, and application behavior in the
   owning project repository unless Base is explicitly the right shared layer.
 - Adopt external agent workflow ideas only after translating them into
