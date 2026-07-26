@@ -407,7 +407,7 @@ environment and the sibling `base-bash-libs` checkout expected by source tests.
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Split macOS-only setup checks from portable runtime checks. | Done | Initial support exists through `--ci` mode on setup/check/doctor, with `basectl ci` retained as a compatibility alias. |
+| 1. Split macOS-only setup checks from portable runtime checks. | Done | Initial support exists through `--ci` mode on setup/check/doctor. |
 | 2. Add platform detection and explicit unsupported-platform messages. | Done | `BASE_PLATFORM` classifies Ubuntu/Debian as `linux-debian`, keeps `BASE_OS=linux`, uses `BASE_HOST_ENV=wsl2` for Ubuntu/Debian WSL2 host context, and fails unsupported platforms explicitly. |
 | 3. Make `basectl check` and `doctor` report Linux prerequisite status without requiring Homebrew or Xcode. | Done | `check` and `doctor` report Ubuntu/Debian prerequisite findings with apt-oriented recovery hints. |
 | 4. Add Ubuntu CI coverage for read-only commands and the source-checkout suite. | Done for source-checkout validation | The `ubuntu-source-checkout` job installs hosted-runner prerequisites, runs `basectl check --ci base --format json`, and runs `env -u BASE_HOME ./bin/base-test`. |

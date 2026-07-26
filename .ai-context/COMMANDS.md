@@ -90,8 +90,8 @@ reusable-layer DEBUG diagnostics.
 - `basectl <setup|check|doctor> --ci [project]` - run Base setup/check/doctor
   with CI-safe defaults. It does not run project tests or create CI runners/VMs.
   `setup --ci --format json` uses `output` for the compact final status and
-  adds `output_lines` on failures for intermediate context. `basectl ci`
-  remains a compatibility alias.
+  adds `output_lines` on failures for intermediate context. The former
+  `basectl ci` compatibility alias was removed.
 - `basectl release <check|plan|notes|publish>` - inspect release readiness,
   print plans/notes, and publish guarded GitHub-side release artifacts.
 - `basectl gh <area> <command>` - manage GitHub issues, PRs, branches, repo

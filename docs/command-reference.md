@@ -112,7 +112,6 @@ manifest trust.
 | `basectl check [project]` | Verify Base and optional project readiness without making changes. Project checks record the latest result under `~/.base.d/<project>/checks/last.json`. | `--ci`, `--profile <list>`, `--format <text\|json>`, `--manifest <path>`, `--remote-network` |
 | `basectl doctor [project]` | Explain Base and optional project findings with stable finding IDs and fixes. | `--ci`, `--profile <list>`, `--format <text\|json>`, `--manifest <path>`, `--remote-network`, `--no-color` |
 | `basectl doctor explain <finding-id>` | Print local, deterministic guidance for a stable finding ID. | `--format <text\|json>` |
-| `basectl ci setup\|check\|doctor [project]` | Compatibility alias for the corresponding `--ci` mode command. | Same options, help, validation, and exit codes as the target command. |
 | `basectl logs` | List recent Base CLI runtime logs. | `--command <name[,name...]>`, `--limit <count>` |
 | `basectl logs last-failed` | Print the latest failed command metadata plus a bounded redacted log tail. | `--command <name[,name...]>`, `--lines <count>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl logs --latest` | Print the newest matching log path only. | `--command <name[,name...]>` |

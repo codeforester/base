@@ -99,10 +99,6 @@ Diagnostics and maintenance:
   update [project] [options]
     Update Base from Git and run setup.
 
-Compatibility:
-  ci <setup|check|doctor> [project] [options]
-    Compatibility alias for setup, check, and doctor --ci.
-
 Other:
   version
     Show the installed Base version.
@@ -350,11 +346,6 @@ basectl_do_repo() {
     base_repo_subcommand_main "$@"
 }
 
-basectl_do_ci() {
-    basectl_source_subcommand_module ci || return 1
-    base_ci_subcommand_main "$@"
-}
-
 basectl_do_release() {
     basectl_source_subcommand_module release || return 1
     base_release_subcommand_main "$@"
@@ -512,7 +503,7 @@ basectl_validate_command() {
     local command="${1:-}"
 
     case "$command" in
-        ""|activate|check|test|export-context|devcontainer|devenv-report|build|demo|run|repo|ci|release|prompt|docs|clean|logs|history|config|trust|doctor|gh|onboard|setup|help|projects|workspace|update|update-profile|version)
+        ""|activate|check|test|export-context|devcontainer|devenv-report|build|demo|run|repo|release|prompt|docs|clean|logs|history|config|trust|doctor|gh|onboard|setup|help|projects|workspace|update|update-profile|version)
             return 0
             ;;
         *)
@@ -819,7 +810,6 @@ basectl_main() {
         demo)             basectl_do_demo "$@"; command_status=$? ;;
         run)              basectl_do_run "$@"; command_status=$? ;;
         repo)             basectl_do_repo "$@"; command_status=$? ;;
-        ci)               basectl_do_ci "$@"; command_status=$? ;;
         release)          basectl_do_release "$@"; command_status=$? ;;
         prompt)           basectl_do_prompt "$@"; command_status=$? ;;
         docs)             basectl_do_docs "$@"; command_status=$? ;;

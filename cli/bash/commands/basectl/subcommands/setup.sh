@@ -48,8 +48,7 @@ Setup does:
 
 Notes:
   - This command is intentionally idempotent.
-  - Use --ci for non-interactive CI-safe setup. The legacy
-    `basectl ci setup` command remains as a compatibility alias.
+  - Use --ci for non-interactive CI-safe setup.
   - On Ubuntu/Debian Linux, setup can install apt prerequisites with
     interactive consent or --yes.
   - The optional project argument resolves a Base project from the workspace

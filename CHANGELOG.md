@@ -20,6 +20,8 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 - Removed the redundant `basectl --verbose-wrapper` compatibility option; use
   `--debug-wrapper` for startup and reusable-layer DEBUG diagnostics.
+- Removed the legacy top-level `basectl ci` compatibility alias; use
+  `basectl setup --ci`, `basectl check --ci`, or `basectl doctor --ci`.
 
 ### Fixed
 

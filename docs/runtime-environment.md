@@ -89,8 +89,8 @@ post-migration boundary, see
 `basectl setup --ci`, `basectl check --ci`, and `basectl doctor --ci` set these
 variables while running the existing setup, check, and doctor paths. They are
 scoped to that command invocation and are not part of the readonly
-`base_init.sh` runtime contract. The legacy `basectl ci` wrapper sets the same
-variables as a compatibility alias.
+`base_init.sh` runtime contract. The canonical lifecycle commands set these
+variables when invoked with `--ci`.
 
 | Variable | Owner | Meaning and impact | User changes |
 | --- | --- | --- | --- |
