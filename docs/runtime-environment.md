@@ -1,5 +1,8 @@
 # Base Runtime Environment
 
+Status: maintained runtime contract
+Last reviewed: 2026-07-25
+
 This page is the canonical reference for Base-managed shell environment
 variables. It covers variables that are part of the runtime contract, command
 dispatch, project activation, and user-facing configuration knobs.

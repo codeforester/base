@@ -55,6 +55,8 @@ reference. The filename should answer "what is this about?"
   skill evidence.
 - [Command Quick Reference](command-reference.md) is the one-page lookup table
   for the current `basectl` command surface and important flags.
+- [Output Formats](output-formats.md) defines the shared text and machine-readable
+  report format contract used by `basectl` inspection commands.
 - [Stability Tiers](stability-tiers.md) defines which command, JSON, finding ID,
   generated artifact, and helper surfaces are stable, experimental, or internal.
 - [Inspection JSON](inspection-json.md) defines the shared stable envelope and

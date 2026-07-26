@@ -1,11 +1,14 @@
 # Base Ecosystem Boundaries
 
+Status: maintained ecosystem boundary reference
+Last reviewed: 2026-07-25
+
 This document captures how Base should relate to other popular developer tools.
 Its purpose is not to compete with everything in the ecosystem. Its purpose is
 to help Base stay sharp about what it owns, what it can orchestrate, and what
 it should leave alone.
 
-Evidence checked: 2026-07-14
+Evidence checked: 2026-07-25
 
 When we evaluate another tool, we record five separate decisions:
 

@@ -1,5 +1,8 @@
 # Why Base
 
+Status: maintained product entry point
+Last reviewed: 2026-07-25
+
 Base is a local operating contract for developers and platform engineers whose
 work spans multiple independent Git repositories. It makes a participating repo
 set understandable and locally ready without forcing a monorepo or taking
