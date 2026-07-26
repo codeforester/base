@@ -1,8 +1,8 @@
 # Base Product Assessment
 
 Status: maintained product review artifact
-Last reviewed: 2026-07-15
-Base era reviewed: 1.6.1 + Unreleased
+Last reviewed: 2026-07-25
+Base era reviewed: 1.7.0 + Unreleased
 
 This document records a candid assessment of Base as a product and engineering
 effort. It is not marketing copy, and it should not drift into aspiration. When
@@ -477,6 +477,53 @@ preserve the external tool as the repository-set authority and be tracked in
 separate issues. The detailed dated decisions and maintenance cadence live in
 [Tool Boundaries](tool-boundaries.md).
 
+### 2026-07-25 / 1.7.0 + Unreleased Product Review Delta
+
+The 1.7.0 release strengthens Base's evidence for deterministic local readiness
+and handoff without changing its target user, product thesis, or supported
+platform contract.
+
+The strongest shipped signals are:
+
+- stable, versioned JSON inspection envelopes for repository, release, issue,
+  and branch-readiness surfaces, plus consistent project selection and
+  read-only command listings;
+- workspace onboarding and the local `workspace agent-brief`, which make
+  first-day repository state and handoff evidence inspectable without mutating
+  the workspace;
+- local history reports, explicit manifest-command trust, and clearer CI-safe
+  lifecycle commands, which improve the verify/trust boundary without making
+  Base a hosted service or a package solver;
+- agent-ready repository guidance, issue-readiness checks, and shared issue/
+  branch validation, which make the repository's own implementation contract
+  more repeatable for human and AI-assisted contributors; and
+- report-only Dev Container and Nix/devenv compatibility surfaces that keep
+  adjacent tools in adapter or export lanes rather than absorbing their
+  configuration models.
+
+The current Unreleased work further hardens logs, history, doctor output, and
+branch/worktree hygiene. Those changes improve operational trust but should not
+be counted as a new product category or as evidence of external adoption.
+
+The working ratings remain unchanged. 1.7.0 provides stronger proof of local
+contract quality, diagnosability, and handoff support, but it does not yet
+provide enough external adoption, contributor independence, support-load, or
+organizational-impact evidence to raise the adoption or engineering assessment.
+
+Current watchlist for the next release line:
+
+- Finish the coordinated documentation positioning migration and add a narrow
+  retired-terminology guard so the product thesis stays consistent across
+  newcomer, contributor, and agent surfaces (#1757, #1761).
+- Keep `workspace agent-brief` and the issue-oriented handoff artifact in #1562
+  explicitly separate until the latter is actually shipped.
+- Validate the readiness and handoff wedge with external polyrepo design
+  partners before expanding Base's feature surface (#1616).
+- Keep Ubuntu/Debian claims precise and treat broader Linux, WSL, and Windows as
+  separate support-contract decisions.
+- Continue issue-backed ownership reduction and preserve adapter boundaries as
+  new IDE, container, AI, and environment requests arrive.
+
 ## 4. Creator And Engineering Skill Assessment
 
 Assessment: at least Staff-level; plausibly upper Staff or early Senior
@@ -549,6 +596,10 @@ the system without needing the creator in the loop.
 
 ## Assessment History
 
+- 2026-07-25: Reviewed the 1.7.0 release line and current Unreleased changes;
+  recorded stronger local readiness, handoff, inspection, trust, and agentic
+  workflow evidence while keeping ratings and the #1562 handoff boundary
+  unchanged.
 - 2026-07-15: Added the shipped local workspace agent brief from #1561 to the
   handoff evidence while retaining the explicit #1562 boundary for
   issue-oriented artifact composition; ratings remain unchanged.

@@ -1,8 +1,8 @@
 # Base Product Requirements
 
 Status: maintained product requirements document
-Last reviewed: 2026-07-14
-Base era reviewed: 1.6.1 + Unreleased
+Last reviewed: 2026-07-25
+Base era reviewed: 1.7.0 + Unreleased
 
 This document is the product-facing source of truth for what Base is trying to
 be, who it serves, which outcomes matter, and what boundaries should guide
@@ -319,6 +319,13 @@ repositioning, and after meaningful external user feedback.
 
 ## Decision Log
 
+- 2026-07-25: Reviewed for the 1.7.0 release line and current Unreleased
+  changes. Stable inspection envelopes, workspace onboarding and agent-brief
+  evidence, local history reports, explicit execution trust, and issue-readiness
+  workflow strengthen the deterministic readiness and handoff contract without
+  changing Base's target user, product thesis, or platform support boundary.
+  Devcontainer and Nix/devenv work remain report-only adapter surfaces, and the
+  issue-oriented handoff artifact in #1562 remains planned.
 - 2026-07-15: Ship the local, read-only workspace agent brief from #1561 with
   text and stable JSON output. Keep `.ai-context` visible but optional, keep
   manifest-declared test execution behind `basectl test`, and leave
