@@ -2,11 +2,20 @@
 
 ## What It Is
 
-**Base** is a macOS-first workspace control plane for developers who keep multiple
-Git repositories checked out side by side under a shared directory (typically
-`~/work/`). Rather than forcing unrelated codebases into a monorepo, Base provides
-a single CLI — `basectl` — that orchestrates setup, diagnostics, project discovery,
-shell activation, test execution, and releases across all of them.
+**Base** is a macOS-first local operating contract for developers who work across
+multiple independent Git repositories checked out side by side under a shared
+directory (typically `~/work/`). Rather than forcing unrelated codebases into a
+monorepo, Base makes the repo set understandable, locally ready, explicitly
+trusted, onboardable, and transferable through one inspectable CLI contract.
+
+Its durable product loop is:
+
+```text
+inventory -> prepare -> verify -> trust -> onboard -> hand off
+```
+
+The `basectl` CLI provides the execution surface for that loop, including setup,
+diagnostics, project discovery, shell activation, test execution, and releases.
 
 > The repo you check out once per workspace so all other repos become easier to
 > set up, test, and run.
@@ -18,13 +27,14 @@ bootstrap story, and the glue between projects — shared env vars, shared tools
 consistent shell environments — lives in fragile ad-hoc dotfiles or one-off
 scripts. Base formalizes that glue without absorbing project-specific logic.
 
-It solves exactly three things:
+It gives the repo set a common, inspectable operating contract:
 
-1. **Umbrella setup and test** — one command to set up or test any project
-2. **Shell environment management** — one managed, inspectable shell layer across
-   the whole workspace
-3. **Shared Bash/Python libraries** — consistent CLI execution patterns for all
-   project scripts
+1. **Inventory** — identify participating repositories and their declarations.
+2. **Prepare** — reconcile the tools and environments those declarations need.
+3. **Verify and trust** — report readiness and require explicit consent before
+   running project-owned commands.
+4. **Onboard and hand off** — guide first use and preserve local evidence for the
+   next implementer without taking project behavior away from its owner.
 
 ## Target Workspace Shape
 
@@ -84,7 +94,7 @@ Spawns a Bash runtime shell, sets `BASE_PROJECT`, applies the project runtime
 route, runs `activate.source` scripts declared in the manifest, and updates the
 prompt to `[project: branch] ~/path $`. Python projects activate their selected
 project venv. Shell-only setup/check/doctor work does not create one solely for
-Base's control plane. Exit that shell to return to the original environment -
+Base's runtime. Exit that shell to return to the original environment -
 no deactivation logic needed.
 
 **Design choice — no `cd`-triggered activation:** switching directories does not

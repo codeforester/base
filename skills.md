@@ -98,8 +98,9 @@ public workflow docs.
 - For docs-only or configuration-only changes, `git diff --check` is usually
   enough unless the change affects CI validation or generated output.
 - Evaluate review feedback against Base's product boundaries before
-  implementing it. Base is the workspace control plane; project-specific
-  application behavior belongs in the owning project.
+  implementing it. Base is the local operating contract for deterministic
+  readiness and handoff; project-specific application behavior belongs in the
+  owning project.
 - If feedback suggests a larger design or product shift, stop and surface the
   decision instead of hiding it inside a small PR.
 

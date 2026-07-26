@@ -8,7 +8,8 @@ of duplicating the reference text.
 ## Decks
 
 - [Base Newcomer Orientation](base-newcomer-orientation.md) introduces Base as
-  a workspace control plane for multi-repo development.
+  a local operating contract for deterministic readiness and handoff across
+  independent repositories.
 
 ## Source Of Truth
 

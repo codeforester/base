@@ -5,7 +5,8 @@ paginate: true
 
 # Base Newcomer Orientation
 
-Workspace control plane for multi-repo development
+Local operating contract for deterministic readiness and handoff
+across independent repositories
 
 Canonical product details live in the README and focused docs. This deck is an
 orientation path for GitHub readers and live walkthroughs.
@@ -24,17 +25,25 @@ A developer may need:
 - diagnostics that explain what is missing
 - shell activation without copying private dotfile logic into every repo
 
-Base gives that workspace a common operating layer.
+Base gives that workspace a common, inspectable operating contract.
 
 ---
 
 ## What Base Is
 
-Base is a workspace control plane.
+Base is a local operating contract for deterministic readiness and handoff
+across independent Git repositories.
 
-It discovers participating repositories, reads their Base contracts, and gives
-the developer one command surface for setup, diagnostics, tests, demos,
-activation, release support, and CI.
+It makes the repo set understandable, locally ready, explicitly trusted,
+onboardable, and transferable. Its durable loop is:
+
+```text
+inventory -> prepare -> verify -> trust -> onboard -> hand off
+```
+
+The `basectl` command surface supports setup, diagnostics, tests, demos,
+activation, release support, and CI while project repositories retain ownership
+of their application behavior.
 
 It does not turn sibling repositories into a monorepo.
 
