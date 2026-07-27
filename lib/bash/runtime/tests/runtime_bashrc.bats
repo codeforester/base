@@ -103,6 +103,47 @@ EOF
     [[ "$output" == *'PS1=\T ${_BASE_RUNTIME_HOST_PROMPT:-unknown} ${BASE_PROJECT:+[$BASE_PROJECT] }$(_base_runtime_venv_prompt)$(_base_runtime_git_prompt)\w: '* ]]
 }
 
+@test "runtime bashrc keeps the helper-backed prompt shell-local" {
+    cat > "$TEST_HOME/.bashrc" <<'EOF'
+export PS1='user prompt: '
+set -a
+EOF
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        "$BASH" --rcfile "$BASE_REPO_ROOT/lib/bash/runtime/bashrc" -i -c '
+            declaration="$(declare -p PS1)"
+            attributes="${declaration#declare -}"
+            attributes="${attributes%% *}"
+            if [[ "$attributes" == *x* ]]; then
+                printf "ps1_exported=1\n"
+            else
+                printf "ps1_exported=0\n"
+            fi
+            printf "venv_prompt_helper=%s\n" "$(type -t _base_runtime_venv_prompt)"
+            printf "git_prompt_helper=%s\n" "$(type -t _base_runtime_git_prompt)"
+            child_stderr="$HOME/runtime-child.stderr"
+            "$BASH" --noprofile --norc -i </dev/null \
+                >/dev/null 2>"$child_stderr"
+            if grep -F "_base_runtime_venv_prompt" "$child_stderr" >/dev/null ||
+                grep -F "_base_runtime_git_prompt" "$child_stderr" >/dev/null; then
+                cat "$child_stderr"
+                exit 9
+            fi
+            printf "child_prompt=clean\n"
+        '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"ps1_exported=0"* ]]
+    [[ "$output" == *"venv_prompt_helper=function"* ]]
+    [[ "$output" == *"git_prompt_helper=function"* ]]
+    [[ "$output" == *"child_prompt=clean"* ]]
+    [[ "$output" != *"_base_runtime_venv_prompt: command not found"* ]]
+    [[ "$output" != *"_base_runtime_git_prompt: command not found"* ]]
+}
+
 @test "runtime bashrc can source user bashrc with Base-managed snippet after readonly BASE_HOME" {
     cat > "$TEST_HOME/.bashrc" <<EOF
 source "$BASE_REPO_ROOT/lib/shell/bashrc"

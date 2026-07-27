@@ -808,6 +808,44 @@ EOF
     fi
 }
 
+@test "basectl update-profile --defaults keeps the Bash prompt shell-local" {
+    run_base_command update-profile --defaults
+    [ "$status" -eq 0 ]
+
+    run env -u BASE_HOST -u BASE_HOST_ENV -u BASE_OS -u BASE_PLATFORM \
+        HOME="$TEST_HOME" \
+        BASE_HOME="/usr/local/opt/base/libexec" \
+        BASE_SHELL=1 \
+        PS1="inherited prompt: " \
+        LC_ALL=C \
+        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        /bin/bash --rcfile "$TEST_HOME/.bashrc" -i -c '
+            declaration="$(declare -p PS1)"
+            attributes="${declaration#declare -}"
+            attributes="${attributes%% *}"
+            if [[ "$attributes" == *x* ]]; then
+                printf "ps1_exported=1\n"
+            else
+                printf "ps1_exported=0\n"
+            fi
+            printf "prompt_helper=%s\n" "$(type -t _base_bash_defaults_git_prompt)"
+            child_stderr="$HOME/default-child.stderr"
+            "$BASH" --noprofile --norc -i </dev/null \
+                >/dev/null 2>"$child_stderr"
+            if grep -F "_base_bash_defaults_git_prompt" "$child_stderr" >/dev/null; then
+                cat "$child_stderr"
+                exit 9
+            fi
+            printf "child_prompt=clean\n"
+        '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"ps1_exported=0"* ]]
+    [[ "$output" == *"prompt_helper=function"* ]]
+    [[ "$output" == *"child_prompt=clean"* ]]
+    [[ "$output" != *"_base_bash_defaults_git_prompt: command not found"* ]]
+}
+
 @test "Base shell defaults abbreviate detached HEAD without command substitution" {
     run grep -F 'branch="$(printf' "$BASE_REPO_ROOT/lib/shell/bash_defaults.sh" "$BASE_REPO_ROOT/lib/shell/zsh_defaults.sh"
     [ "$status" -eq 1 ]
