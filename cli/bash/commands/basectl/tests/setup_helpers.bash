@@ -177,6 +177,9 @@ if [[ "${1:-}" == "--version" ]]; then
     printf 'Python 3.13.test\n'
     exit 0
 fi
+if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
+    exit 0
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     if [[ "$*" == *"--action route"* ]]; then
         base_test_protocol_project_setup_route base "$BASE_HOME" "$BASE_HOME/base_manifest.yaml" \
@@ -380,6 +383,9 @@ if [[ "${1:-}" == "--version" ]]; then
     printf 'Python 3.13.test\n'
     exit 0
 fi
+if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
+    exit 0
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     if [[ "$*" == *"--action route"* ]]; then
         base_test_protocol_project_setup_route base "$BASE_HOME" "$BASE_HOME/base_manifest.yaml" \
@@ -545,6 +551,9 @@ pyyaml_package="${BASE_SETUP_PYYAML_PACKAGE:-PyYAML}"
 click_package="${BASE_SETUP_CLICK_PACKAGE:-click}"
 if [[ "${1:-}" == "--version" ]]; then
     printf 'Python 3.13.test\n'
+    exit 0
+fi
+if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
     exit 0
 fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
@@ -727,6 +736,9 @@ if [[ "${1:-}" == "--version" ]]; then
     printf 'Python 3.13.test\n'
     exit 0
 fi
+if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
+    exit 0
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "show" && "${4:-}" == "$pyyaml_package" ]]; then
     printf '%s\n' "$4" >> "${BASE_SETUP_TEST_STATE_DIR:?}/pip-show.log"
     [[ -f "${BASE_SETUP_TEST_STATE_DIR:?}/pyyaml-installed" ]]
@@ -784,6 +796,9 @@ pyyaml_package="${BASE_SETUP_PYYAML_PACKAGE:-PyYAML}"
 click_package="${BASE_SETUP_CLICK_PACKAGE:-click}"
 if [[ "${1:-}" == "--version" ]]; then
     printf 'Python 3.13.test\n'
+    exit 0
+fi
+if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
     exit 0
 fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
