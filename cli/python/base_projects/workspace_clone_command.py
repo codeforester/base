@@ -37,6 +37,8 @@ def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOption
         ctx.log.error(str(exc))
         return base_cli.ExitCode.FAILURE
 
+    workspace_root = workspace_root.resolve(strict=False)
+
     if ctx.base_home is None:
         ctx.log.error("BASE_HOME is required to clone workspace repositories.")
         return base_cli.ExitCode.FAILURE
@@ -47,7 +49,12 @@ def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOption
 
     errors = 0
     for repo in manifest.repos:
-        target = (workspace_root / repo.name).resolve()
+        try:
+            target = resolve_workspace_clone_target(workspace_root, repo.name)
+        except ProjectUsageError as exc:
+            ctx.log.error(str(exc))
+            errors += 1
+            continue
         required_label = "required" if repo.required else "optional"
         if should_skip_optional_clone(repo, target, options.include_optional):
             print_optional_clone_skip(repo, target)
@@ -64,6 +71,17 @@ def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOption
 
     print("Workspace clone completed.")
     return base_cli.ExitCode.SUCCESS
+
+
+def resolve_workspace_clone_target(workspace_root: Path, repo_name: str) -> Path:
+    target = (workspace_root / repo_name).resolve(strict=False)
+    try:
+        target.relative_to(workspace_root)
+    except ValueError as exc:
+        raise ProjectUsageError(
+            f"Repository '{repo_name}' resolves outside workspace root '{workspace_root}'."
+        ) from exc
+    return target
 
 
 def require_workspace_clone_manifest(ctx: base_cli.Context, workspace_manifest: str | None) -> WorkspaceManifest:
