@@ -5,7 +5,9 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote, urlparse
-from urllib.request import urlopen
+from urllib.request import HTTPRedirectHandler
+from urllib.request import Request
+from urllib.request import build_opener
 
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestError
@@ -13,6 +15,17 @@ from base_projects.workspace_manifest import read_workspace_manifest
 
 
 MAX_WORKSPACE_MANIFEST_SOURCE_BYTES = 2 * 1024 * 1024
+
+
+class HTTPSOnlyRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req: Request, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        redirect = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirect is not None and urlparse(redirect.full_url).scheme != "https":
+            raise WorkspaceManifestError(
+                f"Insecure workspace manifest redirect from '{req.full_url}' to '{redirect.full_url}'. "
+                "Use an https:// redirect target."
+            )
+        return redirect
 
 
 @dataclass(frozen=True)
@@ -70,7 +83,14 @@ def fetch_workspace_manifest_source(source: str) -> bytes:
     if parsed.scheme == "https":
         try:
             # This command fetches an explicit user-configured manifest source.
-            with urlopen(source, timeout=30) as response:  # nosec B310
+            opener = build_opener(HTTPSOnlyRedirectHandler)
+            with opener.open(source, timeout=30) as response:  # nosec B310
+                final_source = response.geturl()
+                if urlparse(final_source).scheme != "https":
+                    raise WorkspaceManifestError(
+                        f"Insecure workspace manifest redirect from '{source}' to '{final_source}'. "
+                        "Use an https:// redirect target."
+                    )
                 return enforce_workspace_manifest_source_size(
                     source,
                     response.read(MAX_WORKSPACE_MANIFEST_SOURCE_BYTES + 1),

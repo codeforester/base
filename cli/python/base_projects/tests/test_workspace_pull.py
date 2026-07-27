@@ -7,8 +7,11 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
+from urllib.request import Request
 
 from base_projects import engine
+from base_projects.workspace_manifest import WorkspaceManifestError
+from base_projects.workspace_pull import HTTPSOnlyRedirectHandler
 from base_projects.workspace_pull import MAX_WORKSPACE_MANIFEST_SOURCE_BYTES
 
 
@@ -182,7 +185,7 @@ class WorkspacePullTests(unittest.TestCase):
             home.mkdir()
             base_home.mkdir()
 
-            with mock.patch("base_projects.workspace_pull.urlopen") as urlopen:
+            with mock.patch("base_projects.workspace_pull.build_opener") as build_opener:
                 status, stdout, stderr = invoke_engine(
                     ["pull", "--source", "http://example.test/workspace.yaml", "--manifest", str(target)],
                     base_home,
@@ -192,7 +195,7 @@ class WorkspacePullTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertEqual(stdout, "")
         self.assertFalse(target.exists())
-        urlopen.assert_not_called()
+        build_opener.assert_not_called()
         self.assertIn("Insecure workspace manifest source", stderr)
         self.assertIn("Use https://, file://, or a local path", stderr)
 
@@ -207,8 +210,11 @@ class WorkspacePullTests(unittest.TestCase):
 
             response = mock.MagicMock()
             response.read.return_value = WORKSPACE_MANIFEST.encode("utf-8")
+            response.geturl.return_value = "https://example.test/workspace.yaml"
             response.__enter__.return_value = response
-            with mock.patch("base_projects.workspace_pull.urlopen", return_value=response) as urlopen:
+            opener = mock.MagicMock()
+            opener.open.return_value = response
+            with mock.patch("base_projects.workspace_pull.build_opener", return_value=opener) as build_opener:
                 status, stdout, stderr = invoke_engine(
                     ["pull", "--source", "https://example.test/workspace.yaml", "--manifest", str(target)],
                     base_home,
@@ -219,8 +225,37 @@ class WorkspacePullTests(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertEqual(stderr, "")
         self.assertEqual(target_content, WORKSPACE_MANIFEST)
-        urlopen.assert_called_once_with("https://example.test/workspace.yaml", timeout=30)
+        build_opener.assert_called_once_with(HTTPSOnlyRedirectHandler)
+        opener.open.assert_called_once_with("https://example.test/workspace.yaml", timeout=30)
         self.assertIn("Status: created", stdout)
+
+    def test_https_redirect_handler_rejects_http_target(self) -> None:
+        request = Request("https://example.test/workspace.yaml")
+
+        with self.assertRaisesRegex(WorkspaceManifestError, "Insecure workspace manifest redirect"):
+            HTTPSOnlyRedirectHandler().redirect_request(
+                request,
+                None,
+                302,
+                "Found",
+                {"Location": "http://example.test/workspace.yaml"},
+                "http://example.test/workspace.yaml",
+            )
+
+    def test_https_redirect_handler_allows_https_target(self) -> None:
+        request = Request("https://example.test/workspace.yaml")
+
+        redirect = HTTPSOnlyRedirectHandler().redirect_request(
+            request,
+            None,
+            302,
+            "Found",
+            {"Location": "https://cdn.example.test/workspace.yaml"},
+            "https://cdn.example.test/workspace.yaml",
+        )
+
+        self.assertIsNotNone(redirect)
+        self.assertEqual(redirect.full_url, "https://cdn.example.test/workspace.yaml")
 
     def test_workspace_pull_rejects_invalid_manifest_without_overwriting_target(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
