@@ -44,9 +44,12 @@ base_bashrc_source_baserc_guard() {
 
 base_bashrc_var_is_readonly() {
     local declaration
+    local attributes
 
     declaration="$(declare -p "$1" 2>/dev/null)" || return 1
-    [[ "$declaration" == declare\ -*r* ]]
+    attributes="${declaration#declare -}"
+    attributes="${attributes%% *}"
+    [[ "$attributes" == *r* ]]
 }
 
 base_bashrc_print_stale_base_home_recovery() {
@@ -104,7 +107,8 @@ base_bashrc_set_base_home() {
             fi
             printf "ERROR: BASE_HOME is readonly and points at '%s', not '%s'.\n" "$BASE_HOME" "$base_home" >&2
             base_bashrc_print_stale_base_home_recovery
-            return 1
+            # The mismatch and recovery have already been diagnosed.
+            return 3
         fi
     fi
     export BASE_HOME="$base_home"
@@ -211,7 +215,9 @@ if ((base_bashrc_status == 2)); then
     unset base_bashrc_status
     return 0
 elif ((base_bashrc_status)); then
-    printf 'ERROR: Unable to determine BASE_HOME from Base bashrc snippet. Run basectl update-profile.\n' >&2
+    if ((base_bashrc_status != 3)); then
+        printf 'ERROR: Unable to determine BASE_HOME from Base bashrc snippet. Run basectl update-profile.\n' >&2
+    fi
     unset -f base_bashrc_debug base_bashrc_snippet_dir base_bashrc_source_baserc_guard base_bashrc_var_is_readonly
     unset -f base_bashrc_print_stale_base_home_recovery base_bashrc_print_active_runtime_skip
     unset -f base_bashrc_source_platform_tools_helper base_bashrc_configure_path base_bashrc_source_defaults

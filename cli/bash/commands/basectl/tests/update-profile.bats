@@ -348,6 +348,36 @@ EOF
     [[ "$output" == *"PATH=$opt_base/bin:/usr/bin:/bin:/usr/sbin:/sbin"* ]]
 }
 
+@test "Base-managed Bash startup replaces writable inherited BASE_HOME values" {
+    local inherited_base
+    local source_base="$TEST_TMPDIR/work/base"
+
+    create_fake_shell_base "$source_base"
+
+    for inherited_base in \
+        /usr/local/opt/base/libexec \
+        /opt/homebrew/opt/base/libexec; do
+        run env -u BASE_PLATFORM_TOOLS_HOME -u BASE_PLATFORM_TOOLS_BIN_DIR \
+            HOME="$TEST_HOME" \
+            BASE_HOME="$inherited_base" \
+            BASE_SHELL=1 \
+            PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+            bash --rcfile "$source_base/lib/shell/bashrc" -i -c '\
+                printf "BASE_HOME=%s\n" "$BASE_HOME"; \
+                printf "BASE_BIN=%s\n" "$(command -v basectl)"; \
+                declare -p BASE_HOME'
+
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"BASE_HOME=$source_base"* ]]
+        [[ "$output" == *"BASE_BIN=$source_base/bin/basectl"* ]]
+        [[ "$output" == *"declare -x BASE_HOME=\"$source_base\""* ]]
+        [[ "$output" != *"BASE_HOME is readonly"* ]]
+        [[ "$output" != *"already running Base"* ]]
+        [[ "$output" != *"Start a fresh shell without stale Base runtime variables"* ]]
+        [[ "$output" != *"Run basectl update-profile"* ]]
+    done
+}
+
 @test "Base-managed Bash startup explains stale readonly BASE_HOME recovery" {
     local old_base="$TEST_TMPDIR/homebrew/Cellar/base/0.3.0/libexec"
     local cellar_base="$TEST_TMPDIR/homebrew/Cellar/base/0.4.1/libexec"
@@ -372,6 +402,24 @@ EOF
     [[ "$output" == *"-u BASE_PROJECT_VENV_DIR \\"* ]]
     [[ "$output" == *'"$SHELL" -l'* ]]
     [[ "$output" != *"ERROR:   exec env"* ]]
+    [[ "$output" != *"Unable to determine BASE_HOME from Base bashrc snippet"* ]]
+    [[ "$output" != *"Run basectl update-profile"* ]]
+}
+
+@test "Base-managed Bash startup preserves generic guidance for undiagnosed failures" {
+    local invalid_base="$TEST_TMPDIR/invalid-base"
+
+    create_fake_shell_base "$invalid_base"
+    rm "$invalid_base/base_init.sh"
+
+    run env -u BASE_HOME -u BASE_PLATFORM_TOOLS_HOME -u BASE_PLATFORM_TOOLS_BIN_DIR \
+        HOME="$TEST_HOME" \
+        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        bash -i -c 'source "$1"' \
+        bash "$invalid_base/lib/shell/bashrc"
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unable to determine BASE_HOME from Base bashrc snippet. Run basectl update-profile."* ]]
 }
 
 @test "Base-managed Bash startup skips mismatched snippet inside active Base runtime" {
