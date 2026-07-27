@@ -25,6 +25,9 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Fixed
 
+- Corrected Bash startup's readonly `BASE_HOME` detection to inspect only
+  variable attributes, allowing refreshed profile snippets to replace writable
+  Homebrew paths while keeping genuine mismatch recovery diagnostics specific.
 - Prevented `basectl activate` from reusing a virtual environment override owned
   by a different active project.
 - Unified human-readable `basectl doctor` output across Base and project
