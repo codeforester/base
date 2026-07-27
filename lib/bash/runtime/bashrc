@@ -204,9 +204,10 @@ _base_runtime_git_prompt() {
 _base_runtime_set_prompt() {
     # Base owns this runtime shell prompt, so disable prompt mutation by Python
     # virtualenv activation and render the active venv dynamically instead.
+    # Its helper functions are shell-local, so the prompt must be shell-local too.
     export VIRTUAL_ENV_DISABLE_PROMPT=1
     _BASE_RUNTIME_HOST_PROMPT="$(_base_runtime_host_prompt)"
-    PS1='\T ${_BASE_RUNTIME_HOST_PROMPT:-unknown} ${BASE_PROJECT:+[$BASE_PROJECT] }$(_base_runtime_venv_prompt)$(_base_runtime_git_prompt)\w: '
+    export -n PS1='\T ${_BASE_RUNTIME_HOST_PROMPT:-unknown} ${BASE_PROJECT:+[$BASE_PROJECT] }$(_base_runtime_venv_prompt)$(_base_runtime_git_prompt)\w: '
 }
 
 _base_runtime_main() {

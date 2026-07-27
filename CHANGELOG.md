@@ -25,6 +25,8 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Fixed
 
+- Kept helper-backed Bash defaults and runtime prompts shell-local so child
+  shells no longer report missing prompt helper functions.
 - Corrected Bash startup's readonly `BASE_HOME` detection to inspect only
   variable attributes, allowing refreshed profile snippets to replace writable
   Homebrew paths while keeping genuine mismatch recovery diagnostics specific.

@@ -96,7 +96,8 @@ _base_bash_defaults_git_prompt() {
     printf '(%s) ' "$branch"
 }
 
-export PS1='\[\033[0;35m\]\T \h\[\033[0;33m\] $(_base_bash_defaults_git_prompt)\w\[\033[00m\]: '
+# The prompt depends on shell-local helpers and must not reach child shells.
+export -n PS1='\[\033[0;35m\]\T \h\[\033[0;33m\] $(_base_bash_defaults_git_prompt)\w\[\033[00m\]: '
 
 _base_bash_defaults_bind_set() {
     bind "set $1" 2>/dev/null || true
