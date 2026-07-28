@@ -438,6 +438,10 @@ a merged GitHub PR, then deletes the now-free local branch when safe. Resolve an
 reported GitHub verification failures and rerun the preview before applying it
 with `--yes`.
 
+If a worktree is removed but its local branch cannot be deleted, the command
+retains the branch, reports the incomplete cleanup, and exits nonzero. Resolve
+the branch condition before treating the cleanup as complete.
+
 When `basectl gh branch prune` reports branches attached to worktrees, preview
 those worktrees with `basectl gh worktree prune`, apply the safe removals with
 `basectl gh worktree prune --yes`, and rerun the branch-prune command. The

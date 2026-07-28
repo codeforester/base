@@ -788,6 +788,39 @@ EOF
     ! git -C "$repo" show-ref --verify --quiet refs/heads/merged-work
 }
 
+@test "basectl gh worktree prune reports retained branches after deletion failure" {
+    local repo worktree
+
+    repo="$TEST_TMPDIR/repo"
+    worktree="$TEST_TMPDIR/merged-worktree"
+    init_git_repo "$repo"
+    printf 'hello\n' > "$repo/README.md"
+    commit_all "$repo" "Initial commit"
+    git -C "$repo" branch merged-work
+    git -C "$repo" worktree add "$worktree" merged-work >/dev/null 2>&1
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        bash -c '
+            cd "$1"
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            base_gh_worktree_prune_delete_branch() {
+                printf "SKIP-BRANCH %s  simulated branch delete failure\n" "$1"
+                return 1
+            }
+            base_gh_subcommand_main worktree prune --yes
+        ' bash "$repo"
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"REMOVE "*"/merged-worktree (merged-work)"* ]]
+    [[ "$output" == *"SKIP-BRANCH merged-work  simulated branch delete failure"* ]]
+    [[ "$output" == *"Summary: 1 removed, 1 skipped current/default, 0 skipped dirty, 0 skipped unmerged, 1 failed."* ]]
+    [ ! -e "$worktree" ]
+    git -C "$repo" show-ref --verify --quiet refs/heads/merged-work
+}
+
 @test "basectl gh worktree prune skips dirty worktrees" {
     local repo worktree
 
