@@ -224,6 +224,31 @@ CATALOG = catalog_by_id(
             docs=(RelatedDoc("Python Manifest - Command Runners", "docs/python-manifest.md#command-runners"),),
         ),
         FindingExplanation(
+            finding_id="BASE-P155",
+            title="uv-managed project virtual environment synchronization",
+            summary=(
+                "Base found that the uv-managed project environment is not synchronized with its declared "
+                "dependencies."
+            ),
+            why_it_matters=(
+                "A manually installed, removed, or otherwise stale package can make local commands differ from the "
+                "locked project contract. uv is the owner of this environment, so its read-only synchronization "
+                "check is the authoritative drift signal."
+            ),
+            likely_causes=(
+                "A package was installed or removed directly with pip inside the uv virtual environment.",
+                "The project dependencies or uv.lock changed without synchronizing the environment.",
+                "The environment was created by a different Python or dependency-management workflow.",
+            ),
+            fix_steps=(
+                "Run `uv sync` from the project root to reconcile the environment.",
+                "Review the resulting lockfile and package changes before rerunning project commands.",
+                "Run `basectl doctor <project>` again and confirm `BASE-P155` reports `ok`.",
+            ),
+            related_commands=("uv sync --check", "uv sync", "basectl check <project>", "basectl doctor <project>"),
+            docs=(RelatedDoc("Python Manifest", "docs/python-manifest.md#diagnostics"),),
+        ),
+        FindingExplanation(
             finding_id="BASE-P160",
             title="Manifest command executable availability",
             summary="Base found an obvious missing executable in a manifest-declared command.",

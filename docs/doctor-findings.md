@@ -173,6 +173,7 @@ Doctor commands use the same diagnostic item fields. The top-level
 | `BASE-P152` | uv-managed project `uv.lock` presence |
 | `BASE-P153` | Stale Base-managed project virtual environment ignored by a uv-managed project |
 | `BASE-P154` | uv-managed project virtual environment readiness |
+| `BASE-P155` | uv-managed project virtual environment synchronization |
 | `BASE-P160` | Manifest command executable availability |
 | `BASE-P161` | Manifest command project script path readiness |
 | `BASE-P170` | Project Python version requirement support window |
@@ -193,13 +194,15 @@ configuration source and do not cause Base to install Python dependencies.
 Warnings in this range should guide users toward a valid Python project file
 without failing the Base manifest check by themselves.
 
-`BASE-P150` through `BASE-P154` are uv support diagnostics. They are warnings
+`BASE-P150` through `BASE-P155` are uv support diagnostics. They are warnings
 when uv tooling or expected uv project files are missing, because check/doctor
-should explain readiness without performing dependency resolution. Command
-invocation still fails hard when a command declares `runner: uv` and the `uv`
-executable is unavailable. On Ubuntu/Debian, `BASE-P150` recovery should point
-users to `basectl setup <project> --dry-run` followed by `--yes` when the
-manifest has explicitly opted into uv.
+should explain readiness without mutating the project. When the project has a
+usable `pyproject.toml`, `uv.lock`, and `.venv`, `BASE-P155` runs uv's offline
+`sync --check` probe and reports an error when the environment is not
+synchronized. Command invocation still fails hard when a command declares
+`runner: uv` and the `uv` executable is unavailable. On Ubuntu/Debian,
+`BASE-P150` recovery should point users to `basectl setup <project> --dry-run`
+followed by `--yes` when the manifest has explicitly opted into uv.
 For the full uv manifest contract, migration paths, and runner configuration,
 see [Python Manifest](python-manifest.md).
 

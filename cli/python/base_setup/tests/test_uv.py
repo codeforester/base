@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -302,13 +303,15 @@ class UvProjectTests(unittest.TestCase):
             )
             (root / "pyproject.toml").write_text("[project]\nname = 'demo'\n", encoding="utf-8")
 
-            with mock.patch.dict("os.environ", {"HOME": str(home)}), mock.patch(
-                "base_setup.uv.uv_executable",
-                return_value=Path("uv"),
+            with (
+                mock.patch.dict("os.environ", {"HOME": str(home)}),
+                mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
+                mock.patch("base_setup.uv.process.run_check") as run_check,
             ):
                 checks = check_uv(manifest)
 
         findings = {check.finding_id: check for check in checks}
+        run_check.assert_not_called()
         self.assertEqual(findings["BASE-P151"].status, "")
         self.assertEqual(findings["BASE-P152"].status, "warn")
         self.assertEqual(findings["BASE-P153"].status, "warn")
@@ -338,12 +341,91 @@ class UvProjectTests(unittest.TestCase):
             python_bin.write_text("#!/usr/bin/env python\n", encoding="utf-8")
             python_bin.chmod(0o755)
 
-            with mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")):
+            with (
+                mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
+                mock.patch("base_setup.uv.process.run_check", return_value=True) as run_check,
+            ):
                 checks = check_uv(manifest)
 
         findings = {check.finding_id: check for check in checks}
         self.assertEqual(findings["BASE-P154"].status, "")
         self.assertIn(str(root / ".venv"), findings["BASE-P154"].message)
+        self.assertEqual(findings["BASE-P155"].status, "")
+        run_check.assert_called_once_with(
+            ["uv", "sync", "--check", "--offline"],
+            cwd=root,
+            timeout_seconds=10,
+        )
+
+    def test_check_uv_reports_environment_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "project"
+            manifest = write_manifest(
+                root,
+                "\n".join(
+                    [
+                        "project:",
+                        "  name: demo",
+                        "python:",
+                        "  manager: uv",
+                        "artifacts: []",
+                    ]
+                ),
+            )
+            (root / "pyproject.toml").write_text("[project]\nname = 'demo'\n", encoding="utf-8")
+            (root / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+            python_bin = root / ".venv" / "bin" / "python"
+            python_bin.parent.mkdir(parents=True)
+            python_bin.write_text("#!/usr/bin/env python\n", encoding="utf-8")
+            python_bin.chmod(0o755)
+
+            with (
+                mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
+                mock.patch("base_setup.uv.process.run_check", return_value=False),
+            ):
+                checks = check_uv(manifest)
+
+        drift = next(check for check in checks if check.finding_id == "BASE-P155")
+        self.assertFalse(drift.ok)
+        self.assertEqual(drift.status, "")
+        self.assertIn("not synchronized", drift.message)
+        self.assertIn("uv sync", drift.fix)
+
+    def test_check_uv_warns_when_environment_probe_times_out(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "project"
+            manifest = write_manifest(
+                root,
+                "\n".join(
+                    [
+                        "project:",
+                        "  name: demo",
+                        "python:",
+                        "  manager: uv",
+                        "artifacts: []",
+                    ]
+                ),
+            )
+            (root / "pyproject.toml").write_text("[project]\nname = 'demo'\n", encoding="utf-8")
+            (root / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+            python_bin = root / ".venv" / "bin" / "python"
+            python_bin.parent.mkdir(parents=True)
+            python_bin.write_text("#!/usr/bin/env python\n", encoding="utf-8")
+            python_bin.chmod(0o755)
+
+            with (
+                mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
+                mock.patch(
+                    "base_setup.uv.process.run_check",
+                    side_effect=subprocess.TimeoutExpired(["uv", "sync", "--check", "--offline"], 10),
+                ),
+            ):
+                checks = check_uv(manifest)
+
+        timeout = next(check for check in checks if check.finding_id == "BASE-P155")
+        self.assertEqual(timeout.status, "warn")
+        self.assertIn("timed out", timeout.message)
+        self.assertIn("uv sync --check", timeout.fix)
 
     def test_uv_project_setup_skips_python_package_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
