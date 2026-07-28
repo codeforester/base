@@ -438,6 +438,12 @@ a merged GitHub PR, then deletes the now-free local branch when safe. Resolve an
 reported GitHub verification failures and rerun the preview before applying it
 with `--yes`.
 
+When `basectl gh branch prune` reports branches attached to worktrees, preview
+those worktrees with `basectl gh worktree prune`, apply the safe removals with
+`basectl gh worktree prune --yes`, and rerun the branch-prune command. The
+`--remote` option belongs to `basectl gh branch prune`; worktree pruning only
+removes local worktrees and their local branches.
+
 ## Superseded Pull Requests
 
 A pull request closed because another pull request supersedes it has a
