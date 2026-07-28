@@ -12,7 +12,8 @@ def check_required_env(manifest: BaseManifest) -> list[ArtifactCheck]:
     activation_hint = ""
     if manifest.activate.source:
         activation_hint = (
-            f", or run 'basectl activate {manifest.project_name}' if the project activation provides it"
+            f"Project '{manifest.project_name}' is not activated in this shell; "
+            f"run 'basectl activate {manifest.project_name}' if its activation provides this variable"
         )
     return [
         check_required_env_var(env_name, activation_hint=activation_hint)
@@ -33,11 +34,17 @@ def check_required_env_var(env_name: str, *, activation_hint: str = "") -> Artif
             fix="",
             finding_id="BASE-H001",
         )
+    if activation_hint:
+        fix = (
+            f"{activation_hint}; otherwise, set {env_name} in your shell, .env, or secrets manager."
+        )
+    else:
+        fix = f"Set {env_name} in your shell, .env, or secrets manager."
     return ArtifactCheck(
         name=env_name,
         ok=False,
         message=f"Environment variable '{env_name}' is not set or is empty.",
-        fix=f"Set {env_name} in your shell, .env, or secrets manager{activation_hint}.",
+        fix=fix,
         finding_id="BASE-H001",
     )
 

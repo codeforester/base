@@ -369,8 +369,9 @@ class ProjectCheckTests(unittest.TestCase):
             self.assertEqual(activation_status, 1)
             self.assertEqual(
                 activation_payload["checks"][0]["fix"],
-                "Set BASE_TEST_ACTIVATION_ENV in your shell, .env, or secrets manager, "
-                "or run 'basectl activate demo' if the project activation provides it.",
+                "Project 'demo' is not activated in this shell; run 'basectl activate demo' "
+                "if its activation provides this variable; otherwise, set "
+                "BASE_TEST_ACTIVATION_ENV in your shell, .env, or secrets manager.",
             )
 
 
