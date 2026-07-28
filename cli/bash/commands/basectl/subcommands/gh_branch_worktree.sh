@@ -295,7 +295,7 @@ base_gh_branch_prune_local() {
         printf 'No merged local branches found.\n'
     fi
     if ((skipped_worktree > 0)); then
-        printf 'Hint: run `basectl gh worktree prune` to inspect stale worktrees.\n'
+        printf 'Hint: run `basectl gh worktree prune` to preview these worktrees, then `basectl gh worktree prune --yes` and rerun this command.\n'
     fi
     printf 'Summary: %s %s, %s skipped worktree, %s skipped upstream, %s failed.\n' \
         "$deleted" "$([[ "$dry_run" -eq 1 ]] && printf 'would delete' || printf 'deleted')" \
@@ -513,6 +513,11 @@ base_gh_worktree_prune() {
                 ;;
             --yes)
                 dry_run=0
+                ;;
+            --remote)
+                base_gh_usage_error base_gh_worktree_usage \
+                    "Option '--remote' is only supported by 'basectl gh branch prune'. Run 'basectl gh branch prune --remote' for remote branch cleanup."
+                return $?
                 ;;
             -h|--help)
                 base_gh_worktree_usage
