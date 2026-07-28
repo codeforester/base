@@ -491,13 +491,14 @@ base_gh_worktree_prune_delete_branch() {
     upstream="$(base_gh_branch_upstream "$branch")"
     if [[ "$merge_source" != github && -n "$upstream" ]] && ! base_gh_branch_merged_to_ref "$branch" "$upstream"; then
         printf 'SKIP-BRANCH %s  not fully merged to upstream %s\n' "$branch" "$upstream"
-        return 0
+        return 1
     fi
 
     if base_gh_branch_delete "$branch" "$merge_source"; then
         printf 'DELETE %s\n' "$branch"
     else
         printf 'SKIP-BRANCH %s  git branch -d refused\n' "$branch"
+        return 1
     fi
 }
 
@@ -586,7 +587,9 @@ base_gh_worktree_prune() {
         elif git worktree remove "$path" >/dev/null 2>&1; then
             printf 'REMOVE %s (%s)\n' "$path" "$branch"
             removed=$((removed + 1))
-            base_gh_worktree_prune_delete_branch "$branch" "$merge_source"
+            if ! base_gh_worktree_prune_delete_branch "$branch" "$merge_source"; then
+                failed=$((failed + 1))
+            fi
         else
             printf 'FAIL   %s (%s)  git worktree remove failed\n' "$path" "$branch"
             failed=$((failed + 1))

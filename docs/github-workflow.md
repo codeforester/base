@@ -438,6 +438,10 @@ a merged GitHub PR, then deletes the now-free local branch when safe. Resolve an
 reported GitHub verification failures and rerun the preview before applying it
 with `--yes`.
 
+If a worktree is removed but its local branch cannot be deleted, the command
+retains the branch, reports the incomplete cleanup, and exits nonzero. Resolve
+the branch condition before treating the cleanup as complete.
+
 ## Superseded Pull Requests
 
 A pull request closed because another pull request supersedes it has a
