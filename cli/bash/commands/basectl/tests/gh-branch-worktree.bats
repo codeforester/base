@@ -48,7 +48,9 @@ load ./basectl_helpers.bash
     [[ "$output" == *"basectl gh branch stale [--days <days>]"* ]]
     [[ "$output" == *"basectl gh branch prune [--dry-run] [--yes] [--remote]"* ]]
     [[ "$output" == *"Runs in dry-run mode by default. Pass --yes to apply changes."* ]]
-    [[ "$output" == *"--dry-run      Preview branches that would be deleted (default)."* ]]
+    [[ "$output" == *"stale: --days <days>, --format <text|json>"* ]]
+    [[ "$output" == *"prune: --dry-run, --yes, --remote"* ]]
+    [[ "$output" == *"-h, --help     Show this help text."* ]]
     [[ "$output" != *"basectl gh issue create"* ]]
     [[ "$output" != *"basectl gh worktree prune"* ]]
 }
@@ -61,6 +63,7 @@ load ./basectl_helpers.bash
     [[ "$output" == *"Prune safe, merged Git worktrees and their local branches."* ]]
     [[ "$output" == *"Runs in dry-run mode by default. Pass --yes to apply changes."* ]]
     [[ "$output" == *"--dry-run      Preview worktrees that would be removed (default)."* ]]
+    [[ "$output" == *"-h, --help     Show this help text."* ]]
     [[ "$output" != *"basectl gh branch prune"* ]]
     [[ "$output" != *"basectl gh issue create"* ]]
 }
@@ -166,7 +169,8 @@ load ./basectl_helpers.bash
     [[ "$output" == *"[DRY-RUN] Branch prune preview for default branch master."* ]]
     [[ "$output" == *"Local branches"* ]]
     [[ "$output" == *"[DRY-RUN] DELETE merged-work"* ]]
-    [[ "$output" == *"Summary: 1 would delete, 0 skipped worktree, 0 skipped upstream, 0 failed."* ]]
+    [[ "$output" == *"SKIP   master  current/default branch protected"* ]]
+    [[ "$output" == *"Summary: 1 would delete, 1 skipped current/default, 0 skipped worktree, 0 skipped upstream, 0 failed."* ]]
     [[ "$output" == *"Run with --yes to apply these changes."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/merged-work
 }
@@ -192,7 +196,7 @@ load ./basectl_helpers.bash
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"DELETE merged-work"* ]]
-    [[ "$output" == *"Summary: 1 deleted, 0 skipped worktree, 0 skipped upstream, 0 failed."* ]]
+    [[ "$output" == *"Summary: 1 deleted, 1 skipped current/default, 0 skipped worktree, 0 skipped upstream, 0 failed."* ]]
     ! git -C "$repo" show-ref --verify --quiet refs/heads/merged-work
 }
 
@@ -220,7 +224,7 @@ load ./basectl_helpers.bash
     [ "$status" -eq 0 ]
     [[ "$output" == *"SKIP   merged-work  attached to worktree "*"/merged-worktree"* ]]
     [[ "$output" == *'Hint: run `basectl gh worktree prune` to inspect stale worktrees.'* ]]
-    [[ "$output" == *"Summary: 0 deleted, 1 skipped worktree, 0 skipped upstream, 0 failed."* ]]
+    [[ "$output" == *"Summary: 0 deleted, 1 skipped current/default, 1 skipped worktree, 0 skipped upstream, 0 failed."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/merged-work
 }
 
@@ -249,7 +253,7 @@ load ./basectl_helpers.bash
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"SKIP   merged-work  not fully merged to upstream origin/merged-work"* ]]
-    [[ "$output" == *"Summary: 0 deleted, 0 skipped worktree, 1 skipped upstream, 0 failed."* ]]
+    [[ "$output" == *"Summary: 0 deleted, 1 skipped current/default, 0 skipped worktree, 1 skipped upstream, 0 failed."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/merged-work
 }
 
@@ -293,7 +297,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"SKIP   unmerged-work  not confirmed merged into master or through a merged GitHub PR; local branch retained"* ]]
     [[ "$output" == *"SKIP   origin/unmerged-work  no merged GitHub PR found for this branch; remote branch retained"* ]]
-    [[ "$output" == *"Summary: 0 deleted remotely, 0 skipped worktree, 1 skipped unmerged, 0 failed."* ]]
+    [[ "$output" == *"Summary: 0 deleted remotely, 1 skipped current/default, 0 skipped worktree, 1 skipped unmerged, 0 failed."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/unmerged-work
     git -C "$repo" ls-remote --exit-code --heads origin unmerged-work >/dev/null
 }
@@ -437,7 +441,7 @@ EOF
     [[ "$output" == *"[DRY-RUN] Branch prune preview for default branch master."* ]]
     [[ "$output" == *"GitHub branches"* ]]
     [[ "$output" == *"[DRY-RUN] DELETE-REMOTE origin/squash-remote  merged GitHub PR"* ]]
-    [[ "$output" == *"Summary: 1 would delete remotely, 0 skipped worktree, 0 skipped unmerged, 0 failed."* ]]
+    [[ "$output" == *"Summary: 1 would delete remotely, 1 skipped current/default, 0 skipped worktree, 0 skipped unmerged, 0 failed."* ]]
     [[ "$output" == *"Run with --yes to apply these changes."* ]]
     git -C "$repo" ls-remote --exit-code --heads origin squash-remote >/dev/null
 }
@@ -483,7 +487,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"GitHub branches"* ]]
     [[ "$output" == *"DELETE-REMOTE origin/squash-remote"* ]]
-    [[ "$output" == *"Summary: 1 deleted remotely, 0 skipped worktree, 0 skipped unmerged, 0 failed."* ]]
+    [[ "$output" == *"Summary: 1 deleted remotely, 1 skipped current/default, 0 skipped worktree, 0 skipped unmerged, 0 failed."* ]]
     ! git -C "$repo" ls-remote --exit-code --heads origin squash-remote >/dev/null
 }
 
@@ -528,7 +532,7 @@ EOF
     [ "$status" -eq 1 ]
     [[ "$output" == *"failed to connect to api.github.com"* ]]
     [[ "$output" == *"SKIP   origin/lookup-failure  GitHub merge verification unavailable; remote branch retained"* ]]
-    [[ "$output" == *"Summary: 0 would delete remotely, 0 skipped worktree, 0 skipped unmerged, 1 failed."* ]]
+    [[ "$output" == *"Summary: 0 would delete remotely, 1 skipped current/default, 0 skipped worktree, 0 skipped unmerged, 1 failed."* ]]
     [[ "$output" == *"Resolve the reported failures and rerun before using --yes."* ]]
     git -C "$repo" ls-remote --exit-code --heads origin lookup-failure >/dev/null
 }
@@ -561,7 +565,7 @@ EOF
     [ "$status" -eq 1 ]
     [[ "$output" == *"ERROR: GitHub merge verification requires the GitHub CLI 'gh' on PATH."* ]]
     [[ "$output" == *"SKIP   GitHub merge verification unavailable; remote branches retained"* ]]
-    [[ "$output" == *"Summary: 0 would delete remotely, 0 skipped worktree, 0 skipped unmerged, 1 failed."* ]]
+    [[ "$output" == *"Summary: 0 would delete remotely, 0 skipped current/default, 0 skipped worktree, 0 skipped unmerged, 1 failed."* ]]
     [[ "$output" == *"Resolve the reported failures and rerun before using --yes."* ]]
     git -C "$repo" ls-remote --exit-code --heads origin unverified-remote >/dev/null
 }
@@ -608,7 +612,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"SKIP   squash-work  attached to worktree "*"/squash-worktree"* ]]
     [[ "$output" == *"SKIP   origin/squash-work  attached to worktree "*"/squash-worktree"* ]]
-    [[ "$output" == *"Summary: 0 deleted remotely, 1 skipped worktree, 0 skipped unmerged, 0 failed."* ]]
+    [[ "$output" == *"Summary: 0 deleted remotely, 1 skipped current/default, 1 skipped worktree, 0 skipped unmerged, 0 failed."* ]]
     git -C "$repo" ls-remote --exit-code --heads origin squash-work >/dev/null
 }
 
@@ -651,7 +655,7 @@ EOF
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"DELETE squash-work"* ]]
-    [[ "$output" == *"Summary: 1 deleted, 0 skipped worktree, 0 skipped upstream, 0 failed."* ]]
+    [[ "$output" == *"Summary: 1 deleted, 1 skipped current/default, 0 skipped worktree, 0 skipped upstream, 0 failed."* ]]
     ! git -C "$repo" show-ref --verify --quiet refs/heads/squash-work
 }
 
@@ -695,7 +699,7 @@ EOF
     [ "$status" -eq 1 ]
     [[ "$output" == *"failed to connect to api.github.com"* ]]
     [[ "$output" == *"SKIP   lookup-failure  GitHub merge verification unavailable; local branch retained"* ]]
-    [[ "$output" == *"Summary: 0 would delete, 0 skipped worktree, 0 skipped upstream, 1 failed."* ]]
+    [[ "$output" == *"Summary: 0 would delete, 1 skipped current/default, 0 skipped worktree, 0 skipped upstream, 1 failed."* ]]
     [[ "$output" == *"Resolve the reported failures and rerun before using --yes."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/lookup-failure
 }

@@ -234,14 +234,19 @@ base_gh_branch_prune_local() {
     local dry_run="$1"
     local default_branch="$2"
     local branch current_branch merge_source merge_status worktree_path upstream
-    local deleted=0 skipped_worktree=0 skipped_upstream=0 failed=0 candidates=0
+    local deleted=0 skipped_current=0 skipped_worktree=0 skipped_upstream=0 failed=0 candidates=0
 
     current_branch="$(git branch --show-current)"
     printf 'Local branches\n'
     while read -r branch; do
         branch="${branch#\* }"
         branch="${branch## }"
-        [[ -z "$branch" || "$branch" == "$default_branch" || "$branch" == "$current_branch" ]] && continue
+        [[ -n "$branch" ]] || continue
+        if [[ "$branch" == "$default_branch" || "$branch" == "$current_branch" ]]; then
+            printf 'SKIP   %s  current/default branch protected\n' "$branch"
+            skipped_current=$((skipped_current + 1))
+            continue
+        fi
 
         merge_source=""
         if base_gh_branch_cleanup_merged "$branch" "$default_branch" merge_source; then
@@ -297,9 +302,9 @@ base_gh_branch_prune_local() {
     if ((skipped_worktree > 0)); then
         printf 'Hint: run `basectl gh worktree prune` to inspect stale worktrees.\n'
     fi
-    printf 'Summary: %s %s, %s skipped worktree, %s skipped upstream, %s failed.\n' \
+    printf 'Summary: %s %s, %s skipped current/default, %s skipped worktree, %s skipped upstream, %s failed.\n' \
         "$deleted" "$([[ "$dry_run" -eq 1 ]] && printf 'would delete' || printf 'deleted')" \
-        "$skipped_worktree" "$skipped_upstream" "$failed"
+        "$skipped_current" "$skipped_worktree" "$skipped_upstream" "$failed"
     if ((failed > 0)); then
         return 1
     fi
@@ -310,13 +315,13 @@ base_gh_branch_prune_github_branches() {
     local dry_run="$1"
     local default_branch="$2"
     local branch current_branch merge_status worktree_path remote_branches
-    local deleted=0 skipped_worktree=0 skipped_unmerged=0 failed=0 candidates=0 found=0
+    local deleted=0 skipped_current=0 skipped_worktree=0 skipped_unmerged=0 failed=0 candidates=0 found=0
 
     printf 'GitHub branches\n'
     if ! base_gh_prune_github_ready; then
         base_gh_error "GitHub merge verification requires the GitHub CLI 'gh' on PATH."
         printf 'SKIP   GitHub merge verification unavailable; remote branches retained\n'
-        printf 'Summary: 0 %s, 0 skipped worktree, 0 skipped unmerged, 1 failed.\n' \
+        printf 'Summary: 0 %s, 0 skipped current/default, 0 skipped worktree, 0 skipped unmerged, 1 failed.\n' \
             "$([[ "$dry_run" -eq 1 ]] && printf 'would delete remotely' || printf 'deleted remotely')"
         return 1
     fi
@@ -329,7 +334,11 @@ base_gh_branch_prune_github_branches() {
     while read -r branch; do
         [[ -n "$branch" ]] || continue
         found=1
-        [[ "$branch" == "$default_branch" || "$branch" == "$current_branch" ]] && continue
+        if [[ "$branch" == "$default_branch" || "$branch" == "$current_branch" ]]; then
+            printf 'SKIP   origin/%s  current/default branch protected\n' "$branch"
+            skipped_current=$((skipped_current + 1))
+            continue
+        fi
 
         if base_gh_branch_github_merged "$branch"; then
             merge_status=0
@@ -373,9 +382,9 @@ base_gh_branch_prune_github_branches() {
     elif ((candidates == 0 && failed == 0)); then
         printf 'No merged GitHub remote branches found.\n'
     fi
-    printf 'Summary: %s %s, %s skipped worktree, %s skipped unmerged, %s failed.\n' \
+    printf 'Summary: %s %s, %s skipped current/default, %s skipped worktree, %s skipped unmerged, %s failed.\n' \
         "$deleted" "$([[ "$dry_run" -eq 1 ]] && printf 'would delete remotely' || printf 'deleted remotely')" \
-        "$skipped_worktree" "$skipped_unmerged" "$failed"
+        "$skipped_current" "$skipped_worktree" "$skipped_unmerged" "$failed"
     if ((failed > 0)); then
         return 1
     fi
