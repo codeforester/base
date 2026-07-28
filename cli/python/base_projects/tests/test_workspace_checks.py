@@ -262,7 +262,10 @@ class WorkspaceCheckTests(unittest.TestCase):
             write_default_manifest(base_home)
             write_uv_manifest(workspace / "bankbuddy", "bankbuddy")
 
-            with mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")):
+            with (
+                mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
+                mock.patch("base_setup.uv.process.run_check", return_value=True),
+            ):
                 status, stdout, stderr = invoke_engine(["check", "--workspace", str(workspace)], base_home, home)
 
         self.assertEqual(status, 0)
@@ -283,7 +286,10 @@ class WorkspaceCheckTests(unittest.TestCase):
             write_default_manifest(base_home)
             write_uv_manifest(workspace / "bankbuddy", "bankbuddy")
 
-            with mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")):
+            with (
+                mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
+                mock.patch("base_setup.uv.process.run_check", return_value=True),
+            ):
                 status, stdout, stderr = invoke_engine(["doctor", "--workspace", str(workspace)], base_home, home)
 
         self.assertEqual(status, 0)
