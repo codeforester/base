@@ -278,15 +278,19 @@ Python manifest support adds these project diagnostics:
 - `BASE-P153`: stale Base-managed project virtual environment ignored by a
   uv-managed project
 - `BASE-P154`: uv-managed project virtual environment readiness
+- `BASE-P155`: uv-managed project virtual environment synchronization
 - `BASE-P160`: manifest command starts with an executable that is not available
   on PATH or in the project virtual environment
 - `BASE-P161`: manifest command references a project script path that is
   missing, outside the project root, not a file, or not executable
 
-These diagnostics are warning-oriented in `check` and `doctor`; they explain
-readiness without performing dependency resolution or executing project command
-strings. Command linting is advisory and does not replace reviewing manifests
-from unfamiliar repositories before running their declared commands.
+The file and readiness diagnostics are warning-oriented in `check` and
+`doctor`; they explain readiness without mutating the project or executing
+project command strings.
+When the uv project files and environment are present, `BASE-P155` performs an
+offline `uv sync --check` probe and reports drift as an error. Command linting
+is advisory and does not replace reviewing manifests from unfamiliar
+repositories before running their declared commands.
 
 `basectl workspace status --format json` also includes a `python_runtime`
 object for each ready, inspectable project environment. That summary reports

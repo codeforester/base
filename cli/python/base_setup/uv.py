@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 import base_cli
@@ -62,13 +63,25 @@ def check_uv(manifest: BaseManifest) -> tuple[ArtifactCheck, ...]:
         return ()
 
     checks: list[ArtifactCheck] = []
-    uv_available = uv_executable() is not None
+    uv_bin = uv_executable()
+    uv_available = uv_bin is not None
     checks.append(uv_tool_check(manifest.project_name, uv_available, uses_uv_manager, uses_uv_runner))
 
     if uses_uv_manager:
-        checks.append(pyproject_check(manifest.path.parent / "pyproject.toml"))
-        checks.append(uv_lock_check(manifest.path.parent / "uv.lock"))
-        checks.append(uv_project_venv_check(manifest.path.parent / ".venv"))
+        project_root = manifest.path.parent
+        pyproject_path = project_root / "pyproject.toml"
+        lock_path = project_root / "uv.lock"
+        venv_path = project_root / ".venv"
+        checks.append(pyproject_check(pyproject_path))
+        checks.append(uv_lock_check(lock_path))
+        checks.append(uv_project_venv_check(venv_path))
+        if (
+            uv_bin is not None
+            and pyproject_path.is_file()
+            and lock_path.is_file()
+            and uv_project_venv_ready(venv_path)
+        ):
+            checks.append(uv_project_environment_check(project_root, uv_bin))
         stale_check = stale_base_venv_check(manifest)
         if stale_check is not None:
             checks.append(stale_check)
@@ -184,7 +197,7 @@ def uv_lock_check(lock_path: Path) -> ArtifactCheck:
 
 def uv_project_venv_check(venv_path: Path) -> ArtifactCheck:
     python_path = venv_path / "bin" / "python"
-    if python_path.is_file() and os.access(python_path, os.X_OK):
+    if uv_project_venv_ready(venv_path):
         return ArtifactCheck(
             name="uv project virtualenv",
             ok=True,
@@ -199,6 +212,49 @@ def uv_project_venv_check(venv_path: Path) -> ArtifactCheck:
         fix="Run 'uv sync' from the project root.",
         finding_id="BASE-P154",
         status="warn",
+    )
+
+
+def uv_project_venv_ready(venv_path: Path) -> bool:
+    python_path = venv_path / "bin" / "python"
+    return python_path.is_file() and os.access(python_path, os.X_OK)
+
+
+def uv_project_environment_check(project_root: Path, uv_bin: Path) -> ArtifactCheck:
+    command = [str(uv_bin), "sync", "--check", "--offline"]
+    try:
+        synchronized = process.run_check(
+            command,
+            cwd=project_root,
+            timeout_seconds=process.DIAGNOSTIC_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return ArtifactCheck(
+            name="uv project environment",
+            ok=False,
+            message=(
+                f"uv environment synchronization check for '{project_root}' timed out after "
+                f"{process.DIAGNOSTIC_TIMEOUT_SECONDS} seconds."
+            ),
+            fix=f"Retry 'uv sync --check' from '{project_root}'.",
+            finding_id="BASE-P155",
+            status="warn",
+        )
+
+    if synchronized:
+        return ArtifactCheck(
+            name="uv project environment",
+            ok=True,
+            message=f"uv project environment is synchronized at '{project_root}'.",
+            fix="",
+            finding_id="BASE-P155",
+        )
+    return ArtifactCheck(
+        name="uv project environment",
+        ok=False,
+        message=f"uv project environment is not synchronized with '{project_root}'.",
+        fix=f"Run 'uv sync' from '{project_root}' to reconcile the environment.",
+        finding_id="BASE-P155",
     )
 
 
