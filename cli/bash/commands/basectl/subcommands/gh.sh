@@ -543,6 +543,7 @@ Purpose:
 
 Note:
   Runs in dry-run mode by default. Pass --yes to apply changes.
+  --dry-run and --yes are mutually exclusive; choose one when overriding the default.
 
 Options:
   stale: --days <days>, --format <text|json>
@@ -600,6 +601,7 @@ Purpose:
 
 Note:
   Runs in dry-run mode by default. Pass --yes to apply changes.
+  --dry-run and --yes are mutually exclusive; choose one when overriding the default.
 
 Options:
   --dry-run      Preview worktrees that would be removed (default).

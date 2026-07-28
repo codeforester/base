@@ -68,11 +68,35 @@ load ./basectl_helpers.bash
     [[ "$output" != *"basectl gh issue create"* ]]
 }
 
+@test "basectl gh worktree prune explains that remote cleanup belongs to branch prune" {
+    run_basectl gh worktree prune --remote
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"Option '--remote' is only supported by 'basectl gh branch prune'."* ]]
+    [[ "$output" == *"Run 'basectl gh branch prune --remote' for remote branch cleanup."* ]]
+}
+
 @test "basectl gh branch usage errors return status 2" {
     run_basectl gh branch stale --days never
 
     [ "$status" -eq 2 ]
     [[ "$output" == *"ERROR: --days must be a positive integer."* ]]
+}
+
+@test "basectl gh prune rejects conflicting execution flags in either order" {
+    local args command_args
+
+    for args in \
+        "branch prune --dry-run --yes" \
+        "branch prune --yes --dry-run" \
+        "worktree prune --dry-run --yes" \
+        "worktree prune --yes --dry-run"; do
+        read -r -a command_args <<<"$args"
+        run_basectl gh "${command_args[@]}"
+
+        [ "$status" -eq 2 ]
+        [[ "$output" == *"Options '--dry-run' and '--yes' cannot be used together"* ]]
+    done
 }
 
 @test "basectl gh branch cleanup returns merge source without module global" {
@@ -223,7 +247,7 @@ load ./basectl_helpers.bash
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"SKIP   merged-work  attached to worktree "*"/merged-worktree"* ]]
-    [[ "$output" == *'Hint: run `basectl gh worktree prune` to inspect stale worktrees.'* ]]
+    [[ "$output" == *'Hint: run `basectl gh worktree prune` to preview these worktrees, then `basectl gh worktree prune --yes` and rerun this command.'* ]]
     [[ "$output" == *"Summary: 0 deleted, 1 skipped current/default, 1 skipped worktree, 0 skipped upstream, 0 failed."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/merged-work
 }
