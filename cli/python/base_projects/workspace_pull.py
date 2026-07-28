@@ -18,7 +18,9 @@ MAX_WORKSPACE_MANIFEST_SOURCE_BYTES = 2 * 1024 * 1024
 
 
 class HTTPSOnlyRedirectHandler(HTTPRedirectHandler):
-    def redirect_request(self, req: Request, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+    def redirect_request(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        self, req: Request, fp, code, msg, headers, newurl
+    ):  # type: ignore[no-untyped-def]
         redirect = super().redirect_request(req, fp, code, msg, headers, newurl)
         if redirect is not None and urlparse(redirect.full_url).scheme != "https":
             raise WorkspaceManifestError(
