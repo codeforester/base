@@ -543,6 +543,7 @@ Purpose:
 
 Note:
   Runs in dry-run mode by default. Pass --yes to apply changes.
+  --dry-run and --yes are mutually exclusive; choose one when overriding the default.
 
 Options:
   --days <days>  Minimum age for stale branch reporting. Defaults to 30.
@@ -603,6 +604,7 @@ Purpose:
 
 Note:
   Runs in dry-run mode by default. Pass --yes to apply changes.
+  --dry-run and --yes are mutually exclusive; choose one when overriding the default.
 
 Options:
   --dry-run      Preview worktrees that would be removed (default).

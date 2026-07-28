@@ -128,6 +128,19 @@ base_gh_branch_stale_format_error() {
     base_gh_usage_error base_gh_branch_usage "$message"
 }
 
+base_gh_validate_prune_mode() {
+    local usage_function="$1"
+    local dry_run_requested="$2"
+    local yes_requested="$3"
+
+    if ((dry_run_requested && yes_requested)); then
+        base_gh_usage_error "$usage_function" \
+            "Options '--dry-run' and '--yes' cannot be used together; choose either '--dry-run' (preview) or '--yes' (apply)."
+        return $?
+    fi
+    return 0
+}
+
 base_gh_format_unix_date() {
     local timestamp="$1"
     local formatted
@@ -424,14 +437,15 @@ base_gh_branch_prune_remote_tracking_refs() {
 
 base_gh_branch_prune() {
     local dry_run=1 remote=0 default_branch status=0
+    local dry_run_requested=0 yes_requested=0
 
     while (($#)); do
         case "$1" in
             --dry-run)
-                dry_run=1
+                dry_run_requested=1
                 ;;
             --yes)
-                dry_run=0
+                yes_requested=1
                 ;;
             --remote)
                 remote=1
@@ -447,6 +461,9 @@ base_gh_branch_prune() {
         esac
         shift
     done
+
+    base_gh_validate_prune_mode base_gh_branch_usage "$dry_run_requested" "$yes_requested" || return $?
+    ((yes_requested)) && dry_run=0
 
     base_gh_require_git_repo || return 1
     default_branch="$(base_gh_default_branch)"
@@ -505,14 +522,15 @@ base_gh_worktree_prune() {
     local dry_run=1 default_branch current_worktree
     local path branch merge_source merge_status physical_path
     local removed=0 skipped_current=0 skipped_dirty=0 skipped_unmerged=0 failed=0 candidates=0
+    local dry_run_requested=0 yes_requested=0
 
     while (($#)); do
         case "$1" in
             --dry-run)
-                dry_run=1
+                dry_run_requested=1
                 ;;
             --yes)
-                dry_run=0
+                yes_requested=1
                 ;;
             -h|--help)
                 base_gh_worktree_usage
@@ -525,6 +543,9 @@ base_gh_worktree_prune() {
         esac
         shift
     done
+
+    base_gh_validate_prune_mode base_gh_worktree_usage "$dry_run_requested" "$yes_requested" || return $?
+    ((yes_requested)) && dry_run=0
 
     base_gh_require_git_repo || return 1
     default_branch="$(base_gh_default_branch)"
