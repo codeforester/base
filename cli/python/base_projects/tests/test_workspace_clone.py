@@ -242,6 +242,44 @@ repos:
                 [f"repo clone codeforester/api --path {(workspace / 'api').resolve()} --dry-run"],
             )
 
+    def test_workspace_clone_rejects_repository_target_outside_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            outside = root / "outside"
+            base_home = root / "base"
+            state_file = root / "basectl-calls"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            workspace.mkdir()
+            outside.mkdir()
+            base_home.mkdir()
+            (workspace / "api").symlink_to(outside, target_is_directory=True)
+            write_fake_basectl(base_home, state_file)
+            write_workspace_manifest(
+                manifest_path,
+                """
+schema_version: 1
+workspace:
+  name: demo-suite
+repos:
+  - name: api
+    url: https://github.com/codeforester/api.git
+""",
+            )
+
+            status, stdout, stderr = invoke_engine(
+                ["clone", "--workspace", str(workspace), "--manifest", str(manifest_path)],
+                base_home,
+                home,
+            )
+
+        self.assertEqual(status, 1)
+        self.assertIn("resolves outside workspace root", stderr)
+        self.assertIn("Workspace clone completed with 1 error(s).", stdout)
+        self.assertFalse(state_file.exists())
+
     def test_workspace_clone_requires_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
