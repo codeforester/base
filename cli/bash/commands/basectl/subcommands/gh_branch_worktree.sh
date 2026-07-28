@@ -128,6 +128,19 @@ base_gh_branch_stale_format_error() {
     base_gh_usage_error base_gh_branch_usage "$message"
 }
 
+base_gh_validate_prune_mode() {
+    local usage_function="$1"
+    local dry_run_requested="$2"
+    local yes_requested="$3"
+
+    if ((dry_run_requested && yes_requested)); then
+        base_gh_usage_error "$usage_function" \
+            "Options '--dry-run' and '--yes' cannot be used together; choose either '--dry-run' (preview) or '--yes' (apply)."
+        return $?
+    fi
+    return 0
+}
+
 base_gh_format_unix_date() {
     local timestamp="$1"
     local formatted
@@ -234,14 +247,19 @@ base_gh_branch_prune_local() {
     local dry_run="$1"
     local default_branch="$2"
     local branch current_branch merge_source merge_status worktree_path upstream
-    local deleted=0 skipped_worktree=0 skipped_upstream=0 failed=0 candidates=0
+    local deleted=0 skipped_current=0 skipped_worktree=0 skipped_upstream=0 failed=0 candidates=0
 
     current_branch="$(git branch --show-current)"
     printf 'Local branches\n'
     while read -r branch; do
         branch="${branch#\* }"
         branch="${branch## }"
-        [[ -z "$branch" || "$branch" == "$default_branch" || "$branch" == "$current_branch" ]] && continue
+        [[ -n "$branch" ]] || continue
+        if [[ "$branch" == "$default_branch" || "$branch" == "$current_branch" ]]; then
+            printf 'SKIP   %s  current/default branch protected\n' "$branch"
+            skipped_current=$((skipped_current + 1))
+            continue
+        fi
 
         merge_source=""
         if base_gh_branch_cleanup_merged "$branch" "$default_branch" merge_source; then
@@ -295,11 +313,11 @@ base_gh_branch_prune_local() {
         printf 'No merged local branches found.\n'
     fi
     if ((skipped_worktree > 0)); then
-        printf 'Hint: run `basectl gh worktree prune` to inspect stale worktrees.\n'
+        printf 'Hint: run `basectl gh worktree prune` to preview these worktrees, then `basectl gh worktree prune --yes` and rerun this command.\n'
     fi
-    printf 'Summary: %s %s, %s skipped worktree, %s skipped upstream, %s failed.\n' \
+    printf 'Summary: %s %s, %s skipped current/default, %s skipped worktree, %s skipped upstream, %s failed.\n' \
         "$deleted" "$([[ "$dry_run" -eq 1 ]] && printf 'would delete' || printf 'deleted')" \
-        "$skipped_worktree" "$skipped_upstream" "$failed"
+        "$skipped_current" "$skipped_worktree" "$skipped_upstream" "$failed"
     if ((failed > 0)); then
         return 1
     fi
@@ -310,13 +328,13 @@ base_gh_branch_prune_github_branches() {
     local dry_run="$1"
     local default_branch="$2"
     local branch current_branch merge_status worktree_path remote_branches
-    local deleted=0 skipped_worktree=0 skipped_unmerged=0 failed=0 candidates=0 found=0
+    local deleted=0 skipped_current=0 skipped_worktree=0 skipped_unmerged=0 failed=0 candidates=0 found=0
 
     printf 'GitHub branches\n'
     if ! base_gh_prune_github_ready; then
         base_gh_error "GitHub merge verification requires the GitHub CLI 'gh' on PATH."
         printf 'SKIP   GitHub merge verification unavailable; remote branches retained\n'
-        printf 'Summary: 0 %s, 0 skipped worktree, 0 skipped unmerged, 1 failed.\n' \
+        printf 'Summary: 0 %s, 0 skipped current/default, 0 skipped worktree, 0 skipped unmerged, 1 failed.\n' \
             "$([[ "$dry_run" -eq 1 ]] && printf 'would delete remotely' || printf 'deleted remotely')"
         return 1
     fi
@@ -329,7 +347,11 @@ base_gh_branch_prune_github_branches() {
     while read -r branch; do
         [[ -n "$branch" ]] || continue
         found=1
-        [[ "$branch" == "$default_branch" || "$branch" == "$current_branch" ]] && continue
+        if [[ "$branch" == "$default_branch" || "$branch" == "$current_branch" ]]; then
+            printf 'SKIP   origin/%s  current/default branch protected\n' "$branch"
+            skipped_current=$((skipped_current + 1))
+            continue
+        fi
 
         if base_gh_branch_github_merged "$branch"; then
             merge_status=0
@@ -373,9 +395,9 @@ base_gh_branch_prune_github_branches() {
     elif ((candidates == 0 && failed == 0)); then
         printf 'No merged GitHub remote branches found.\n'
     fi
-    printf 'Summary: %s %s, %s skipped worktree, %s skipped unmerged, %s failed.\n' \
+    printf 'Summary: %s %s, %s skipped current/default, %s skipped worktree, %s skipped unmerged, %s failed.\n' \
         "$deleted" "$([[ "$dry_run" -eq 1 ]] && printf 'would delete remotely' || printf 'deleted remotely')" \
-        "$skipped_worktree" "$skipped_unmerged" "$failed"
+        "$skipped_current" "$skipped_worktree" "$skipped_unmerged" "$failed"
     if ((failed > 0)); then
         return 1
     fi
@@ -424,14 +446,15 @@ base_gh_branch_prune_remote_tracking_refs() {
 
 base_gh_branch_prune() {
     local dry_run=1 remote=0 default_branch status=0
+    local dry_run_requested=0 yes_requested=0
 
     while (($#)); do
         case "$1" in
             --dry-run)
-                dry_run=1
+                dry_run_requested=1
                 ;;
             --yes)
-                dry_run=0
+                yes_requested=1
                 ;;
             --remote)
                 remote=1
@@ -447,6 +470,9 @@ base_gh_branch_prune() {
         esac
         shift
     done
+
+    base_gh_validate_prune_mode base_gh_branch_usage "$dry_run_requested" "$yes_requested" || return $?
+    ((yes_requested)) && dry_run=0
 
     base_gh_require_git_repo || return 1
     default_branch="$(base_gh_default_branch)"
@@ -506,14 +532,20 @@ base_gh_worktree_prune() {
     local dry_run=1 default_branch current_worktree
     local path branch merge_source merge_status physical_path
     local removed=0 skipped_current=0 skipped_dirty=0 skipped_unmerged=0 failed=0 candidates=0
+    local dry_run_requested=0 yes_requested=0
 
     while (($#)); do
         case "$1" in
             --dry-run)
-                dry_run=1
+                dry_run_requested=1
                 ;;
             --yes)
-                dry_run=0
+                yes_requested=1
+                ;;
+            --remote)
+                base_gh_usage_error base_gh_worktree_usage \
+                    "Option '--remote' is only supported by 'basectl gh branch prune'. Run 'basectl gh branch prune --remote' for remote branch cleanup."
+                return $?
                 ;;
             -h|--help)
                 base_gh_worktree_usage
@@ -526,6 +558,9 @@ base_gh_worktree_prune() {
         esac
         shift
     done
+
+    base_gh_validate_prune_mode base_gh_worktree_usage "$dry_run_requested" "$yes_requested" || return $?
+    ((yes_requested)) && dry_run=0
 
     base_gh_require_git_repo || return 1
     default_branch="$(base_gh_default_branch)"

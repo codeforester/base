@@ -543,14 +543,12 @@ Purpose:
 
 Note:
   Runs in dry-run mode by default. Pass --yes to apply changes.
+  --dry-run and --yes are mutually exclusive; choose one when overriding the default.
 
 Options:
-  --days <days>  Minimum age for stale branch reporting. Defaults to 30.
-  --format <text|json>
-                 Select human text or stable inspection JSON for stale reporting.
-  --dry-run      Preview branches that would be deleted (default).
-  --yes          Delete merged branches after preview.
-  --remote       Also prune merged GitHub remote branches and stale origin/* refs.
+  stale: --days <days>, --format <text|json>
+  prune: --dry-run, --yes, --remote
+  -h, --help     Show this help text.
 EOF
 }
 
@@ -603,10 +601,12 @@ Purpose:
 
 Note:
   Runs in dry-run mode by default. Pass --yes to apply changes.
+  --dry-run and --yes are mutually exclusive; choose one when overriding the default.
 
 Options:
   --dry-run      Preview worktrees that would be removed (default).
   --yes          Remove safe merged worktrees after preview.
+  -h, --help     Show this help text.
 EOF
 }
 

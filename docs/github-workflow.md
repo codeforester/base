@@ -442,6 +442,12 @@ If a worktree is removed but its local branch cannot be deleted, the command
 retains the branch, reports the incomplete cleanup, and exits nonzero. Resolve
 the branch condition before treating the cleanup as complete.
 
+When `basectl gh branch prune` reports branches attached to worktrees, preview
+those worktrees with `basectl gh worktree prune`, apply the safe removals with
+`basectl gh worktree prune --yes`, and rerun the branch-prune command. The
+`--remote` option belongs to `basectl gh branch prune`; worktree pruning only
+removes local worktrees and their local branches.
+
 ## Superseded Pull Requests
 
 A pull request closed because another pull request supersedes it has a
