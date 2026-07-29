@@ -112,7 +112,7 @@ manifest trust.
 | Command | What it does | Important flags |
 |---|---|---|
 | `basectl setup --ci [project]` | Run setup with CI-safe defaults. Does not run tests or create runners/VMs. | `--format <text\|json>`, `--manifest <path>`, `--profile <list>`, `--recreate-venv` |
-| `basectl check [project]` | Verify Base and optional project readiness without making changes. Project checks record the latest result under `~/.base.d/<project>/checks/last.json`. | `--ci`, `--profile <list>`, `--format <text\|json>`, `--manifest <path>`, `--remote-network` |
+| `basectl check [project]` | Check Base readiness and, when selected by project name or `--manifest`, manifest-declared project requirements. It does not install or repair prerequisites, modify project files, or run tests. Normal runs write local logs/history; project checks also record `~/.base.d/<project>/checks/last.json`. | `--ci`, `--profile <list>`, `--format <text\|json>`, `--manifest <path>`, `--remote-network` |
 | `basectl doctor [project]` | Explain Base and optional project findings with stable finding IDs and fixes. | `--ci`, `--profile <list>`, `--format <text\|json>`, `--manifest <path>`, `--remote-network`, `--no-color` |
 | `basectl doctor explain <finding-id>` | Print local, deterministic guidance for a stable finding ID. | `--format <text\|json>` |
 | `basectl logs` | List recent Base CLI runtime logs. | `--command <name[,name...]>`, `--limit <count>` |

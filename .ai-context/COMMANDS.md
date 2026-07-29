@@ -23,8 +23,11 @@ reusable-layer DEBUG diagnostics.
   for a project.
 - `basectl setup [project]` - install and bootstrap the local Base CLI
   environment and optional project artifacts.
-- `basectl check [project]` - verify local Base and optional project artifacts
-  without making changes, warning on non-blocking readiness issues.
+- `basectl check [project]` - check Base readiness only by default; pass a
+  project name or `--manifest` to also check manifest-declared project
+  requirements. It does not install or repair prerequisites, modify project
+  files, or run project tests. Warning-only results exit successfully, while
+  `--format json` provides stable finding IDs for automation.
 - `basectl doctor [project]` - diagnose Base or project readiness and explain
   fixes.
 - `basectl test [project]` - run a project's declared test command.

@@ -13,12 +13,28 @@ base_check_subcommand_usage() {
 Usage:
   basectl check [project] [options]
 
+Description:
+  Check whether the local Base CLI environment is ready. With no project or
+  --manifest, the command checks only the Base environment. Pass a project or
+  --manifest to also check that project's manifest-declared requirements.
+
+  Check does not install or repair prerequisites, modify project files, or run
+  project tests.
+
+Arguments:
+  project               Select a Base project by name. Omit it for a Base-only
+                        check; --manifest can select the project instead.
+
 Options:
-  --ci                  Run checks with CI-safe defaults.
-  --profile <list>      Include named prerequisite profiles. Known profiles: dev, sre, ai, linux-lab.
-  --format <text|json>  Select output format. Defaults to text.
-  --manifest <path>     Use this base_manifest.yaml; infer an omitted project.
-  --remote-network      Check project Git origin; requires project or --manifest.
+  --ci                  Use noninteractive CI-safe checks. Does not select JSON
+                        output or run project tests.
+  --profile <list>      Also check the named prerequisite profiles.
+  --format <text|json>  Print human-readable text or structured JSON.
+                        Defaults to text.
+  --manifest <path>     Use this base_manifest.yaml for project checks. When
+                        project is omitted, infer it from manifest project.name.
+  --remote-network      Also run a bounded Git origin reachability check.
+                        Off by default; requires project or --manifest.
   -v                    Enable DEBUG logging for this subcommand.
   -h, --help            Show this help text.
 
@@ -29,21 +45,40 @@ Profiles:
   ai        - AI coding assistant tooling.
   linux-lab - Multipass tooling for local Ubuntu lab VMs on macOS hosts.
 
-Purpose:
-  Verify the local Base CLI environment and, when provided, project artifacts on supported platforms without making changes.
-  Use check for a quick pass/fail result; use doctor for finding IDs and fix hints.
+Examples:
+  # Check only the Base CLI environment.
+  basectl check
+
+  # Also check a project and its manifest-declared requirements.
+  basectl check base-demo
+
+  # Include multiple prerequisite profiles.
+  basectl check --profile dev,sre
+
+  # Produce structured output with CI-safe defaults.
+  basectl check --ci base-demo --format json
+
+  # Select a project directly from its manifest.
+  basectl check --manifest ./base_manifest.yaml
+
+  # Opt in to bounded Git origin reachability.
+  basectl check base-demo --remote-network
+
+Results:
+  Text output is human-readable. JSON output includes the aggregate status and
+  stable finding IDs for automation.
+
+  Clean and warning-only results exit 0. Blocking findings exit 1. Invalid
+  command usage exits 2.
+
+  Normal runs write Base runtime logs and command history to the local cache.
+  Project checks also record their latest result under
+  ~/.base.d/<project>/checks/last.json.
 
 See also:
-  basectl doctor [project] [options]
-
-Check does:
-  1. Verify platform-specific runtime prerequisites.
-  2. On macOS, verify Homebrew, Xcode Command Line Tools, and Homebrew Python.
-  3. On Ubuntu/Debian Linux, verify system python3 is available.
-  4. Verify ~/.base.d/base/.venv is healthy.
-  5. Verify prerequisite profiles when --profile is passed.
-  6. Verify project manifest artifacts when a project name is passed.
-  7. Record the latest project check result under ~/.base.d/<project>/checks/last.json.
+  basectl setup [options] [project]   Install or repair prerequisites.
+  basectl doctor [project] [options]  Explain findings and provide fix guidance.
+  basectl test [project] [options]    Run the project-declared test command.
 EOF
 }
 
