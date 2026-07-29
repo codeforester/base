@@ -288,9 +288,12 @@ The file and readiness diagnostics are warning-oriented in `check` and
 `doctor`; they explain readiness without mutating the project or executing
 project command strings.
 When the uv project files and environment are present, `BASE-P155` performs an
-offline `uv sync --check` probe and reports drift as an error. Command linting
-is advisory and does not replace reviewing manifests from unfamiliar
-repositories before running their declared commands.
+offline `uv sync --check` probe and reports drift as an error. When uv provides
+structured changes, the finding identifies missing, unexpected, or
+version-mismatched packages in human-readable output and in the optional
+`details.package_changes` JSON field. Command linting is advisory and does not
+replace reviewing manifests from unfamiliar repositories before running their
+declared commands.
 
 `basectl workspace status --format json` also includes a `python_runtime`
 object for each ready, inspectable project environment. That summary reports

@@ -228,7 +228,7 @@ CATALOG = catalog_by_id(
             title="uv-managed project virtual environment synchronization",
             summary=(
                 "Base found that the uv-managed project environment is not synchronized with its declared "
-                "dependencies."
+                "dependencies; the finding may include the package changes reported by uv."
             ),
             why_it_matters=(
                 "A manually installed, removed, or otherwise stale package can make local commands differ from the "
