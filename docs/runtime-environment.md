@@ -68,13 +68,15 @@ explicit Bash script, or starts a Base runtime Bash shell.
 | --- | --- | --- | --- |
 | `BASE_HOME` | Base | Canonical Base install or checkout root. All other Base paths derive from it. `basectl` seeds it before `base_init.sh`; direct `base_init.sh` sourcing may also start from an existing value. | May be provided only before runtime bootstrap to select the Base root. Readonly after `base_init.sh`. |
 | `BASE_BIN_DIR` | Base | `$BASE_HOME/bin`. Added to `PATH` for Base command launchers. | Do not set. Readonly after `base_init.sh`. |
-| `BASE_CLI_DIR` | Base | `$BASE_HOME/cli`. Root for Base CLI implementations. | Do not set. Readonly after `base_init.sh`. |
+| `BASE_CLI_DIR` | Base | `$BASE_HOME/cli`, the in-tree Base CLI implementation root. | Do not set. Readonly after `base_init.sh`. |
+| `BASE_CLI_SOURCE_DIR` | Base | Explicit source root for the extracted `base_cli` package. When set before a Base Python command starts, it must contain `base_cli/__init__.py`. | May be provided only before runtime bootstrap for tests or nonstandard source worktrees. |
 | `BASE_BASH_DIR` | Base | `$BASE_HOME/cli/bash`. Root for Bash command implementations. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_BASH_COMMANDS_DIR` | Base | `$BASE_BASH_DIR/commands`. Directory used by command dispatch. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_LIB_DIR` | Base | `$BASE_HOME/lib`. Root for shared Base libraries. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_BASH_LIB_DIR` | Base | `$BASE_HOME/lib/bash`. Base-specific Bash helper root, including runtime and version helpers. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_BASH_LIBS_DIR` | Base | Resolved reusable Bash library root used for stdlib loading and `import_base_lib`. It can point at an explicit `BASE_BASH_LIBS_DIR`, a sibling `base-bash-libs` checkout, or a Homebrew `base-bash-libs` package next to Homebrew Base. Base requires the corrected 1.x release line at version 1.3.0 or newer. | May be provided only before runtime bootstrap to force a compatible reusable library root. Readonly after `base_init.sh`. |
 | `BASE_BASH_LIBS_SOURCE` | Base | Source category for `BASE_BASH_LIBS_DIR`: `explicit`, `sibling`, or `homebrew`. `basectl check` and `basectl doctor` use this to report how Base is consuming external reusable Bash libraries. | Do not set. Readonly after `base_init.sh`. |
+| `BASE_CLI_SOURCE` | Base | Resolved `base_cli` provider: `explicit`, `sibling`, `legacy` during the extraction transition, or `pip` after the standalone package is installed. | Do not set. Derived by Base before Python runtime startup. |
 | `BASE_SHELL_DIR` | Base | `$BASE_HOME/lib/shell`. Root for managed shell startup snippets and completions. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_OS` | Base | Normalized host OS metadata such as `macos` or `linux`. Used by runtime decisions and diagnostics. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_PLATFORM` | Base | Normalized runtime platform metadata such as `macos`, `linux-debian`, or `linux-unknown`. Used when Base needs distribution-family behavior without overloading `BASE_OS`. | Do not set. Readonly after `base_init.sh`. |
@@ -86,6 +88,16 @@ explicit Bash script, or starts a Base runtime Bash shell.
 library contract. For the full resolution order, standalone install path, and
 post-migration boundary, see
 [Base Bash Libraries](base-bash-libs.md).
+
+The extracted Python `base_cli` package follows the same provider pattern. Base
+checks `BASE_CLI_SOURCE_DIR` first, then a sibling checkout at
+`$BASE_HOME/../base-cli/lib/python`. If neither source checkout is present,
+Base leaves `base_cli` to normal Python environment resolution and expects the
+`base-cli` distribution to be installed in the selected Base virtual
+environment. An explicit or sibling checkout that exists but is malformed is
+an error; Base does not silently fall back to a different provider. During the
+transition, the in-tree `$BASE_HOME/lib/python/base_cli` copy is reported as
+`BASE_CLI_SOURCE=legacy` until the standalone repository replaces it.
 
 ## CI Runtime Variables
 

@@ -9,6 +9,11 @@ source "$BASE_HOME/cli/bash/commands/basectl/subcommands/github_policy.sh"
 BASE_GITHUB_ACTIONS_INTEGRATION_ID=15368
 readonly BASE_GITHUB_ACTIONS_INTEGRATION_ID
 
+# Set by base_repo_ensure_github_repo so repo init can distinguish a newly
+# created empty remote (safe to bootstrap) from an existing remote (never
+# implicitly push to it).
+BASE_REPO_GITHUB_REPO_CREATED=0
+
 base_repo_homebrew_gh_outdated() {
     local output=""
 
@@ -49,6 +54,8 @@ base_repo_ensure_github_repo() {
     local repo="$2"
     local visibility="$4"
 
+    BASE_REPO_GITHUB_REPO_CREATED=0
+
     if [[ "$dry_run" == "1" ]]; then
         printf "[DRY-RUN] Would create %s GitHub repository '%s' if it does not already exist.\n" "$visibility" "$repo"
         return 0
@@ -61,7 +68,8 @@ base_repo_ensure_github_repo() {
     fi
 
     log_info "Creating $visibility GitHub repository '$repo'."
-    gh repo create "$repo" "--$visibility" --description "$description"
+    gh repo create "$repo" "--$visibility" --description "$description" || return 1
+    BASE_REPO_GITHUB_REPO_CREATED=1
 }
 
 base_repo_default_branch_ruleset_payload() {

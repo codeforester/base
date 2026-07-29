@@ -45,10 +45,19 @@ basectl repo init base-demo --repo basefoundry/base-demo
 not already exist, and then configures that GitHub repository when
 `--repo <owner/name>` is provided or an existing `origin` remote can be
 inferred. New GitHub repositories are private by default; pass `--public` only
-when public visibility is intentional. That keeps the common new-repo path to
-one command. Use `--no-configure` when GitHub setup should be skipped or when
+when public visibility is intentional. If the command creates the remote, it
+also initializes or reuses the local Git checkout, attaches `origin`, creates
+an initial commit containing the checkout, and pushes the current branch. That
+push is safe because this command just created the empty remote. An existing
+remote is never implicitly pushed; use `--pr --issue <number>` for an explicit
+baseline PR. Use `--no-configure` when GitHub setup should be skipped or when
 local-only initialization is desired. Add `--agent-ready` when the baseline
 should also seed `AGENTS.md` and `skills.md` for agent-assisted development.
+
+The generated license defaults to `AGPL-3.0-or-later`, matching Base. Pass
+`--license Apache-2.0` for an extracted package repository such as
+`base-cli`; the distribution and import package can then remain named
+`base-cli`/`base_cli` without inheriting Base's copyleft license.
 
 Use `--language <csv>` to record the repository's language profile in the
 generated `base_manifest.yaml`. The option may be repeated, and CSV and

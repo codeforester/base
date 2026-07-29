@@ -21,7 +21,7 @@ run_setup_common_script() {
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"venv=$TEST_HOME/.base.d/base/.venv"* ]]
-    [[ "$output" == *"pythonpath=$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python"* ]]
+    [[ "$output" == *"pythonpath=$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python"* || "$output" == *"pythonpath=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python"* ]]
 }
 
 @test "setup_common appends an inherited PYTHONPATH after Base paths" {
@@ -29,7 +29,8 @@ run_setup_common_script() {
         run_setup_common_script 'setup_refresh_cached_paths; setup_pythonpath'
 
     [ "$status" -eq 0 ]
-    [ "$output" = "$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ]
+    [ "$output" = "$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ] ||
+        [ "$output" = "$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ]
 }
 
 @test "setup_common parses explicit warning check results" {

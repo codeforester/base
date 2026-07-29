@@ -123,11 +123,12 @@ such command directories exist. Optional utility CLIs such as `caff` and
   It is safe to run on an existing checkout: existing files are left alone and
   missing Base-managed files are added. When `--repo <owner/name>` is provided,
   it creates the GitHub repository only if it is missing, then applies the same
-  GitHub-side configuration handled by `repo configure`. Without `--path`, it
+  GitHub-side configuration handled by `repo configure`. If it creates the
+  remote, it also attaches `origin`, creates an initial commit, and pushes the
+  current branch; existing remotes are never implicitly pushed. Without `--path`, it
   creates the repository under `workspace.root` from `~/.base.d/config.yaml`,
   then falls back to the parent directory of `BASE_HOME`. For the current
-  checkout, pass the repository name plus `--path .`; plain `repo init` does not
-  commit or push local files. Use `--pr --issue <number>` on an existing clean
+  checkout, pass the repository name plus `--path .`; use `--pr --issue <number>` on an existing clean
   Git worktree to commit baseline changes on a canonical issue-backed branch,
   push that branch to `origin`, and open a pull request. Offline `--pr --dry-run`
   previews also require `--category <name>`. Use `--agent-ready` when the

@@ -2,6 +2,16 @@
 
 base_test_python="${BASE_TEST_PYTHON:-$HOME/.base.d/base/.venv/bin/python}"
 base_test_home="${BASE_HOME:-$(pwd)}"
+# shellcheck source=lib/base/base_cli_runtime.sh
+if [[ -f "$base_test_home/lib/base/base_cli_runtime.sh" ]]; then
+    source "$base_test_home/lib/base/base_cli_runtime.sh"
+else
+    # Packaged test fixtures may contain only the launcher. In that case the
+    # standalone package is expected to be installed in the selected Python
+    # environment, so leave the source root empty and report pip resolution.
+    base_cli_runtime_source_root() { return 0; }
+    base_cli_runtime_prepare() { export BASE_CLI_SOURCE=pip; }
+fi
 base_test_unset_env=(
     -u BASE_HOME
     -u BASE_CACHE_DIR
@@ -91,8 +101,19 @@ base_test_preflight_source_checkout() {
 }
 
 base_test_run_python_suite() {
+    local base_cli_path
+
+    base_cli_path="$(base_cli_runtime_source_root)" || return 1
+    base_cli_runtime_prepare || return 1
+    if [[ -n "$base_cli_path" ]]; then
+        base_test_pythonpath="$base_cli_path:$base_test_home/cli/python"
+    else
+        base_test_pythonpath="$base_test_home/cli/python"
+    fi
+
     env "${base_test_unset_env[@]}" \
-        PYTHONPATH="$base_test_home/lib/python:$base_test_home/cli/python${PYTHONPATH:+:$PYTHONPATH}" \
+        BASE_CLI_SOURCE="$BASE_CLI_SOURCE" \
+        PYTHONPATH="$base_test_pythonpath${PYTHONPATH:+:$PYTHONPATH}" \
         "$base_test_python" -m pytest
 }
 
@@ -124,6 +145,7 @@ env "${base_test_unset_env[@]}" \
     lib/bash/version/tests/lib_version.bats \
     lib/shell/completions/tests/completions.bats \
     tests/base_test.bats \
+    tests/base_cli_runtime.bats \
     tests/base_init.bats \
     tests/bootstrap.bats \
     tests/install.bats \

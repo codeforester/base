@@ -20,6 +20,7 @@ readonly _base_setup_common_sourced
 import_base_lib str/lib_str.sh
 
 source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_check_results.sh"
+source "$BASE_HOME/lib/base/base_cli_runtime.sh"
 source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_linux_debian.sh"
 source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_macos_homebrew.sh"
 source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_venv.sh"
@@ -29,11 +30,16 @@ _BASE_SETUP_VENV_DIR_CACHE=""
 _BASE_SETUP_PYTHONPATH_CACHE=""
 
 setup_refresh_cached_paths() {
-    local base_pythonpath old_pythonpath
+    local base_cli_path base_pythonpath old_pythonpath
 
     _BASE_SETUP_VENV_DIR_CACHE="${BASE_SETUP_VENV_DIR:-$HOME/.base.d/base/.venv}"
 
-    base_pythonpath="$BASE_HOME/lib/python:$BASE_HOME/cli/python"
+    base_cli_path="$(base_cli_runtime_source_root)" || return 1
+    base_pythonpath="$BASE_HOME/cli/python"
+    if [[ -n "$base_cli_path" ]]; then
+        base_pythonpath="$base_cli_path:$base_pythonpath"
+    fi
+    base_cli_runtime_prepare || return 1
     old_pythonpath="${PYTHONPATH-}"
     if [[ -n "$old_pythonpath" ]]; then
         base_pythonpath="$base_pythonpath:$old_pythonpath"
