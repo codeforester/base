@@ -181,7 +181,8 @@ EOF
     [[ "$output" == *"sre       - production/SRE prerequisite tooling."* ]]
     [[ "$output" == *"ai        - AI coding assistant tooling."* ]]
     [[ "$output" == *"linux-lab - Multipass tooling for local Ubuntu lab VMs on macOS hosts."* ]]
-    [[ "$output" == *"--remote-network"* ]]
+    [[ "$output" == *"infer an omitted project"* ]]
+    [[ "$output" == *"requires project or --manifest"* ]]
     [[ "$output" == *"--no-color"* ]]
     [[ "$output" != *"--dev"* ]]
     [[ "$output" == *"Diagnose the local Base CLI environment"* ]]
@@ -1093,6 +1094,11 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "resolve" &
         "${BASE_TEST_PROJECT_ROOT:?}/base_manifest.yaml" "${BASE_TEST_PROJECT_ROOT:?}/.venv" false false
     exit 0
 fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "manifest" ]]; then
+    base_test_protocol_project_reference demo "${BASE_TEST_PROJECT_ROOT:?}" \
+        "${BASE_TEST_PROJECT_ROOT:?}/base_manifest.yaml"
+    exit 0
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     if [[ "$*" == *"--action route"* ]]; then
         base_test_protocol_project_setup_route demo "${BASE_TEST_PROJECT_ROOT:?}" \
@@ -1124,6 +1130,22 @@ EOF
         "$BASE_REPO_ROOT/bin/basectl" doctor demo --remote-network
 
     [ "$status" -eq 0 ]
+    [ "$(cat "$TEST_TMPDIR/project-args")" = "$(printf '%s\n' -m base_setup --manifest "$workspace/demo/base_manifest.yaml" --action doctor --format text --remote-network demo)" ]
+
+    run env \
+        HOME="$TEST_HOME" \
+        OSTYPE="darwin24" \
+        PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+        BASE_TEST_PROJECT_ARGS="$TEST_TMPDIR/project-args" \
+        BASE_TEST_PROJECT_ROOT="$workspace/demo" \
+        BASE_TEST_XCODE_TOOLS_DIR="$TEST_TMPDIR/xcode-tools" \
+        BASE_SETUP_XCODE_COMMAND_LINE_TOOLS_DIR="$TEST_TMPDIR/xcode-tools" \
+        "$BASE_REPO_ROOT/bin/basectl" doctor \
+            --manifest "$workspace/demo/base_manifest.yaml" \
+            --remote-network
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Base doctor found no blocking issues for project 'demo'."* ]]
     [ "$(cat "$TEST_TMPDIR/project-args")" = "$(printf '%s\n' -m base_setup --manifest "$workspace/demo/base_manifest.yaml" --action doctor --format text --remote-network demo)" ]
 }
 
@@ -1171,6 +1193,9 @@ if [[ "${1:-}" == "--version" ]]; then
     printf 'Python 3.13.test\n'
     exit 0
 fi
+if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
+    exit 0
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "show" ]]; then
     case "${4:-}" in
         PyYAML|click) exit 0 ;;
@@ -1179,6 +1204,36 @@ fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "resolve" && "${4:-}" == "demo" ]]; then
     base_test_protocol_project_route demo "${BASE_TEST_PROJECT_ROOT:?}" \
         "${BASE_TEST_PROJECT_ROOT:?}/base_manifest.yaml" "${BASE_TEST_PROJECT_ROOT:?}/.venv" false false
+    exit 0
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "manifest" ]]; then
+    base_test_protocol_project_reference demo "${BASE_TEST_PROJECT_ROOT:?}" \
+        "${BASE_TEST_PROJECT_ROOT:?}/base_manifest.yaml"
+    exit 0
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup.diagnostics" && "${3:-}" == "doctor-json" ]]; then
+    shift 3
+    project=""
+    project_findings="[]"
+    while (($#)); do
+        case "$1" in
+            --project)
+                shift
+                project="${1:-}"
+                ;;
+            --embedded-payload)
+                shift
+                if [[ "${1:-}" == "project_findings" ]]; then
+                    shift
+                    project_findings="${1:-[]}"
+                fi
+                ;;
+        esac
+        shift || true
+    done
+    [[ -n "$project" ]] || exit 1
+    printf '{"schema_version": 1, "status": "warn", "project": "%s", "project_findings": %s}\n' \
+        "$project" "$project_findings"
     exit 0
 fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
@@ -1218,6 +1273,62 @@ EOF
     [[ "$output" == *'"id":"BASE-P033","status":"warn","name":"demo-artifact","message":"Optional project artifact is not installed.","fix":"basectl setup demo"'* ]]
     [[ "$output" != *"Running Python project doctor layer."* ]]
     [ "${stderr:-}" = "" ]
+
+    run --separate-stderr env \
+        HOME="$TEST_HOME" \
+        OSTYPE="darwin24" \
+        PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+        BASE_TEST_PROJECT_ROOT="$workspace/demo" \
+        BASE_TEST_XCODE_TOOLS_DIR="$TEST_TMPDIR/xcode-tools" \
+        BASE_SETUP_XCODE_COMMAND_LINE_TOOLS_DIR="$TEST_TMPDIR/xcode-tools" \
+        "$BASE_REPO_ROOT/bin/basectl" doctor \
+            --manifest "$workspace/demo/base_manifest.yaml" \
+            --format json
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"project": "demo"'* ]]
+    [[ "$output" == *'"project_findings":'* ]]
+    [ "${stderr:-}" = "" ]
+}
+
+@test "basectl doctor rejects remote network diagnostics without a project selector" {
+    run_basectl doctor --remote-network
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"Option '--remote-network' requires a project or '--manifest <path>'."* ]]
+}
+
+@test "basectl doctor reports an invalid manifest instead of ignoring it" {
+    local manifest_path="$TEST_TMPDIR/missing/base_manifest.yaml"
+    local venv_python="$TEST_HOME/.base.d/base/.venv/bin/python"
+
+    mkdir -p "$(dirname "$venv_python")"
+    cat > "$venv_python" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "--version" ]]; then
+    printf 'Python 3.13.test\n'
+    exit 0
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "manifest" ]]; then
+    printf 'Manifest not found: %s\n' "${4:-}" >&2
+    exit 1
+fi
+printf 'unexpected invalid-manifest Python args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$venv_python"
+
+    run_basectl doctor --manifest "$manifest_path"
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Manifest not found: $manifest_path"* ]]
+    [[ "$output" == *"Unable to resolve a project from manifest '$manifest_path'."* ]]
+
+    run_basectl doctor --manifest "$manifest_path" --format json
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Manifest not found: $manifest_path"* ]]
+    [[ "$output" == *"Unable to resolve a project from manifest '$manifest_path'."* ]]
 }
 
 @test "basectl doctor project --format json reports broken project virtualenv integrity" {

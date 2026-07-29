@@ -17,8 +17,8 @@ Options:
   --ci                  Run checks with CI-safe defaults.
   --profile <list>      Include named prerequisite profiles. Known profiles: dev, sre, ai, linux-lab.
   --format <text|json>  Select output format. Defaults to text.
-  --manifest <path>     Use a specific base_manifest.yaml path for project checks.
-  --remote-network      Opt in to bounded project Git origin reachability checks.
+  --manifest <path>     Use this base_manifest.yaml; infer an omitted project.
+  --remote-network      Check project Git origin; requires project or --manifest.
   -v                    Enable DEBUG logging for this subcommand.
   -h, --help            Show this help text.
 
@@ -126,6 +126,10 @@ base_check_subcommand_main() {
         shift
     done
 
+    if [[ "$remote_network" == true && -z "$project" && -z "${BASE_SETUP_MANIFEST:-}" ]]; then
+        base_check_usage_error "Option '--remote-network' requires a project or '--manifest <path>'."
+        return $?
+    fi
     BASE_SETUP_PROJECT_NAME="$project"
     BASE_SETUP_REMOTE_NETWORK="$remote_network"
     export BASE_SETUP_PROJECT_NAME

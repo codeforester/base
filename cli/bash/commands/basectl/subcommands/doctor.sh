@@ -18,8 +18,8 @@ Options:
   --ci                  Run diagnostics with CI-safe defaults.
   --profile <list>      Include named prerequisite profiles. Known profiles: dev, sre, ai, linux-lab.
   --format <text|json>  Select output format. Defaults to text.
-  --manifest <path>     Use a specific base_manifest.yaml path for project diagnostics.
-  --remote-network      Opt in to bounded project Git origin reachability diagnostics.
+  --manifest <path>     Use this base_manifest.yaml; infer an omitted project.
+  --remote-network      Check project Git origin; requires project or --manifest.
   --no-color            Disable doctor status colors and symbols in text output.
   -v                    Enable DEBUG logging for this subcommand.
   -h, --help            Show this help text.
@@ -221,9 +221,10 @@ base_doctor_run_ci_runtime_text() {
         profile_errors=$?
         errors=$((errors + profile_errors))
     fi
-    if [[ -n "$project" ]]; then
+    if [[ -n "$project" || -n "${BASE_SETUP_MANIFEST:-}" ]]; then
         setup_run_project_artifact_doctor
         errors=$((errors + $?))
+        project="${BASE_SETUP_PROJECT_NAME:-}"
     fi
 
     if ((errors == 0)); then
@@ -249,9 +250,12 @@ base_doctor_run_json() {
     local profile_json="[]"
     local project="$1"
     local project_json="[]"
+    local project_json_file project_status=0 requested_project="$1"
     local remote_network="${2:-${BASE_SETUP_REMOTE_NETWORK:-}}"
 
     BASE_SETUP_XCODE_HOMEBREW_DIAGNOSTICS=true setup_collect_base_check_results warn || true
+    std_make_temp_dir check_result_dir base-doctor-json ||
+        fatal_error "Unable to create temporary Base doctor JSON result directory."
 
     if setup_profiles_enabled; then
         if ! profile_json="$(setup_run_base_dev_layer doctor --format json)"; then
@@ -259,18 +263,24 @@ base_doctor_run_json() {
         fi
     fi
 
-    if [[ -n "$project" ]]; then
-        if ! project_json="$(setup_run_project_artifact_doctor_json "$remote_network")"; then
-            [[ -n "$project_json" ]] || project_json="[]"
+    if [[ -n "$project" || -n "${BASE_SETUP_MANIFEST:-}" ]]; then
+        project_json_file="$check_result_dir/project.json"
+        setup_run_project_artifact_doctor_json "$remote_network" > "$project_json_file"
+        project_status=$?
+        project_json="$(<"$project_json_file")"
+        if ((project_status)) && [[ -z "$project_json" ]]; then
+            if [[ -z "$requested_project" && -n "${BASE_SETUP_MANIFEST:-}" ]]; then
+                return 1
+            fi
+            project_json="[]"
         fi
+        project="${BASE_SETUP_PROJECT_NAME:-$project}"
     fi
 
     args+=(doctor-json)
     if [[ -n "$project" ]]; then
         args+=(--project "$project")
     fi
-    std_make_temp_dir check_result_dir base-doctor-json ||
-        fatal_error "Unable to create temporary Base doctor JSON result directory."
     check_result_paths="$(setup_write_collected_check_result_files "$check_result_dir")" || return 1
     if [[ -n "$check_result_paths" ]]; then
         while IFS= read -r check_result_file; do
@@ -368,6 +378,10 @@ base_doctor_subcommand_main() {
         shift
     done
 
+    if [[ "$remote_network" == true && -z "$project" && -z "${BASE_SETUP_MANIFEST:-}" ]]; then
+        base_doctor_usage_error "Option '--remote-network' requires a project or '--manifest <path>'."
+        return $?
+    fi
     BASE_SETUP_PROJECT_NAME="$project"
     BASE_SETUP_REMOTE_NETWORK="$remote_network"
     export BASE_SETUP_PROJECT_NAME
@@ -397,9 +411,10 @@ base_doctor_subcommand_main() {
         profile_errors=$?
         errors=$((errors + profile_errors))
     fi
-    if [[ -n "$project" ]]; then
+    if [[ -n "$project" || -n "${BASE_SETUP_MANIFEST:-}" ]]; then
         setup_run_project_artifact_doctor
         errors=$((errors + $?))
+        project="${BASE_SETUP_PROJECT_NAME:-}"
     fi
 
     if ((errors == 0)); then
