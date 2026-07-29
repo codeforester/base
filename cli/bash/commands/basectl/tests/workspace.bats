@@ -288,6 +288,41 @@ EOF
     [ "$output" = "ARGS=base-workspace --owner codeforester --path $config_repo --workspace $workspace --manifest workspace.yaml --include-optional --dry-run" ]
 }
 
+@test "basectl workspace init propagates actionable missing-source usage errors" {
+    local python_bin="$TEST_HOME/.base.d/base/.venv/bin/python"
+    local workspace="$TEST_TMPDIR/workspace"
+
+    mkdir -p "$(dirname "$python_bin")" "$workspace/base"
+    cat > "$python_bin" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "-m" &&
+      "${2:-}" == "base_projects" &&
+      "${3:-}" == "init" &&
+      "${4:-}" == "--workspace" &&
+      "${5:-}" == "${BASE_TEST_WORKSPACE_ROOT:?}" &&
+      "${6:-}" == "--dry-run" &&
+      "$#" -eq 6 ]]; then
+    printf "ERROR: The 'basectl workspace init' command requires the positional argument <workspace-source>. Option '--workspace' selects the local directory for member repositories, not the workspace source.\n" >&2
+    exit 2
+fi
+printf 'unexpected workspace init python args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$python_bin"
+    workspace="$(cd "$workspace" && pwd -P)"
+
+    run env \
+        HOME="$TEST_HOME" \
+        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        BASE_TEST_WORKSPACE_ROOT="$workspace" \
+        "$BASE_REPO_ROOT/bin/basectl" workspace init --workspace "$workspace" --dry-run
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"The 'basectl workspace init' command requires the positional argument <workspace-source>."* ]]
+    [[ "$output" == *"Option '--workspace' selects the local directory for member repositories, not the workspace source."* ]]
+    [[ "$output" != *"Project command 'init' requires at least"* ]]
+}
+
 @test "basectl workspace commands print help without requiring the Base Python venv" {
     run_basectl workspace status --help
 
