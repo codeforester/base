@@ -16,6 +16,7 @@ base_test_unset_env=(
     -u BASE_HOME
     -u BASE_CACHE_DIR
     -u BASE_BIN_DIR
+    -u BASE_CLI_DIR
     -u BASE_BASH_DIR
     -u BASE_BASH_COMMANDS_DIR
     -u BASE_LIB_DIR
@@ -111,7 +112,6 @@ base_test_run_python_suite() {
     fi
 
     env "${base_test_unset_env[@]}" \
-        BASE_CLI_DIR="${BASE_CLI_DIR:-}" \
         BASE_CLI_SOURCE="$BASE_CLI_SOURCE" \
         PYTHONPATH="$base_test_pythonpath${PYTHONPATH:+:$PYTHONPATH}" \
         "$base_test_python" -m pytest
