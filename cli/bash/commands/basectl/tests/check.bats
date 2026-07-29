@@ -16,7 +16,8 @@ load ./setup_helpers.bash
     [[ "$output" == *"sre       - production/SRE prerequisite tooling."* ]]
     [[ "$output" == *"ai        - AI coding assistant tooling."* ]]
     [[ "$output" == *"linux-lab - Multipass tooling for local Ubuntu lab VMs on macOS hosts."* ]]
-    [[ "$output" == *"--remote-network"* ]]
+    [[ "$output" == *"infer an omitted project"* ]]
+    [[ "$output" == *"requires project or --manifest"* ]]
     [[ "$output" == *"Verify the local Base CLI environment and, when provided, project artifacts on supported platforms without making changes."* ]]
     [[ "$output" == *"Use check for a quick pass/fail result; use doctor for finding IDs and fix hints."* ]]
     [[ "$output" == *"See also:"* ]]
@@ -551,6 +552,13 @@ EOF
 
     [ "$status" -eq 0 ]
     [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --manifest "$workspace/demo/base_manifest.yaml" --action check --format text --remote-network demo)" ]
+
+    run_base_command BASE_SETUP_TEST_WORKSPACE="$workspace" \
+        check --manifest "$workspace/demo/base_manifest.yaml" --remote-network
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Base CLI environment and project 'demo' check passed."* ]]
+    [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --manifest "$workspace/demo/base_manifest.yaml" --action check --format text --remote-network demo)" ]
 }
 
 @test "basectl check --format json writes successful check results to stdout" {
@@ -805,6 +813,27 @@ EOF
     [[ "$output" == *'"schema_version":1,"status":"ok","project":"demo","checks"'* ]]
     [[ "$output" == *'"id":"BASE-P040","status":"ok","name":"demo-artifact"'* ]]
     [[ "$output" != *'"ok":'* ]]
+    [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --manifest "$workspace/demo/base_manifest.yaml" --action check --format json --remote-network demo)" ]
+    [ "${stderr:-}" = "" ]
+
+    run --separate-stderr env \
+        HOME="$TEST_HOME" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
+        OSTYPE="darwin24" \
+        BASE_SETUP_BREW_BIN="$TEST_MOCKBIN/brew" \
+        BASE_SETUP_TEST_STATE_DIR="$TEST_STATE_DIR" \
+        BASE_SETUP_TEST_MOCKBIN="$TEST_MOCKBIN" \
+        BASE_SETUP_TEST_PYTHON_PREFIX="$TEST_TMPDIR/python-prefix" \
+        BASE_SETUP_TEST_WORKSPACE="$workspace" \
+        BASE_SETUP_XCODE_COMMAND_LINE_TOOLS_DIR="$TEST_TMPDIR/CommandLineTools" \
+        "$BASE_REPO_ROOT/bin/basectl" check \
+            --manifest "$workspace/demo/base_manifest.yaml" \
+            --format json
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"project": "demo"'* ]]
+    [[ "$output" == *'"project_checks":'* ]]
+    [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --manifest "$workspace/demo/base_manifest.yaml" --action check --format json demo)" ]
     [ "${stderr:-}" = "" ]
 }
 
@@ -1031,4 +1060,31 @@ EOF
 
     [ "$status" -eq 2 ]
     [[ "$output" == *"Unsupported check output format 'xml'."* ]]
+}
+
+@test "basectl check rejects remote network checks without a project selector" {
+    run_base_command check --remote-network
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"Option '--remote-network' requires a project or '--manifest <path>'."* ]]
+}
+
+@test "basectl check reports an invalid manifest instead of ignoring it" {
+    local manifest_path="$TEST_TMPDIR/missing/base_manifest.yaml"
+    local venv_dir="$TEST_HOME/.base.d/base/.venv"
+
+    create_project_setup_venv_stub "$venv_dir"
+
+    run_base_command check --manifest "$manifest_path"
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Manifest not found: $manifest_path"* ]]
+    [[ "$output" == *"Unable to resolve a project from manifest '$manifest_path'."* ]]
+    [ ! -e "$TEST_STATE_DIR/project-setup-ran" ]
+
+    run_base_command check --manifest "$manifest_path" --format json
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Manifest not found: $manifest_path"* ]]
+    [[ "$output" == *"Unable to resolve a project from manifest '$manifest_path'."* ]]
 }

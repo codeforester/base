@@ -1007,7 +1007,7 @@ setup_run_project_bootstrap_layer() {
 setup_run_project_artifact_layer() {
     local action="$1"
     local output_format="$2"
-    local exit_code manifest_path platform precheck_json project project_requires_python project_uses_uv_manager project_venv_dir python_bin remote_network resolved_root route_output venv_dir
+    local exit_code manifest_path platform precheck_json project project_requires_python project_uses_uv_manager project_venv_dir python_bin remote_network requested_project resolved_root route_output venv_dir
     local args=()
     local project_env_args=()
 
@@ -1017,12 +1017,17 @@ setup_run_project_artifact_layer() {
     fi
 
     project="${BASE_SETUP_PROJECT_NAME:-}"
+    requested_project="$project"
     setup_ensure_cached_paths
     venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
     python_bin="$(setup_base_venv_python_bin "$venv_dir")" || fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
     setup_resolve_project_manifest "$project" "$python_bin" project resolved_root manifest_path || {
-        log_error "Unable to resolve Base project '$project'."
-        log_error "Run 'basectl projects list' to see projects Base can discover."
+        if [[ -z "$requested_project" && -n "${BASE_SETUP_MANIFEST:-}" ]]; then
+            log_error "Unable to resolve a project from manifest '$BASE_SETUP_MANIFEST'."
+        else
+            log_error "Unable to resolve Base project '$project'."
+            log_error "Run 'basectl projects list' to see projects Base can discover."
+        fi
         return 1
     }
     if [[ "$project" != base ]]; then
@@ -1055,6 +1060,8 @@ setup_run_project_artifact_layer() {
         log_error "Python project routing returned incomplete metadata for '$project'."
         return 1
     fi
+    BASE_SETUP_PROJECT_NAME="$project"
+    export BASE_SETUP_PROJECT_NAME
     if [[ "$project_uses_uv_manager" != true && "$project_uses_uv_manager" != false ]]; then
         log_error "Python project routing returned invalid uv-manager metadata for '$project'."
         return 1
@@ -1333,8 +1340,9 @@ setup_run_check() {
         setup_run_base_dev_layer check || missing=1
     fi
 
-    if [[ -n "$project" ]]; then
+    if [[ -n "$project" || -n "${BASE_SETUP_MANIFEST:-}" ]]; then
         setup_run_project_artifact_check || missing=1
+        project="${BASE_SETUP_PROJECT_NAME:-}"
     fi
 
     if ((missing == 0)); then
@@ -1373,9 +1381,12 @@ setup_run_check_json() {
     local profile_json=""
     local project="${BASE_SETUP_PROJECT_NAME:-}"
     local project_json=""
+    local project_json_file project_status=0
     local remote_network="${1:-${BASE_SETUP_REMOTE_NETWORK:-}}"
 
     setup_collect_base_check_results warn || true
+    std_make_temp_dir check_result_dir base-check-json ||
+        fatal_error "Unable to create temporary Base check JSON result directory."
 
     if setup_profiles_enabled; then
         if ! profile_json="$(setup_run_base_dev_layer check --format json)"; then
@@ -1385,12 +1396,15 @@ setup_run_check_json() {
         fi
     fi
 
-    if [[ -n "$project" ]]; then
-        if ! project_json="$(setup_run_project_artifact_check_json "$remote_network")"; then
-            if [[ -z "$project_json" ]]; then
-                return 1
-            fi
+    if [[ -n "$project" || -n "${BASE_SETUP_MANIFEST:-}" ]]; then
+        project_json_file="$check_result_dir/project.json"
+        setup_run_project_artifact_check_json "$remote_network" > "$project_json_file"
+        project_status=$?
+        project_json="$(<"$project_json_file")"
+        if ((project_status)) && [[ -z "$project_json" ]]; then
+            return 1
         fi
+        project="${BASE_SETUP_PROJECT_NAME:-}"
         # Keep external date -u here so persisted JSON records carry explicit UTC
         # without mutating shell TZ; Bash printf time formatting follows local time.
         checked_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')" || return 1
@@ -1400,8 +1414,6 @@ setup_run_check_json() {
     if [[ -n "$project" ]]; then
         args+=(--project "$project")
     fi
-    std_make_temp_dir check_result_dir base-check-json ||
-        fatal_error "Unable to create temporary Base check JSON result directory."
     check_result_paths="$(setup_write_collected_check_result_files "$check_result_dir")" || return 1
     if [[ -n "$check_result_paths" ]]; then
         while IFS= read -r check_result_file; do
