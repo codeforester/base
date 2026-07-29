@@ -2695,6 +2695,43 @@ EOF
     [[ "$output" == *"make this repository public"* ]]
 }
 
+@test "basectl repo configure warns when branch-name metadata rules are unavailable" {
+    local repo_dir="$TEST_TMPDIR/repo"
+
+    mkdir -p "$repo_dir"
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == "auth status -h github.com" ]]; then
+    exit 0
+fi
+if [[ "$1" == "api" && "$2" == "repos/codeforester/bankbuddy/rulesets" && "$*" != *"--method POST"* ]]; then
+    printf '%s\n' "api-list $*" >> "${BASE_REPO_TEST_STATE_DIR:?}/gh-args"
+    exit 0
+fi
+if [[ "$1" == "api" && "$2" == "repos/codeforester/bankbuddy/rulesets" && "$*" == *"--method POST"* ]]; then
+    payload="$(cat)"
+    [[ "$payload" == *"branch_name_pattern"* ]] || exit 0
+    printf '%s\n' '{"message":"Validation Failed","errors":["Invalid rule '\''branch_name_pattern'\'': "],"status":422}' >&2
+    printf '%s\n' 'gh: Validation Failed (HTTP 422)' >&2
+    exit 1
+fi
+printf '%s\n' "$*" >> "${BASE_REPO_TEST_STATE_DIR:?}/gh-args"
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
+        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/bankbuddy --no-project
+
+    [ "$status" -eq 0 ]
+    grep -Fq "api-list api repos/codeforester/bankbuddy/rulesets" "$TEST_STATE_DIR/gh-args"
+    [[ "$output" == *"Branch naming ruleset unavailable for 'codeforester/bankbuddy'; issue branch policy workflow remains the fallback."* ]]
+    [[ "$output" == *"Invalid rule 'branch_name_pattern'"* ]]
+    [[ "$output" != *"Unable to create Base branch naming ruleset"* ]]
+}
+
 @test "basectl repo configure fails for unexpected ruleset lookup errors" {
     local repo_dir="$TEST_TMPDIR/repo"
 

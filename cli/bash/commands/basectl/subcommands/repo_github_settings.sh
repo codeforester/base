@@ -100,6 +100,13 @@ base_repo_rulesets_plan_gated_error() {
         [[ "$message" == *"(HTTP 403)"* ]]
 }
 
+base_repo_branch_name_rule_unavailable_error() {
+    local message="$1"
+
+    [[ "$message" == *"Invalid rule 'branch_name_pattern'"* ]] &&
+        [[ "$message" == *"(HTTP 422)"* ]]
+}
+
 base_repo_configure_default_branch_protection() {
     local dry_run="$1"
     local payload
@@ -338,6 +345,11 @@ base_repo_configure_branch_naming() {
                 log_warn "$ruleset_write_output"
                 return 0
             fi
+            if base_repo_branch_name_rule_unavailable_error "$ruleset_write_output"; then
+                log_warn "Branch naming ruleset unavailable for '$repo'; issue branch policy workflow remains the fallback."
+                log_warn "$ruleset_write_output"
+                return 0
+            fi
             [[ -z "$ruleset_write_output" ]] || log_error "$ruleset_write_output"
             log_error "Unable to update Base branch naming ruleset for '$repo'."
             return 1
@@ -347,6 +359,11 @@ base_repo_configure_branch_naming() {
         ruleset_write_output="$(printf '%s\n' "$payload" | gh api "repos/$repo/rulesets" --method POST --input - 2>&1)" || {
             if base_repo_rulesets_plan_gated_error "$ruleset_write_output"; then
                 log_warn "Branch naming enforcement skipped for '$repo'."
+                log_warn "$ruleset_write_output"
+                return 0
+            fi
+            if base_repo_branch_name_rule_unavailable_error "$ruleset_write_output"; then
+                log_warn "Branch naming ruleset unavailable for '$repo'; issue branch policy workflow remains the fallback."
                 log_warn "$ruleset_write_output"
                 return 0
             fi

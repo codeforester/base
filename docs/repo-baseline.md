@@ -429,12 +429,16 @@ approval counts, CODEOWNERS, teams, or repository secrets. Pass
 `--no-protect-default-branch` when a repository intentionally skips this
 Base-managed ruleset.
 
-Branch naming enforcement is tool-independent. `repo configure` creates or
-updates the active `Base branch naming` ruleset for all non-default branches and
-requires `<category>/<issue>-<YYYYMMDD>-<slug>`, using one of the standard Base
-categories. The CLI and semantic workflow also reject impossible calendar
-dates. This rejects nonconforming remote branches whether they come from a
-human, an AI tool, a GitHub Action, or a Base helper.
+Branch naming enforcement is tool-independent. When supported by the
+repository's current GitHub plan and ownership context, `repo configure`
+creates or updates the active `Base branch naming` ruleset for all non-default
+branches and requires `<category>/<issue>-<YYYYMMDD>-<slug>`, using one of the
+standard Base categories. The CLI and semantic workflow also reject impossible
+calendar dates. If GitHub rejects the branch-name rule, Base warns and keeps
+the trusted issue-branch policy workflow as the fallback; once its status is
+required, it blocks nonconforming pull requests at merge time but cannot block
+a direct branch create or push. This keeps enforcement behavior explicit for
+human, AI-tool, GitHub Action, and Base-helper changes.
 
 The generated `.github/workflows/issue-branch-policy.yml` verifies the semantic
 half of the convention: the referenced number must be an issue with exactly one

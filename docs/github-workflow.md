@@ -309,12 +309,15 @@ must use the same shape. Prefixes such as `feat/`, `agent/`, `codex/`, and bare
 `<issue>-<slug>` names are invalid. `YYYYMMDD` must be a real calendar date.
 
 `basectl repo configure` creates or updates the active `Base branch naming`
-GitHub ruleset. It targets all non-default branches and uses a branch-name
-regular expression, so an invalid name is rejected when any tool tries to
-create or push the remote branch. The default branch is excluded and remains
-protected by the separate `Base default branch protection` ruleset. On GitHub
-plans where repository rulesets are unavailable, Base reports that enforcement
-was skipped instead of claiming the repository is protected.
+GitHub ruleset when the repository supports branch-name metadata restrictions.
+It targets all non-default branches and uses a branch-name regular expression,
+so an invalid name is rejected when any tool tries to create or push the remote
+branch. The default branch is excluded and remains protected by the separate
+`Base default branch protection` ruleset. When GitHub rejects repository
+rulesets or the branch-name rule for the repository's current plan or ownership
+context, Base reports that enforcement was skipped and keeps the trusted issue
+branch policy workflow as the fallback instead of claiming the repository is
+fully protected.
 
 The regular expression can validate shape but cannot look up the referenced
 issue. `.github/workflows/issue-branch-policy.yml` closes that semantic gap. Its
@@ -343,7 +346,9 @@ workflow therefore aggregates every open pull request sharing a head commit
 and treats any mismatch as a failure for that commit. The branch-name ruleset
 is still the immediate hard boundary for branches created in the repository;
 the status workflow adds asynchronous semantic validation, including for pull
-requests whose branches live in forks that this repository cannot govern.
+requests whose branches live in forks that this repository cannot govern. The
+workflow can block merges once its status is required, but it cannot prevent a
+direct branch create or push when the GitHub branch-name ruleset is unavailable.
 
 Before committing or opening a pull request, verify the active branch is not
 `main` and follows the issue-backed branch convention.
