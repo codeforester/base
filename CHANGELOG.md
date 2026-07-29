@@ -9,6 +9,9 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Changed
 
+- Treat GitHub's unsupported `branch_name_pattern` response as a capability
+  warning during `basectl repo configure`, preserving the issue-branch policy
+  workflow fallback instead of failing the whole repository configuration.
 - Updated Base CI and source-checkout contract coverage to consume the
   published `base-bash-libs` v1.4.0 release commit.
 - Refined basectl logs with comma-separated --command filters, the
