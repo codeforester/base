@@ -71,6 +71,7 @@ Options:
   --release                     Seed the generic release contract and process documentation.
   --language <csv>              Add project language metadata; may be repeated.
   --description <text>          Repository description for generated README.
+  --license <SPDX>              License for the generated repository (AGPL-3.0-or-later or Apache-2.0).
   --copyright-holder <name>     Copyright holder for generated AGPL license. Defaults to git config user.name.
   --private                     Create a private GitHub repository when needed. This is the default.
   --public                      Create a public GitHub repository when needed.
@@ -107,11 +108,13 @@ files are left unchanged and missing baseline files are added.
 Safe to re-run: Base-managed settings are created or updated to the Base
 standard. Settings added outside Base are not removed.
 
-When --repo names a missing GitHub repo, repo init creates it using --private/--public.
-Unless --no-configure is set, repo init also applies the GitHub-side settings
-handled by repo configure. With --pr, the first run opens a baseline PR when
-files change; rerun the same command after merge to continue GitHub-side
-configuration.
+When --repo names a missing GitHub repo, repo init creates it using --private/--public
+and bootstraps the local checkout: it attaches origin, creates the initial commit,
+and pushes the current branch. This is the only repo init path that pushes without
+--pr, and it is safe because the remote was just created by the same command. An
+existing GitHub repo is never implicitly pushed; use --pr for an explicit baseline
+push and pull request. Unless --no-configure is set, repo init also applies the
+GitHub-side settings handled by repo configure.
 
 For the current checkout, pass its repository name and --path .
 Plain repo init writes local baseline files but does not commit or push them.
@@ -797,27 +800,46 @@ base_repo_agpl_license_text() {
     ' "$source_license"
 }
 
+base_repo_license_is_supported() {
+    case "$1" in
+        AGPL-3.0-or-later|Apache-2.0)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+base_repo_license_display() {
+    printf 'AGPL-3.0-or-later or Apache-2.0\n'
+}
+
 base_repo_write_license() {
     local canonical_license
     local copyright_holder="$2"
     local dry_run="$1"
-    local root="$3"
+    local license_id="$3"
+    local root="$4"
     local source_license="${BASE_HOME:-}/LICENSE"
+    local license_template="${BASE_HOME:-}/templates/licenses/Apache-2.0"
     local year
 
-    [[ -f "$source_license" ]] || {
-        log_error "Base AGPL license text '$source_license' was not found."
-        return 1
-    }
+    case "$license_id" in
+        AGPL-3.0-or-later)
+            [[ -f "$source_license" ]] || {
+                log_error "Base AGPL license text '$source_license' was not found."
+                return 1
+            }
 
-    canonical_license="$(base_repo_agpl_license_text "$source_license")" || {
-        log_error "Base AGPL license text '$source_license' did not contain the canonical AGPL terms."
-        return 1
-    }
+            canonical_license="$(base_repo_agpl_license_text "$source_license")" || {
+                log_error "Base AGPL license text '$source_license' did not contain the canonical AGPL terms."
+                return 1
+            }
 
-    year="$(base_repo_baseline_year)"
-    {
-        cat <<EOF
+            year="$(base_repo_baseline_year)"
+            {
+                cat <<EOF
 Copyright (C) $year $copyright_holder
 
 This program is free software: you can redistribute it and/or modify it under
@@ -832,9 +854,22 @@ PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License along
 with this program. If not, see <https://www.gnu.org/licenses/>.
 EOF
-        printf '\n'
-        printf '%s\n' "$canonical_license"
-    } | base_repo_write_stream "$dry_run" "$root/LICENSE"
+                printf '\n'
+                printf '%s\n' "$canonical_license"
+            } | base_repo_write_stream "$dry_run" "$root/LICENSE"
+            ;;
+        Apache-2.0)
+            [[ -f "$license_template" ]] || {
+                log_error "Apache-2.0 license template '$license_template' was not found."
+                return 1
+            }
+            base_repo_write_stream "$dry_run" "$root/LICENSE" < "$license_template"
+            ;;
+        *)
+            log_error "Unsupported repository license '$license_id'. Expected: $(base_repo_license_display)"
+            return 1
+            ;;
+    esac
 }
 
 base_repo_write_gitignore() {
@@ -1172,9 +1207,10 @@ base_repo_write_baseline() {
     local copyright_holder="$4"
     local description="$3"
     local dry_run="$1"
+    local license_id="$6"
     local name="$2"
     local root="$5"
-    local languages=("${@:6}")
+    local languages=("${@:7}")
     local status=0
 
     if [[ "$dry_run" != "1" ]]; then
@@ -1187,7 +1223,7 @@ base_repo_write_baseline() {
     base_repo_write_contributing "$dry_run" "$name" "$root" || status=1
     base_repo_write_pull_request_template "$dry_run" "$root" || status=1
     base_repo_write_project_config "$dry_run" "$root" || status=1
-    base_repo_write_license "$dry_run" "$copyright_holder" "$root" || status=1
+    base_repo_write_license "$dry_run" "$copyright_holder" "$license_id" "$root" || status=1
     base_repo_write_gitignore "$dry_run" "$root" || status=1
     base_repo_write_manifest "$dry_run" "$name" "$root" "${languages[@]}" || status=1
     base_repo_write_validate_script "$dry_run" "$root" || status=1
@@ -1205,6 +1241,97 @@ base_repo_infer_github_repo() {
     gh_infer_repo_from_origin "$path" github_repo || return 1
 
     printf '%s\n' "$github_repo"
+}
+
+base_repo_bootstrap_github_checkout() {
+    local dry_run="$1"
+    local repo="$2"
+    local root="$3"
+    local branch=""
+    local origin_repo=""
+    local origin_url=""
+    local protocol
+    local remote_url
+
+    protocol="$(base_repo_clone_protocol)" || return 1
+    remote_url="$(base_repo_clone_url "$protocol" "$repo")" || return 1
+
+    if [[ "$dry_run" == "1" ]]; then
+        if [[ ! -d "$root/.git" ]]; then
+            printf "[DRY-RUN] Would initialize a Git repository at '%s' on branch 'main'.\n" "$root"
+        fi
+        printf "[DRY-RUN] Would attach origin '%s' to '%s'.\n" "$remote_url" "$root"
+        printf "[DRY-RUN] Would commit the initial repository contents with message 'Initial repository commit'.\n"
+        printf "[DRY-RUN] Would push the initial branch to origin.\n"
+        return 0
+    fi
+
+    if [[ ! -d "$root/.git" ]]; then
+        git init -b main "$root" >/dev/null 2>&1 || {
+            log_error "Failed to initialize Git repository at '$root'."
+            return 1
+        }
+    fi
+
+    if origin_url="$(git -C "$root" remote get-url origin 2>/dev/null)"; then
+        origin_repo="$(base_repo_infer_github_repo "$root" 2>/dev/null || true)"
+        if [[ "$origin_repo" != "$repo" ]]; then
+            log_error "New GitHub repository '$repo' cannot be bootstrapped because '$root' already has origin '$origin_url'. Remove or correct that origin, then retry."
+            return 1
+        fi
+    else
+        git -C "$root" remote add origin "$remote_url" || {
+            log_error "Failed to attach GitHub origin '$remote_url' to '$root'."
+            return 1
+        }
+    fi
+
+    # A newly created remote is empty. Stage the complete checkout so this
+    # intent-driven path can publish an extracted project as one coherent
+    # initial commit. Existing remotes never reach this function.
+    git -C "$root" add -A || {
+        log_error "Failed to stage the initial repository contents in '$root'."
+        return 1
+    }
+
+    if git -C "$root" diff --cached --quiet --; then
+        if git -C "$root" rev-parse --verify HEAD >/dev/null 2>&1; then
+            branch="$(git -C "$root" branch --show-current)"
+        else
+            git -C "$root" checkout -b main >/dev/null 2>&1 || {
+                log_error "Failed to select the initial 'main' branch in '$root'."
+                return 1
+            }
+            branch="main"
+        fi
+    else
+        if ! git -C "$root" rev-parse --verify HEAD >/dev/null 2>&1; then
+            git -C "$root" checkout -b main >/dev/null 2>&1 || {
+                log_error "Failed to select the initial 'main' branch in '$root'."
+                return 1
+            }
+            git -C "$root" commit -m "Initial repository commit" || {
+                log_error "Failed to create the initial repository commit."
+                return 1
+            }
+        else
+            git -C "$root" commit -m "Add Base repository baseline" || {
+                log_error "Failed to commit the Base repository baseline."
+                return 1
+            }
+        fi
+        branch="$(git -C "$root" branch --show-current)"
+    fi
+
+    [[ -n "$branch" ]] || {
+        log_error "Unable to determine the branch to publish from '$root'."
+        return 1
+    }
+    git -C "$root" push -u origin "$branch" || {
+        log_error "Failed to push the initial repository branch '$branch' to origin."
+        return 1
+    }
+    log_info "Bootstrapped '$repo' from '$root' on branch '$branch'."
 }
 
 base_repo_require_gh() {
@@ -1987,6 +2114,7 @@ base_repo_init() {
     local github_visibility="private"
     local github_visibility_explicit=0
     local issue=""
+    local license_id="AGPL-3.0-or-later"
     local name=""
     local path=""
     local project_owner=""
@@ -2150,6 +2278,22 @@ base_repo_init() {
                 description="$2"
                 shift 2
                 ;;
+            --license)
+                [[ -n "${2:-}" ]] || {
+                    base_repo_init_usage_error "Option '--license' requires an SPDX identifier."
+                    return $?
+                }
+                license_id="$2"
+                shift 2
+                ;;
+            --license=*)
+                license_id="${1#--license=}"
+                [[ -n "$license_id" ]] || {
+                    base_repo_init_usage_error "Option '--license' requires an SPDX identifier."
+                    return $?
+                }
+                shift
+                ;;
             --copyright-holder)
                 [[ -n "${2:-}" ]] || {
                     base_repo_init_usage_error "Option '--copyright-holder' requires an argument."
@@ -2269,6 +2413,10 @@ base_repo_init() {
         return $?
     }
     base_repo_validate_name "$name" || return 2
+    if ! base_repo_license_is_supported "$license_id"; then
+        base_repo_init_usage_error "Unsupported repository license '$license_id'. Expected: $(base_repo_license_display)"
+        return 2
+    fi
     [[ -n "$path" ]] || path="$(base_repo_default_target_path "$name")"
     [[ -n "$description" ]] || description="$(base_repo_default_description "$name")"
     [[ -n "$copyright_holder" ]] || copyright_holder="$(base_repo_default_copyright_holder)"
@@ -2353,7 +2501,7 @@ base_repo_init() {
         return $?
     fi
 
-    base_repo_write_baseline "$dry_run" "$name" "$description" "$copyright_holder" "$root" "${language_options[@]}" || return 1
+    base_repo_write_baseline "$dry_run" "$name" "$description" "$copyright_holder" "$root" "$license_id" "${language_options[@]}" || return 1
     if ((configure_release)); then
         base_repo_configure_release "$dry_run" "$github_repo" "$root" || return 1
     fi
@@ -2399,6 +2547,9 @@ base_repo_init() {
         if [[ -n "$github_repo" ]]; then
             base_repo_load_github_settings || return 1
             base_repo_ensure_github_repo "$dry_run" "$github_repo" "$description" "$github_visibility" || return 1
+            if [[ "${BASE_REPO_GITHUB_REPO_CREATED:-0}" == "1" ]]; then
+                base_repo_bootstrap_github_checkout "$dry_run" "$github_repo" "$root" || return 1
+            fi
             base_repo_configure_github "$dry_run" "$github_repo" "$protect_default_branch" "$root" || return 1
             if ((configure_project)); then
                 [[ -n "$project_title" ]] || project_title="$(base_repo_default_project_title "$github_repo")"

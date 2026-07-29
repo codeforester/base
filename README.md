@@ -752,12 +752,15 @@ When refreshing the current checkout, pass the repository name plus `--path .`;
 GitHub repository when needed and then standardizes its settings when
 `--repo <owner/name>` is provided or when an existing `origin` remote can be
 inferred. Newly created GitHub repositories are private by default; pass
-`--public` when a public repository is intentional. Plain `repo init` writes the
-local baseline but does not commit or push local files. Use `--pr --issue
-<number>` on an existing clean Git worktree to commit baseline changes on a
-canonical issue-backed branch, push that branch to `origin`, and open a pull
-request. Use `--no-configure` to skip the GitHub step, or rerun it later with
-`basectl repo configure`. Real PR runs derive and verify the issue category;
+`--public` when a public repository is intentional. When `repo init` creates
+the remote, it also attaches `origin`, creates an initial commit, and pushes
+the current branch. Existing remotes are never implicitly pushed. Use
+`--pr --issue <number>` on an existing clean Git worktree to commit baseline
+changes on a canonical issue-backed branch, push that branch to `origin`, and
+open a pull request. Use `--no-configure` to skip the GitHub step, or rerun it
+later with `basectl repo configure`. The generated license defaults to
+`AGPL-3.0-or-later`; pass `--license Apache-2.0` for standalone package repos.
+Real PR runs derive and verify the issue category;
 offline `--pr --dry-run` previews also require `--category <name>`. Add
 `--agent-ready` when a new baseline should also include `AGENTS.md` and
 `skills.md` for repo-local agent workflow guidance.

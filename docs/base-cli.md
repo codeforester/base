@@ -53,6 +53,28 @@ Extraction preparation should not add PyPI metadata, create a second repository,
 or rename public APIs early. The useful work now is to keep the package boundary
 clean while Linux and Windows evidence shapes the eventual public contract.
 
+## Standalone Provider Resolution
+
+After extraction, Base consumes `base_cli` through the same source-versus-installed
+provider model used by `base-bash-libs`:
+
+1. an explicit `BASE_CLI_SOURCE_DIR` source root for tests and nonstandard worktrees;
+2. the sibling checkout `$BASE_HOME/../base-cli/lib/python` during source
+   development;
+3. the installed `base-cli` distribution in Base's selected Python environment.
+
+The source roots contain `base_cli/__init__.py`; callers continue to use the
+normal `import base_cli` API. Base injects a source root into `PYTHONPATH` only
+when one of the first two providers is selected. With no source checkout,
+Python resolves the installed distribution normally. `BASE_CLI_SOURCE` reports
+the selected provider, and an explicit or sibling path that exists but is
+malformed fails loudly instead of silently selecting a different version.
+
+Base's source-checkout CI should exercise the sibling path, while packaged or
+installed-environment checks should exercise the pip-installed path. The
+standalone repository owns its build metadata, versioning, license, and release
+workflow; Base owns only provider selection and its compatibility contract.
+
 ## Author Experience
 
 ```python

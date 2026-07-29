@@ -211,6 +211,7 @@ run_repo_command_with_mocks() {
     [[ "$output" == *"--category <name>"* ]]
     [[ "$output" == *"--pr"* ]]
     [[ "$output" == *"--release"* ]]
+    [[ "$output" == *"--license <SPDX>"* ]]
     [[ "$output" == *"--copy-project-fields-from <title>"* ]]
     [[ "$output" == *"Create a new public GitHub repo and configure it."* ]]
     [[ "$output" == *"basectl repo init base-demo --repo basefoundry/base-demo --public"* ]]
@@ -1336,6 +1337,29 @@ EOF
     [[ "$output" == *"[DRY-RUN] Would create '$repo_dir/README.md'."* ]]
     [[ "$output" != *"$nested_dir/base-demo"* ]]
     [[ "$output" == *"[DRY-RUN] Would not create or configure a GitHub repository because no GitHub repo was provided or inferred."* ]]
+}
+
+@test "basectl repo init writes an Apache-2.0 license when requested" {
+    local repo_dir="$TEST_TMPDIR/apache-demo"
+
+    run_basectl repo init apache-demo --path "$repo_dir" --license Apache-2.0 --no-configure
+
+    [ "$status" -eq 0 ]
+    [ -f "$repo_dir/LICENSE" ]
+    grep -Fq "Apache License" "$repo_dir/LICENSE"
+    grep -Fq "Version 2.0, January 2004" "$repo_dir/LICENSE"
+    ! grep -Fq "GNU Affero General Public License" "$repo_dir/LICENSE"
+}
+
+@test "basectl repo init rejects an unsupported license" {
+    local repo_dir="$TEST_TMPDIR/invalid-license"
+
+    run_basectl repo init invalid-license --path "$repo_dir" --license MIT --no-configure
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"Unsupported repository license 'MIT'"* ]]
+    [[ "$output" == *"AGPL-3.0-or-later or Apache-2.0"* ]]
+    [ ! -e "$repo_dir" ]
 }
 
 @test "basectl repo init creates the standard repository baseline" {
@@ -2710,6 +2734,57 @@ if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
 if [[ "$*" == "repo view codeforester/base-demo" ]]; then
+    exit 0
+fi
+printf '%s\n' "$*" >> "${BASE_REPO_TEST_STATE_DIR:?}/gh-args"
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+    cat > "$TEST_MOCKBIN/project-wrapper" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" > "${BASE_REPO_TEST_STATE_DIR:?}/project-args"
+EOF
+    chmod +x "$TEST_MOCKBIN/project-wrapper"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
+        BASE_REPO_PROJECT_WRAPPER="$TEST_MOCKBIN/project-wrapper" \
+        GIT_AUTHOR_NAME="Base Test" \
+        GIT_AUTHOR_EMAIL="base-test@example.invalid" \
+        GIT_COMMITTER_NAME="Base Test" \
+        GIT_COMMITTER_EMAIL="base-test@example.invalid" \
+        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        "$BASE_REPO_ROOT/bin/basectl" repo init base-demo --path "$repo_dir" --repo codeforester/base-demo
+
+    [ "$status" -eq 0 ]
+    [ -f "$repo_dir/base_manifest.yaml" ]
+    ! grep -Fq "repo create codeforester/base-demo" "$TEST_STATE_DIR/gh-args"
+    grep -Fq "repo edit codeforester/base-demo" "$TEST_STATE_DIR/gh-args"
+    [ "$(cat "$TEST_STATE_DIR/project-args")" = "--project base base_github_projects project configure --project base-demo --owner codeforester --repo codeforester/base-demo --schema base-project --config $repo_dir/.github/base-project.yml" ]
+    ! grep -Fq "pr create" "$TEST_STATE_DIR/gh-args"
+}
+
+@test "basectl repo init bootstraps a newly created GitHub repo" {
+    local real_git
+    local repo_dir="$TEST_TMPDIR/base-demo-bootstrap"
+
+    real_git="$(command -v git)"
+    cat > "$TEST_MOCKBIN/git" <<EOF
+#!/usr/bin/env bash
+if [[ "\${1:-}" == "-C" && "\${3:-}" == "push" ]]; then
+    printf '%s\n' "\$*" >> "\${BASE_REPO_TEST_STATE_DIR:?}/git-push"
+    exit 0
+fi
+exec "$real_git" "\$@"
+EOF
+    chmod +x "$TEST_MOCKBIN/git"
+
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == "auth status -h github.com" ]]; then
+    exit 0
+fi
+if [[ "$*" == "repo view codeforester/base-demo" ]]; then
     exit 1
 fi
 printf '%s\n' "$*" >> "${BASE_REPO_TEST_STATE_DIR:?}/gh-args"
@@ -2725,15 +2800,21 @@ EOF
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
         BASE_REPO_PROJECT_WRAPPER="$TEST_MOCKBIN/project-wrapper" \
+        GIT_AUTHOR_NAME="Base Test" \
+        GIT_AUTHOR_EMAIL="base-test@example.invalid" \
+        GIT_COMMITTER_NAME="Base Test" \
+        GIT_COMMITTER_EMAIL="base-test@example.invalid" \
         PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo init base-demo --path "$repo_dir" --repo codeforester/base-demo
 
     [ "$status" -eq 0 ]
-    [ -f "$repo_dir/base_manifest.yaml" ]
+    [ -d "$repo_dir/.git" ]
+    [ "$(git -C "$repo_dir" branch --show-current)" = "main" ]
+    [ "$(git -C "$repo_dir" log -1 --pretty=%s)" = "Initial repository commit" ]
+    [ "$(git -C "$repo_dir" remote get-url origin)" = "git@github.com:codeforester/base-demo.git" ]
+    grep -Fq -- "-C $repo_dir push -u origin main" "$TEST_STATE_DIR/git-push"
     grep -Fq "repo create codeforester/base-demo --private --description Base-managed project base-demo." "$TEST_STATE_DIR/gh-args"
     grep -Fq "repo edit codeforester/base-demo" "$TEST_STATE_DIR/gh-args"
-    [ "$(cat "$TEST_STATE_DIR/project-args")" = "--project base base_github_projects project configure --project base-demo --owner codeforester --repo codeforester/base-demo --schema base-project --config $repo_dir/.github/base-project.yml" ]
-    ! grep -Fq "pr create" "$TEST_STATE_DIR/gh-args"
 }
 
 @test "basectl repo init --pr dry-run reports a canonical branch and pull request plan" {
@@ -2993,7 +3074,18 @@ EOF
 }
 
 @test "basectl repo init can create a public GitHub repo when requested" {
+    local real_git
     local repo_dir="$TEST_TMPDIR/base-demo"
+
+    real_git="$(command -v git)"
+    cat > "$TEST_MOCKBIN/git" <<EOF
+#!/usr/bin/env bash
+if [[ "\${1:-}" == "-C" && "\${3:-}" == "push" ]]; then
+    exit 0
+fi
+exec "$real_git" "\$@"
+EOF
+    chmod +x "$TEST_MOCKBIN/git"
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
@@ -3010,6 +3102,10 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
+        GIT_AUTHOR_NAME="Base Test" \
+        GIT_AUTHOR_EMAIL="base-test@example.invalid" \
+        GIT_COMMITTER_NAME="Base Test" \
+        GIT_COMMITTER_EMAIL="base-test@example.invalid" \
         PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo init base-demo --path "$repo_dir" --repo codeforester/base-demo --public --no-project
 

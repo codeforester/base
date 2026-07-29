@@ -49,7 +49,9 @@ Options:
 
 Purpose:
   Run Base Python command packages through the selected project virtual
-  environment with Base's Python library and command roots on PYTHONPATH.
+  environment with Base's command root on PYTHONPATH. The base_cli provider is
+  resolved from BASE_CLI_SOURCE_DIR, a sibling base-cli checkout, or the installed
+  base-cli distribution.
 
   This is primarily for Bash launchers in $BASE_HOME/bin and project bin/
   directories. End users should normally run those launchers or basectl rather
@@ -58,10 +60,12 @@ EOF
 }
 
 main() {
-    local base_home project package python_bin old_pythonpath base_pythonpath
+    local base_cli_path base_cli_source base_home project package python_bin old_pythonpath base_pythonpath
 
     base_home="$(base_wrapper_base_home)" || base_wrapper_die "Unable to resolve Base home."
     project="${BASE_PROJECT:-base}"
+    # shellcheck source=lib/base/base_cli_runtime.sh
+    source "$base_home/lib/base/base_cli_runtime.sh"
 
     while (($#)); do
         case "$1" in
@@ -117,7 +121,13 @@ main() {
     python_bin="${BASE_PROJECT_VENV_DIR:-$HOME/.base.d/$project/.venv}/bin/python"
     [[ -x "$python_bin" ]] || base_wrapper_die "Project virtual environment Python was not found at '$python_bin'. Run 'basectl setup'."
 
-    base_pythonpath="$BASE_HOME/lib/python:$BASE_HOME/cli/python"
+    base_cli_path="$(base_cli_runtime_source_root)" || base_wrapper_die "Unable to resolve the Base CLI provider."
+    base_cli_source="$(base_cli_runtime_source_kind)" || base_wrapper_die "Unable to identify the Base CLI provider."
+    export BASE_CLI_SOURCE="$base_cli_source"
+    base_pythonpath="$BASE_HOME/cli/python"
+    if [[ -n "$base_cli_path" ]]; then
+        base_pythonpath="$base_cli_path:$base_pythonpath"
+    fi
     old_pythonpath="${PYTHONPATH-}"
     if [[ -n "$old_pythonpath" ]]; then
         PYTHONPATH="$base_pythonpath:$old_pythonpath"

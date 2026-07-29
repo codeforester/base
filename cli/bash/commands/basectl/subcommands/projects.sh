@@ -3,6 +3,8 @@
 _base_projects_subcommand_sourced=1
 readonly _base_projects_subcommand_sourced
 
+source "$BASE_HOME/lib/base/base_cli_runtime.sh"
+
 base_projects_subcommand_usage() {
     cat <<'EOF'
 Usage:
@@ -32,11 +34,17 @@ base_projects_base_venv_python() {
 
 base_projects_source_checkout_available() {
     [[ -f "$BASE_HOME/cli/python/base_projects/__main__.py" ]] &&
-        [[ -f "$BASE_HOME/lib/python/base_cli/__init__.py" ]]
+        base_cli_runtime_source_root >/dev/null
 }
 
 base_projects_source_pythonpath() {
-    local base_pythonpath="$BASE_HOME/lib/python:$BASE_HOME/cli/python"
+    local base_cli_path base_pythonpath
+
+    base_cli_path="$(base_cli_runtime_source_root)" || return 1
+    base_pythonpath="$BASE_HOME/cli/python"
+    if [[ -n "$base_cli_path" ]]; then
+        base_pythonpath="$base_cli_path:$base_pythonpath"
+    fi
 
     if [[ -n "${PYTHONPATH:-}" ]]; then
         printf '%s:%s\n' "$base_pythonpath" "$PYTHONPATH"
