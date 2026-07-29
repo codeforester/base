@@ -5,6 +5,7 @@ import sys
 
 import base_cli
 from base_setup.checks import DIAGNOSTIC_JSON_SCHEMA_VERSION
+from base_setup.checks import publish_check_status
 
 from .checks import DevCheck
 from .checks import check_to_doctor_json
@@ -45,6 +46,7 @@ def print_check_results(
         ctx.log.error("Unsupported check output format '%s'. Expected text or json.", output_format)
         return base_cli.ExitCode.USAGE_ERROR
 
+    publish_check_status(checks_status(checks))
     if all(doctor_status(check) != "error" for check in checks):
         return base_cli.ExitCode.SUCCESS
     return base_cli.ExitCode.FAILURE

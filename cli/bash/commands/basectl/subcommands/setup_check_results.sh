@@ -159,3 +159,43 @@ setup_read_check_result_file() {
     setup_add_parsed_check_result
     [[ "$_BASE_SETUP_PARSED_CHECK_STATUS" != error ]]
 }
+
+setup_merge_diagnostic_status() {
+    local current="$1"
+    local next="$2"
+
+    if [[ "$current" == error || "$next" == error ]]; then
+        printf '%s\n' "error"
+    elif [[ "$current" == warn || "$next" == warn ]]; then
+        printf '%s\n' "warn"
+    else
+        printf '%s\n' "ok"
+    fi
+}
+
+setup_check_results_status() {
+    local count i status="ok"
+
+    count="${#_BASE_SETUP_CHECK_NAMES[@]}"
+    for ((i = 0; i < count; i++)); do
+        status="$(setup_merge_diagnostic_status "$status" "$(setup_check_result_status "$i")")"
+    done
+
+    printf '%s\n' "$status"
+}
+
+setup_read_published_check_status() {
+    local path="$1"
+    local status
+
+    [[ -f "$path" ]] || return 1
+    status="$(<"$path")"
+    case "$status" in
+        ok|warn|error)
+            printf '%s\n' "$status"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
