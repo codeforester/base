@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -264,7 +265,12 @@ class WorkspaceCheckTests(unittest.TestCase):
 
             with (
                 mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
-                mock.patch("base_setup.uv.process.run_check", return_value=True),
+                mock.patch(
+                    "base_setup.uv.process.run_capture",
+                    return_value=subprocess.CompletedProcess(
+                        ["uv"], 0, stdout='{"sync": {"changes": []}}', stderr=""
+                    ),
+                ),
             ):
                 status, stdout, stderr = invoke_engine(["check", "--workspace", str(workspace)], base_home, home)
 
@@ -288,7 +294,12 @@ class WorkspaceCheckTests(unittest.TestCase):
 
             with (
                 mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
-                mock.patch("base_setup.uv.process.run_check", return_value=True),
+                mock.patch(
+                    "base_setup.uv.process.run_capture",
+                    return_value=subprocess.CompletedProcess(
+                        ["uv"], 0, stdout='{"sync": {"changes": []}}', stderr=""
+                    ),
+                ),
             ):
                 status, stdout, stderr = invoke_engine(["doctor", "--workspace", str(workspace)], base_home, home)
 

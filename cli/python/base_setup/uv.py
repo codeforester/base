@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import base_cli
 
@@ -221,9 +223,9 @@ def uv_project_venv_ready(venv_path: Path) -> bool:
 
 
 def uv_project_environment_check(project_root: Path, uv_bin: Path) -> ArtifactCheck:
-    command = [str(uv_bin), "sync", "--check", "--offline"]
+    command = [str(uv_bin), "sync", "--check", "--offline", "--output-format", "json"]
     try:
-        synchronized = process.run_check(
+        probe = process.run_capture(
             command,
             cwd=project_root,
             timeout_seconds=process.DIAGNOSTIC_TIMEOUT_SECONDS,
@@ -241,7 +243,8 @@ def uv_project_environment_check(project_root: Path, uv_bin: Path) -> ArtifactCh
             status="warn",
         )
 
-    if synchronized:
+    package_changes = uv_sync_package_changes(probe.stdout)
+    if probe.returncode == 0:
         return ArtifactCheck(
             name="uv project environment",
             ok=True,
@@ -249,13 +252,69 @@ def uv_project_environment_check(project_root: Path, uv_bin: Path) -> ArtifactCh
             fix="",
             finding_id="BASE-P155",
         )
+    message = f"uv project environment is not synchronized with '{project_root}'."
+    details: dict[str, Any] = {}
+    if package_changes:
+        message = f"{message} {format_uv_package_changes(package_changes)}"
+        details["package_changes"] = package_changes
     return ArtifactCheck(
         name="uv project environment",
         ok=False,
-        message=f"uv project environment is not synchronized with '{project_root}'.",
+        message=message,
         fix=f"Run 'uv sync' from '{project_root}' to reconcile the environment.",
         finding_id="BASE-P155",
+        details=details,
     )
+
+
+def uv_sync_package_changes(stdout: str) -> tuple[dict[str, str], ...]:
+    try:
+        payload = json.loads(stdout)
+    except (json.JSONDecodeError, TypeError):
+        return ()
+    if not isinstance(payload, dict):
+        return ()
+    sync = payload.get("sync")
+    if not isinstance(sync, dict):
+        return ()
+    changes = sync.get("changes")
+    if not isinstance(changes, list):
+        return ()
+
+    package_changes: list[dict[str, str]] = []
+    for change in changes:
+        if not isinstance(change, dict):
+            continue
+        name = change.get("name")
+        action = change.get("action")
+        if not isinstance(name, str) or not isinstance(action, str):
+            continue
+        normalized = {"name": name, "action": action}
+        version = change.get("version")
+        if isinstance(version, str):
+            normalized["version"] = version
+        package_changes.append(normalized)
+    return tuple(package_changes)
+
+
+def format_uv_package_changes(package_changes: tuple[dict[str, str], ...]) -> str:
+    labels = {
+        "installed": "missing",
+        "reinstalled": "version mismatch",
+        "uninstalled": "unexpected",
+    }
+    descriptions = []
+    for change in package_changes[:5]:
+        label = labels.get(change["action"], change["action"])
+        package = change["name"]
+        if "version" in change:
+            package = f"{package}=={change['version']}"
+        descriptions.append(f"{label} {package}")
+    remaining = len(package_changes) - len(descriptions)
+    if remaining:
+        descriptions.append(f"{remaining} more")
+    count_label = "package change" if len(package_changes) == 1 else "package changes"
+    return f"{count_label}: {', '.join(descriptions)}."
 
 
 def stale_base_venv_check(manifest: BaseManifest) -> ArtifactCheck | None:

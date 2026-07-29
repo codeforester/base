@@ -343,7 +343,15 @@ class UvProjectTests(unittest.TestCase):
 
             with (
                 mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
-                mock.patch("base_setup.uv.process.run_check", return_value=True) as run_check,
+                mock.patch(
+                    "base_setup.uv.process.run_capture",
+                    return_value=subprocess.CompletedProcess(
+                        ["uv"],
+                        0,
+                        stdout='{"sync": {"changes": []}}',
+                        stderr="",
+                    ),
+                ) as run_capture,
             ):
                 checks = check_uv(manifest)
 
@@ -351,8 +359,8 @@ class UvProjectTests(unittest.TestCase):
         self.assertEqual(findings["BASE-P154"].status, "")
         self.assertIn(str(root / ".venv"), findings["BASE-P154"].message)
         self.assertEqual(findings["BASE-P155"].status, "")
-        run_check.assert_called_once_with(
-            ["uv", "sync", "--check", "--offline"],
+        run_capture.assert_called_once_with(
+            ["uv", "sync", "--check", "--offline", "--output-format", "json"],
             cwd=root,
             timeout_seconds=10,
         )
@@ -381,7 +389,21 @@ class UvProjectTests(unittest.TestCase):
 
             with (
                 mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
-                mock.patch("base_setup.uv.process.run_check", return_value=False),
+                mock.patch(
+                    "base_setup.uv.process.run_capture",
+                    return_value=subprocess.CompletedProcess(
+                        ["uv"],
+                        1,
+                        stdout=(
+                            '{"sync": {"changes": ['
+                            '{"name": "clicker", "version": "0.2.5", "action": "uninstalled"},'
+                            '{"name": "requests", "version": "2.32.4", "action": "installed"},'
+                            '{"name": "PyYAML", "version": "6.0.3", "action": "reinstalled"}'
+                            ']}}'
+                        ),
+                        stderr="",
+                    ),
+                ),
             ):
                 checks = check_uv(manifest)
 
@@ -389,7 +411,55 @@ class UvProjectTests(unittest.TestCase):
         self.assertFalse(drift.ok)
         self.assertEqual(drift.status, "")
         self.assertIn("not synchronized", drift.message)
+        self.assertIn("unexpected clicker==0.2.5", drift.message)
+        self.assertIn("missing requests==2.32.4", drift.message)
+        self.assertIn("version mismatch PyYAML==6.0.3", drift.message)
         self.assertIn("uv sync", drift.fix)
+        self.assertEqual(
+            drift.details["package_changes"],
+            (
+                {"name": "clicker", "version": "0.2.5", "action": "uninstalled"},
+                {"name": "requests", "version": "2.32.4", "action": "installed"},
+                {"name": "PyYAML", "version": "6.0.3", "action": "reinstalled"},
+            ),
+        )
+
+    def test_check_uv_falls_back_to_generic_message_for_unstructured_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "project"
+            manifest = write_manifest(
+                root,
+                "\n".join(
+                    [
+                        "project:",
+                        "  name: demo",
+                        "python:",
+                        "  manager: uv",
+                        "artifacts: []",
+                    ]
+                ),
+            )
+            (root / "pyproject.toml").write_text("[project]\nname = 'demo'\n", encoding="utf-8")
+            (root / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+            python_bin = root / ".venv" / "bin" / "python"
+            python_bin.parent.mkdir(parents=True)
+            python_bin.write_text("#!/usr/bin/env python\n", encoding="utf-8")
+            python_bin.chmod(0o755)
+
+            with (
+                mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
+                mock.patch(
+                    "base_setup.uv.process.run_capture",
+                    return_value=subprocess.CompletedProcess(
+                        ["uv"], 1, stdout="not json", stderr="probe failed"
+                    ),
+                ),
+            ):
+                checks = check_uv(manifest)
+
+        drift = next(check for check in checks if check.finding_id == "BASE-P155")
+        self.assertEqual(drift.message, f"uv project environment is not synchronized with '{root}'.")
+        self.assertEqual(drift.details, {})
 
     def test_check_uv_warns_when_environment_probe_times_out(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -416,8 +486,10 @@ class UvProjectTests(unittest.TestCase):
             with (
                 mock.patch("base_setup.uv.uv_executable", return_value=Path("uv")),
                 mock.patch(
-                    "base_setup.uv.process.run_check",
-                    side_effect=subprocess.TimeoutExpired(["uv", "sync", "--check", "--offline"], 10),
+                    "base_setup.uv.process.run_capture",
+                    side_effect=subprocess.TimeoutExpired(
+                        ["uv", "sync", "--check", "--offline", "--output-format", "json"], 10
+                    ),
                 ),
             ):
                 checks = check_uv(manifest)

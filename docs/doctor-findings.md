@@ -63,6 +63,7 @@ Every diagnostic item emitted by `basectl check --format json` and
 | `name` | Short machine-readable finding subject |
 | `message` | Human-readable diagnostic detail |
 | `fix` | Suggested remediation, or an empty string when no fix is needed |
+| `details` | Optional structured context for findings that can report machine-readable detail |
 
 Check commands that return an object include an aggregate `status` and a
 `checks` array of diagnostic items:
@@ -199,8 +200,10 @@ when uv tooling or expected uv project files are missing, because check/doctor
 should explain readiness without mutating the project. When the project has a
 usable `pyproject.toml`, `uv.lock`, and `.venv`, `BASE-P155` runs uv's offline
 `sync --check` probe and reports an error when the environment is not
-synchronized. Command invocation still fails hard when a command declares
-`runner: uv` and the `uv` executable is unavailable. On Ubuntu/Debian,
+synchronized. When uv provides structured changes, the finding message and
+optional `details.package_changes` identify missing, unexpected, or
+version-mismatched packages. Command invocation still fails hard when a command
+declares `runner: uv` and the `uv` executable is unavailable. On Ubuntu/Debian,
 `BASE-P150` recovery should point users to `basectl setup <project> --dry-run`
 followed by `--yes` when the manifest has explicitly opted into uv.
 For the full uv manifest contract, migration paths, and runner configuration,
