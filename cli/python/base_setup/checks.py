@@ -6,10 +6,12 @@ from collections.abc import Iterable
 from collections.abc import Mapping
 from dataclasses import dataclass
 from dataclasses import field
+from pathlib import Path
 from typing import Any
 
 
 DIAGNOSTIC_JSON_SCHEMA_VERSION = 1
+CHECK_STATUS_FILE_ENVIRONMENT_VARIABLE = "BASE_SETUP_CHECK_STATUS_FILE"
 
 
 @dataclass(frozen=True)
@@ -43,6 +45,15 @@ def checks_status(checks: Iterable[ArtifactCheck]) -> str:
     if "warn" in statuses:
         return "warn"
     return "ok"
+
+
+def publish_check_status(status: str) -> None:
+    if status not in {"ok", "warn", "error"}:
+        raise ValueError(f"Unsupported check status '{status}'.")
+
+    status_file = os.environ.get(CHECK_STATUS_FILE_ENVIRONMENT_VARIABLE)
+    if status_file:
+        Path(status_file).write_text(f"{status}\n", encoding="utf-8")
 
 
 def checks_payload_to_json(checks: Iterable[ArtifactCheck], **metadata: Any) -> dict[str, Any]:

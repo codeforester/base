@@ -899,6 +899,13 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     printf '%s\n' "${BASE_SETUP_YES:-}" > "$BASE_SETUP_TEST_STATE_DIR/project-setup-yes"
     printf '%s\n' "${BASE_PLATFORM:-}" > "$BASE_SETUP_TEST_STATE_DIR/project-setup-platform"
     touch "$BASE_SETUP_TEST_STATE_DIR/project-setup-ran"
+    check_status="ok"
+    if [[ -f "$BASE_SETUP_TEST_STATE_DIR/project-check-status" ]]; then
+        check_status="$(cat "$BASE_SETUP_TEST_STATE_DIR/project-check-status")"
+    fi
+    if [[ "$action" == "check" && -n "${BASE_SETUP_CHECK_STATUS_FILE:-}" ]]; then
+        printf '%s\n' "$check_status" > "$BASE_SETUP_CHECK_STATUS_FILE"
+    fi
     if [[ "$action" == "bootstrap" ]]; then
         printf '%s\n' "${BASE_SETUP_RECREATE_PROJECT_VENV:-}" > "$BASE_SETUP_TEST_STATE_DIR/project-bootstrap-recreate-venv"
     fi
@@ -925,9 +932,14 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     elif [[ "$action" == "predoctor" ]]; then
         printf 'ok     BASE-P080  git_repository            Project is inside a Git repository.\n'
     elif [[ "$action" == "check" && "$output_format" == "json" ]]; then
-        printf '{"schema_version":1,"status":"ok","project":"demo","checks":[{"id":"BASE-P040","status":"ok","name":"demo-artifact","message":"Project artifact check passed.","fix":""}]}\n'
+        printf '{"schema_version":1,"status":"%s","project":"demo","checks":[{"id":"BASE-P040","status":"%s","name":"demo-artifact","message":"Project artifact check passed.","fix":""}]}\n' \
+            "$check_status" "$check_status"
     elif [[ "$action" == "check" ]]; then
-        printf 'Project artifact check passed.\n' >&2
+        if [[ "$check_status" == "warn" ]]; then
+            printf 'Optional project artifact requires attention.\n' >&2
+        else
+            printf 'Project artifact check passed.\n' >&2
+        fi
     elif [[ "$action" == "doctor" && "$output_format" == "json" ]]; then
         printf '[{"id":"BASE-P040","status":"ok","name":"demo-artifact","message":"Project artifact check passed.","fix":""}]\n'
     elif [[ "$action" == "doctor" ]]; then
@@ -937,6 +949,42 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
         cat "$BASE_SETUP_TEST_STATE_DIR/project-setup-stderr" >&2
     fi
     exit "$(cat "$BASE_SETUP_TEST_STATE_DIR/project-setup-exit-code")"
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_dev" ]]; then
+    shift 2
+    printf '%s\n' "$@" > "${BASE_SETUP_TEST_STATE_DIR:?}/dev-args"
+    action="${1:-}"
+    output_format="text"
+    while (($#)); do
+        if [[ "$1" == "--format" ]]; then
+            shift
+            output_format="${1:-}"
+        fi
+        shift || true
+    done
+    if [[ "$action" == "check" ]]; then
+        check_status="ok"
+        if [[ -f "$BASE_SETUP_TEST_STATE_DIR/profile-check-status" ]]; then
+            check_status="$(cat "$BASE_SETUP_TEST_STATE_DIR/profile-check-status")"
+        fi
+        if [[ -n "${BASE_SETUP_CHECK_STATUS_FILE:-}" ]]; then
+            printf '%s\n' "$check_status" > "$BASE_SETUP_CHECK_STATUS_FILE"
+        fi
+        if [[ "$output_format" == "json" ]]; then
+            printf '{"schema_version":1,"status":"%s","profiles":["dev"],"checks":[{"id":"BASE-D104","status":"%s","name":"optional-tool","message":"Developer profile check completed.","fix":""}]}\n' \
+                "$check_status" "$check_status"
+        elif [[ "$check_status" == "warn" ]]; then
+            printf 'Optional developer profile tool requires attention.\n' >&2
+        else
+            printf 'Developer profile check passed.\n'
+        fi
+        if [[ "$check_status" == "error" ]]; then
+            exit 1
+        fi
+        exit 0
+    fi
+    printf 'unexpected base_dev args: %s\n' "$*" >&2
+    exit 1
 fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "resolve" ]]; then
     project="${4:-}"

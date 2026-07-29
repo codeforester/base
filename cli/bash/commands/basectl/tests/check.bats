@@ -419,6 +419,65 @@ EOF
     grep -Eq '"checked_at": "20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z"' "$record_path"
 }
 
+@test "basectl check persists warnings from Base, profile, and project checks in text and JSON modes" {
+    local args record_path="$TEST_HOME/.base.d/demo/checks/last.json"
+    local source
+    local venv_dir="$TEST_HOME/.base.d/base/.venv"
+    local workspace="$TEST_TMPDIR/workspace"
+
+    create_brew_stub
+    create_xcode_stubs
+    touch "$TEST_STATE_DIR/xcode-installed"
+    mkdir -p "$TEST_TMPDIR/CommandLineTools" "$workspace/demo"
+    touch "$TEST_STATE_DIR/python-installed"
+    touch "$TEST_STATE_DIR/pyyaml-installed"
+    touch "$TEST_STATE_DIR/click-installed"
+    printf 'project:\n  name: demo\nartifacts: []\n' > "$workspace/demo/base_manifest.yaml"
+    printf 'ok\n' > "$TEST_STATE_DIR/profile-check-status"
+    printf 'ok\n' > "$TEST_STATE_DIR/project-check-status"
+    BASE_SETUP_TEST_WORKSPACE="$workspace" create_project_setup_venv_stub "$venv_dir"
+    BASE_SETUP_TEST_WORKSPACE="$workspace" create_project_setup_venv_stub "$workspace/demo/.venv"
+
+    for source in profile project base; do
+        printf 'ok\n' > "$TEST_STATE_DIR/profile-check-status"
+        printf 'ok\n' > "$TEST_STATE_DIR/project-check-status"
+        args=(check demo)
+        case "$source" in
+            profile)
+                printf 'warn\n' > "$TEST_STATE_DIR/profile-check-status"
+                args+=(--profile dev)
+                ;;
+            project)
+                printf 'warn\n' > "$TEST_STATE_DIR/project-check-status"
+                ;;
+            base)
+                touch "$TEST_STATE_DIR/xcode-outdated"
+                ;;
+        esac
+
+        run_base_command BASE_SETUP_TEST_WORKSPACE="$workspace" "${args[@]}"
+
+        [ "$status" -eq 0 ]
+        grep -Fq '"status": "warn"' "$record_path" || {
+            printf 'text mode did not persist %s warning\n' "$source" >&3
+            false
+        }
+
+        run_base_command_separate_stderr \
+            BASE_SETUP_TEST_WORKSPACE="$workspace" \
+            "${args[@]}" \
+            --format json
+
+        [ "$status" -eq 0 ]
+        [[ "$output" == *'"status": "warn"'* ]]
+        grep -Fq '"status": "warn"' "$record_path" || {
+            printf 'JSON mode did not persist %s warning\n' "$source" >&3
+            false
+        }
+        [ "${stderr:-}" = "" ]
+    done
+}
+
 @test "basectl check project records failed checks with error status" {
     local record_path="$TEST_HOME/.base.d/demo/checks/last.json"
     local venv_dir="$TEST_HOME/.base.d/base/.venv"

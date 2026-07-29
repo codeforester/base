@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import os
 import re
+import tempfile
 import unittest
 from contextlib import redirect_stderr
 from contextlib import redirect_stdout
@@ -16,6 +17,89 @@ from base_setup.tests.helpers import fake_context
 
 
 class ProjectCheckTextOutputTests(unittest.TestCase):
+    def test_check_manifest_publishes_warning_status_without_changing_exit_status(self) -> None:
+        default_manifest = BaseManifest(
+            path=Path("default_manifest.yaml"),
+            project_name="base-defaults",
+            brewfile=None,
+            artifacts=(),
+        )
+        manifest = BaseManifest(
+            path=Path("base_manifest.yaml"),
+            project_name="demo",
+            brewfile=None,
+            artifacts=(),
+        )
+        warning_check = setup_checks.ArtifactCheck(
+            name="optional-artifact",
+            ok=False,
+            message="Optional project artifact is not installed.",
+            fix="Review the optional project artifact.",
+            finding_id="BASE-P033",
+            status="warn",
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            status_path = Path(temp_dir) / "project-check.status"
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"BASE_SETUP_CHECK_STATUS_FILE": str(status_path)},
+                    clear=False,
+                ),
+                mock.patch(
+                    "base_setup.engine.manifest_checks",
+                    return_value=(warning_check,),
+                ),
+            ):
+                status = engine.check_manifest(
+                    fake_context(),
+                    default_manifest,
+                    manifest,
+                    output_format="text",
+                )
+
+            self.assertEqual(status, 0)
+            self.assertEqual(status_path.read_text(encoding="utf-8"), "warn\n")
+
+    def test_check_pre_venv_publishes_warning_status_without_changing_exit_status(self) -> None:
+        manifest = BaseManifest(
+            path=Path("base_manifest.yaml"),
+            project_name="demo",
+            brewfile=None,
+            artifacts=(),
+        )
+        warning_check = setup_checks.ArtifactCheck(
+            name="git-remote",
+            ok=False,
+            message="The Git remote could not be checked.",
+            fix="Review the Git remote manually.",
+            finding_id="BASE-P083",
+            status="warn",
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            status_path = Path(temp_dir) / "project-precheck.status"
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"BASE_SETUP_CHECK_STATUS_FILE": str(status_path)},
+                    clear=False,
+                ),
+                mock.patch(
+                    "base_setup.engine.pre_venv_manifest_checks",
+                    return_value=(warning_check,),
+                ),
+            ):
+                status = engine.check_pre_venv_manifest(
+                    fake_context(),
+                    manifest,
+                    output_format="text",
+                )
+
+            self.assertEqual(status, 0)
+            self.assertEqual(status_path.read_text(encoding="utf-8"), "warn\n")
+
     def test_doctor_finding_uses_shared_visual_status_format_on_tty(self) -> None:
         class TtyBuffer(io.StringIO):
             def isatty(self) -> bool:

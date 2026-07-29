@@ -20,8 +20,10 @@ from base_devenv.report import print_devenv_report_text
 from .checks import ArtifactCheck
 from .checks import check_to_json
 from .checks import checks_payload_to_json
+from .checks import checks_status
 from .checks import doctor_status
 from .checks import print_doctor_finding
+from .checks import publish_check_status
 from .errors import ArtifactError
 from .manifest import BaseManifest, ManifestError, read_manifest
 from .manifest_checks import empty_user_config  # pylint: disable=unused-import
@@ -285,6 +287,7 @@ def check_manifest(
     else:
         ctx.log.error("Unsupported check output format '%s'. Expected text or json.", output_format)
         return base_cli.ExitCode.USAGE_ERROR
+    publish_check_status(checks_status(checks))
     if all(check.ok or doctor_status(check) == "warn" for check in checks):
         return base_cli.ExitCode.SUCCESS
     return base_cli.ExitCode.FAILURE
@@ -305,6 +308,7 @@ def check_pre_venv_manifest(
     else:
         ctx.log.error("Unsupported check output format '%s'. Expected text or json.", output_format)
         return base_cli.ExitCode.USAGE_ERROR
+    publish_check_status(checks_status(checks))
     if all(check.ok or doctor_status(check) == "warn" for check in checks):
         return base_cli.ExitCode.SUCCESS
     return base_cli.ExitCode.FAILURE

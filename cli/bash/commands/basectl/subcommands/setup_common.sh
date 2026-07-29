@@ -50,7 +50,7 @@ setup_ensure_cached_paths() {
 setup_clear_run_state() {
     # Clear legacy lowercase state too so inherited environments cannot trigger
     # lib_std.sh dry-run behavior unless this command explicitly enables it.
-    unset dry_run DRY_RUN BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_YES
+    unset dry_run DRY_RUN BASE_SETUP_CHECK_STATUS_FILE BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_YES
     setup_refresh_cached_paths
 }
 
@@ -1330,23 +1330,56 @@ setup_write_collected_check_result_files() {
 }
 
 setup_run_check() {
+    local aggregate_status
+    local layer_status
     local missing=0
     local project="${BASE_SETUP_PROJECT_NAME:-}"
+    local profile_status_file
+    local project_status_file
 
     setup_collect_base_check_results fatal || missing=1
     setup_print_check_text_results
+    aggregate_status="$(setup_check_results_status)"
 
     if setup_profiles_enabled; then
-        setup_run_base_dev_layer check || missing=1
+        std_make_temp_file profile_status_file base-profile-check-status ||
+            fatal_error "Unable to create temporary profile check status file."
+        BASE_SETUP_CHECK_STATUS_FILE="$profile_status_file"
+        export BASE_SETUP_CHECK_STATUS_FILE
+        if ! setup_run_base_dev_layer check; then
+            missing=1
+            aggregate_status="error"
+        elif layer_status="$(setup_read_published_check_status "$profile_status_file")"; then
+            aggregate_status="$(setup_merge_diagnostic_status "$aggregate_status" "$layer_status")"
+        else
+            log_error "Python prerequisite profile check layer did not report a valid aggregate status."
+            missing=1
+            aggregate_status="error"
+        fi
+        unset BASE_SETUP_CHECK_STATUS_FILE
     fi
 
     if [[ -n "$project" || -n "${BASE_SETUP_MANIFEST:-}" ]]; then
-        setup_run_project_artifact_check || missing=1
+        std_make_temp_file project_status_file base-project-check-status ||
+            fatal_error "Unable to create temporary project check status file."
+        BASE_SETUP_CHECK_STATUS_FILE="$project_status_file"
+        export BASE_SETUP_CHECK_STATUS_FILE
+        if ! setup_run_project_artifact_check; then
+            missing=1
+            aggregate_status="error"
+        elif layer_status="$(setup_read_published_check_status "$project_status_file")"; then
+            aggregate_status="$(setup_merge_diagnostic_status "$aggregate_status" "$layer_status")"
+        else
+            log_error "Python project check layer did not report a valid aggregate status."
+            missing=1
+            aggregate_status="error"
+        fi
+        unset BASE_SETUP_CHECK_STATUS_FILE
         project="${BASE_SETUP_PROJECT_NAME:-}"
     fi
 
-    if ((missing == 0)); then
-        setup_record_project_check_result "$project" ok
+    if ((missing == 0)) && [[ "$aggregate_status" != error ]]; then
+        setup_record_project_check_result "$project" "$aggregate_status"
         if [[ -n "$project" ]]; then
             log_info "Base CLI environment and project '$project' check passed."
         else
