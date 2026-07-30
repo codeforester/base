@@ -140,6 +140,7 @@ manifest trust.
 | `basectl workspace pull` | Explicitly fetch and validate a canonical workspace manifest source before updating the local workspace manifest. Uses `workspace.manifest_source` and `workspace.manifest` from user config unless flags are supplied. | `--source <url-or-path>`, `--manifest <path>`, `--dry-run` |
 | `basectl workspace init <workspace-source>` | Initialize a workspace from a workspace configuration repository, update local workspace config, and optionally materialize member repositories. | `--owner <owner>`, `--path <path>`, `--workspace <path>`, `--manifest <path>`, `--include-optional`, `--dry-run` |
 | `basectl workspace configure` | Apply the existing `repo configure` repair path across discovered Base-managed workspace repositories or an explicit workspace manifest. Skips missing, non-Base-managed, or non-GitHub repos and continues after per-repo failures. | `--workspace <path>`, `--manifest <path>`, `--dry-run` |
+| `basectl workspace setup` | Set up eligible repositories from a workspace manifest in manifest order by delegating to each repository's local `basectl setup` command. Skips ineligible repositories, continues after per-repo failures, and reports setup/skipped/failed counts. | `--workspace <path>`, `--manifest <path>`, `--dry-run`, `--yes` |
 
 ## Repository And GitHub Workflow
 

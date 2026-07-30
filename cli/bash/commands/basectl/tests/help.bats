@@ -163,7 +163,7 @@ load ./basectl_helpers.bash
         "devenv-report" "projects list" "trust status" "trust allow"
         "trust revoke" "workspace status" "workspace check" "workspace doctor"
         "workspace onboarding" "workspace agent-brief" "workspace clone"
-        "workspace pull" "workspace init" "workspace configure" "repo init"
+        "workspace pull" "workspace init" "workspace configure" "workspace setup" "repo init"
         "repo clone" "repo check" "repo configure" "repo agent-guidance"
         "repo installer-template"
         "release check" "release plan" "release notes" "release publish"
@@ -255,7 +255,7 @@ load ./basectl_helpers.bash
 @test "AI command context includes current clone and update surfaces" {
     local commands_file="$BASE_REPO_ROOT/.ai-context/COMMANDS.md"
 
-    grep -Fqx -- "- \`basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure>\` -" "$commands_file"
+    grep -Fqx -- "- \`basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup>\` -" "$commands_file"
     grep -Fqx -- "  - \`workspace clone\` mutates repository checkouts only when invoked directly;" "$commands_file"
     grep -Fqx -- "- \`basectl repo <init|clone|check|configure|agent-guidance|installer-template>\` -" "$commands_file"
     grep -Fqx -- "- \`basectl update [project]\` - update Base or a named project using the" "$commands_file"
@@ -310,6 +310,24 @@ load ./basectl_helpers.bash
     done
     [[ "$output" == *"--format <text|csv|tsv|yaml|json>"* ]]
     [[ "$agent_brief_row" == *'--format <text\|csv\|tsv\|yaml\|json>'* ]]
+}
+
+@test "command reference documents workspace setup help surface" {
+    local command_reference="$BASE_REPO_ROOT/docs/command-reference.md"
+    local workspace_setup_row
+
+    run_basectl workspace setup --help
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"basectl workspace setup [options]"* ]]
+
+    workspace_setup_row="$(grep -F '| `basectl workspace setup` |' "$command_reference")"
+    [[ "$workspace_setup_row" == *"Set up eligible repositories from a workspace manifest in manifest order"* ]]
+
+    for flag in "--workspace <path>" "--manifest <path>" "--dry-run" "--yes"; do
+        [[ "$output" == *"$flag"* ]]
+        [[ "$workspace_setup_row" == *"$flag"* ]]
+    done
 }
 
 @test "command reference documents docs shortcut" {

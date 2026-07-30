@@ -382,6 +382,24 @@ continues after per-repo failures and reports configured, skipped, and failed
 counts. Use this after shared repo or Project schema changes when each local
 repo should receive the same idempotent `repo configure` repair path.
 
+The setup path prepares existing project checkouts from the manifest:
+
+```bash
+basectl workspace setup --dry-run
+basectl workspace setup
+basectl workspace setup --manifest ~/work/workspace.yaml --yes
+```
+
+Setup walks repositories in manifest order. The active `base` checkout is
+reported and skipped because it is the control plane; missing checkouts and
+repositories without a valid Base manifest are also skipped from execution.
+Each eligible repository is delegated to its local `basectl setup --manifest
+<path> <project>` command. `--yes` forwards confirmation to those commands.
+The command continues after per-repository failures and reports setup,
+skipped, and failed counts. Required missing checkouts and invalid required
+manifests count as failures, including in dry-run mode, so a dry-run can be
+used to validate the expected workspace before applying changes.
+
 ## Relationship To Onboarding And Agent Handoff
 
 `basectl onboard` guides first-run Base setup. It should not become a
@@ -500,6 +518,6 @@ expected repositories through `basectl repo configure`. It skips missing
 repositories and present repositories without `base_manifest.yaml`, and exits
 nonzero only when a delegated configure command fails.
 
-The v1 implementation is intentionally still conservative. Clone is explicit;
-configure is explicit; update, pull, reset, project setup, and authentication
+The v1 implementation is intentionally still conservative. Clone, configure,
+and project setup are explicit; update, pull, reset, and authentication
 management remain outside the workspace manifest contract.
