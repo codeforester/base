@@ -593,6 +593,7 @@ _base_basectl_completion() {
                 '--notify[Force a setup completion notification]' \
                 '--no-notify[Disable setup completion notification]' \
                 '--recreate-venv[Recreate the Base venv]' \
+                '--upgrade-pip[Upgrade pip in the selected virtual environment]' \
                 '--yes[Apply setup changes that require explicit confirmation]' \
                 '-v[Enable DEBUG logging]' '(-h --help)'{-h,--help}'[Show help text]' \
                 '2:Base project:->projects'

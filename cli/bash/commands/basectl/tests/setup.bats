@@ -19,6 +19,7 @@ load ./setup_helpers.bash
     [[ "$output" == *"--notify"* ]]
     [[ "$output" == *"--no-notify"* ]]
     [[ "$output" == *"--recreate-venv"* ]]
+    [[ "$output" == *"--upgrade-pip"* ]]
     [[ "$output" == *"--yes"* ]]
     [[ "$output" == *"Prepare the local Base CLI environment on supported setup platforms."* ]]
     [[ "$output" == *"On Ubuntu/Debian Linux, setup can install apt prerequisites with"* ]]
@@ -108,17 +109,37 @@ load ./setup_helpers.bash
 }
 
 @test "basectl setup --dry-run gives linux-debian apt setup plan" {
-    run_base_command BASE_SETUP_TEST_PLATFORM=linux-debian setup --dry-run
+    run_base_command BASE_SETUP_TEST_PLATFORM=linux-debian setup --dry-run --upgrade-pip
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"[DRY-RUN] Would run: sudo apt-get update"* ]]
     [[ "$output" == *"[DRY-RUN] Would run: sudo apt-get install -y bash git python3 python3-venv python3-pip bats shellcheck jq golang-go"* ]]
     [[ "$output" == *"[DRY-RUN] Would create Python virtual environment at '$TEST_HOME/.base.d/base/.venv'."* ]]
+    [[ "$output" == *"[DRY-RUN] Would upgrade pip in the Base virtual environment."* ]]
     [[ "$output" == *"[DRY-RUN] Would install Python package 'PyYAML' in the Base virtual environment."* ]]
     [[ "$output" == *"[DRY-RUN] Base CLI setup check is complete."* ]]
     [[ "$output" != *"github-cli.list"* ]]
     [[ "$output" != *"Homebrew"* ]]
     [[ "$output" != *"Xcode"* ]]
+}
+
+@test "basectl setup --upgrade-pip upgrades the Base virtual environment" {
+    local venv_dir="$TEST_HOME/.base.d/base/.venv"
+
+    create_brew_stub
+    create_xcode_stubs
+    touch "$TEST_STATE_DIR/xcode-installed"
+    mkdir -p "$TEST_TMPDIR/CommandLineTools"
+    touch "$TEST_STATE_DIR/python-installed"
+    touch "$TEST_STATE_DIR/pyyaml-installed"
+    touch "$TEST_STATE_DIR/click-installed"
+    create_project_setup_venv_stub "$venv_dir"
+
+    run_base_command setup --upgrade-pip
+
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_STATE_DIR/pip-upgrade-ran" ]
+    [[ "$output" == *"Upgrading pip in the Base virtual environment."* ]]
 }
 
 @test "basectl setup linux-debian non-interactive requires --yes before apt mutation" {
@@ -797,6 +818,29 @@ EOF
     [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --dry-run --manifest "$manifest_path" --action setup demo)" ]
 }
 
+@test "basectl setup --upgrade-pip upgrades a pip-managed project virtualenv" {
+    local base_venv_dir="$TEST_HOME/.base.d/base/.venv"
+    local demo_venv_dir="$TEST_TMPDIR/.venv"
+    local manifest_path="$TEST_TMPDIR/demo_manifest.yaml"
+
+    create_brew_stub
+    create_xcode_stubs
+    touch "$TEST_STATE_DIR/xcode-installed"
+    mkdir -p "$TEST_TMPDIR/CommandLineTools"
+    touch "$TEST_STATE_DIR/python-installed"
+    touch "$TEST_STATE_DIR/pyyaml-installed"
+    touch "$TEST_STATE_DIR/click-installed"
+    create_project_setup_venv_stub "$base_venv_dir"
+    create_project_setup_venv_stub "$demo_venv_dir"
+    printf 'project:\n  name: demo\npython: {}\nartifacts: []\n' > "$manifest_path"
+
+    run_base_command setup --upgrade-pip --manifest "$manifest_path" demo
+
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_STATE_DIR/pip-upgrade-ran" ]
+    [[ "$output" == *"Upgrading pip in the project 'demo' virtual environment."* ]]
+}
+
 @test "basectl setup project --recreate-venv targets the project virtualenv" {
     local base_venv_dir="$TEST_HOME/.base.d/base/.venv"
     local demo_venv_dir="$TEST_TMPDIR/.venv"
@@ -865,12 +909,14 @@ EOF
     create_project_setup_venv_stub "$base_venv_dir"
     printf 'project:\n  name: demo\npython:\n  manager: uv\nartifacts: []\n' > "$manifest_path"
 
-    run_base_command setup --dry-run --manifest "$manifest_path"
+    run_base_command setup --dry-run --upgrade-pip --manifest "$manifest_path"
 
     [ "$status" -eq 0 ]
     [[ "$output" != *"Would create project virtual environment at '$TEST_HOME/.base.d/demo/.venv'"* ]]
     [[ "$output" != *"Would run Python project setup layer through base-wrapper"* ]]
     [ ! -e "$TEST_HOME/.base.d/demo/.venv" ]
+    [[ "$output" == *"Skipping pip upgrade for project 'demo': its virtual environment is managed by uv."* ]]
+    [ ! -f "$TEST_STATE_DIR/pip-upgrade-ran" ]
     [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --dry-run --manifest "$manifest_path" --action setup demo)" ]
     [ "$(cat "$TEST_STATE_DIR/project-setup-project")" = "demo" ]
 }

@@ -402,6 +402,7 @@ setup_run_linux_debian_install() {
         setup_run_linux_debian_github_cli_prerequisite || return $?
     fi
     setup_create_virtualenv
+    setup_upgrade_base_pip || return $?
     setup_install_pyyaml
     setup_install_click
     if setup_profiles_enabled; then

@@ -105,6 +105,12 @@ environment as the project virtual environment:
 <project-root>/.venv
 ```
 
+`basectl setup --upgrade-pip <project>` does not mutate a uv-managed project
+environment. Base reports that pip is owned by uv and recommends `uv sync`.
+Use a project-specific uv bootstrap decision only when the project explicitly
+requires pip; do not use the general Base maintenance flag to bypass uv's
+lockfile ownership.
+
 ## Migration Paths
 
 ### Historical External Venv Migration

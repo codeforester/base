@@ -218,6 +218,10 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}"
     touch "${BASE_SETUP_TEST_STATE_DIR:?}/click-installed"
     exit 0
 fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}" == "--disable-pip-version-check" && "${5:-}" == "--upgrade" && "${6:-}" == "pip" ]]; then
+    touch "${BASE_SETUP_TEST_STATE_DIR:?}/pip-upgrade-ran"
+    exit 0
+fi
 printf 'unexpected system venv python args: %s\n' "$*" >&2
 exit 1
 VENVEOF
@@ -432,6 +436,10 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}"
     touch "${BASE_SETUP_TEST_STATE_DIR:?}/click-installed"
     exit 0
 fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}" == "--disable-pip-version-check" && "${5:-}" == "--upgrade" && "${6:-}" == "pip" ]]; then
+    touch "${BASE_SETUP_TEST_STATE_DIR:?}/pip-upgrade-ran"
+    exit 0
+fi
 printf 'unexpected venv python args: %s\n' "$*" >&2
 exit 1
 VENVEOF
@@ -600,6 +608,10 @@ fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}" == "--disable-pip-version-check" && "${5:-}" == "$click_package" ]]; then
     touch "${BASE_SETUP_TEST_STATE_DIR:?}/click-install-ran"
     touch "${BASE_SETUP_TEST_STATE_DIR:?}/click-installed"
+    exit 0
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}" == "--disable-pip-version-check" && "${5:-}" == "--upgrade" && "${6:-}" == "pip" ]]; then
+    touch "${BASE_SETUP_TEST_STATE_DIR:?}/pip-upgrade-ran"
     exit 0
 fi
 printf 'unexpected venv python args: %s\n' "$*" >&2
@@ -799,6 +811,10 @@ if [[ "${1:-}" == "--version" ]]; then
     exit 0
 fi
 if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
+    exit 0
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}" == "--disable-pip-version-check" && "${5:-}" == "--upgrade" && "${6:-}" == "pip" ]]; then
+    touch "${BASE_SETUP_TEST_STATE_DIR:?}/pip-upgrade-ran"
     exit 0
 fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then

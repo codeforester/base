@@ -581,6 +581,7 @@ setup_run_macos_install() {
     setup_install_xcode_tools
     setup_install_python
     setup_create_virtualenv
+    setup_upgrade_base_pip || return $?
     setup_install_pyyaml
     setup_install_click
     if setup_profiles_enabled; then
