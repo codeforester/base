@@ -171,6 +171,12 @@ def _handle_init(
     options: WorkspaceCommandOptions,
     actions: ProjectCommandActions,
 ) -> int:
+    if not arguments:
+        raise ProjectUsageError(
+            "The 'basectl workspace init' command requires the positional argument <workspace-source>. "
+            "Option '--workspace' selects the local directory for member repositories, "
+            "not the workspace source."
+        )
     require_argument_count("init", arguments, 1, 1)
     return actions.workspace_init(ctx, arguments[0], options)
 

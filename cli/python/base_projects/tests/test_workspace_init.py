@@ -104,6 +104,39 @@ class WorkspaceInitTests(unittest.TestCase):
             workspace_init.workspace_init_command,
         )
 
+    def test_workspace_init_missing_source_reports_public_command_usage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+
+            status, stdout, stderr = invoke_engine(
+                [
+                    "init",
+                    "--owner",
+                    "basefoundry",
+                    "--path",
+                    str(root),
+                    "--workspace",
+                    "basefoundry/base-workspace",
+                    "--dry-run",
+                ],
+                base_home,
+                home,
+            )
+
+        self.assertEqual(status, 2)
+        self.assertEqual(stdout, "")
+        self.assertIn(
+            "The 'basectl workspace init' command requires the positional argument <workspace-source>. "
+            "Option '--workspace' selects the local directory for member repositories, "
+            "not the workspace source.",
+            stderr,
+        )
+        self.assertNotIn("Project command 'init' requires at least", stderr)
+
     def test_workspace_init_dry_run_uses_local_source_without_writing_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -265,7 +298,6 @@ class WorkspaceInitTests(unittest.TestCase):
             status, stdout, stderr = invoke_engine(
                 [
                     "init",
-                    "base-workspace",
                     "--owner",
                     "codeforester",
                     "--path",
@@ -273,6 +305,7 @@ class WorkspaceInitTests(unittest.TestCase):
                     "--workspace",
                     str(workspace),
                     "--dry-run",
+                    "base-workspace",
                 ],
                 base_home,
                 home,
