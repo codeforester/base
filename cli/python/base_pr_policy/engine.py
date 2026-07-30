@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.paths import discover_manifest
 from base_setup.github_manifest import GithubPrConfig
 from base_setup.manifest import read_manifest
@@ -93,7 +94,7 @@ def body_from_manifest(
     )
 
 
-app = base_cli.App(
+app = base_cli_app(
     name="base_pr_policy",
     help="Render Base-managed GitHub pull request policy content.",
 )

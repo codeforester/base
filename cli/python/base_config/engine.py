@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.config import UserConfig, load_user_config, read_user_config, user_config_path
 from base_cli.redaction import REDACTED, is_secret_key, redact_text_value
 
 
-app = base_cli.App(
+app = base_cli_app(
     name="base_config",
     help="Inspect Base's machine-local user config.",
 )

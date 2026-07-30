@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.paths import base_cache_root
 
 
-app = base_cli.App(name="base_clean")
+app = base_cli_app(name="base_clean")
 
 
 @dataclass(frozen=True)

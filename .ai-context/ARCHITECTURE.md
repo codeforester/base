@@ -34,10 +34,11 @@ Base keeps clear layer ownership:
 - Bash owns runtime bootstrap, shell startup, setup/check/doctor orchestration,
   and command dispatch.
 - Python owns manifest parsing, structured project discovery, artifact
-  decisions, JSON output, and Base's CLI integration. The reusable `base_cli`
-  framework is maintained in the standalone `basefoundry/base-cli` repository;
-  Base resolves it from an explicit source root, a sibling checkout, or the
-  installed `base-cli` distribution.
+  decisions, JSON output, and Base's CLI integration. Base supplies its
+  consumer policy through `cli/python/base_cli_profile.py`; the reusable
+  `base_cli` lifecycle framework is maintained in the standalone
+  `basefoundry/base-cli` repository. Base resolves it from an explicit source
+  root, a sibling checkout, or the installed `base-cli` distribution.
 - Project repositories own application code, tests, service definitions,
   project-specific setup, and product onboarding.
 - Persistent local state lives under `~/.base.d`.

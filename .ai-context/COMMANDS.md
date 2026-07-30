@@ -169,9 +169,12 @@ to Python packages under `cli/python/`.
 
 ## Python CLI Pattern
 
-Base Python commands use `base_cli.App`. The framework adds standard options,
-logging, config loading, project discovery, temp/cache directories, cleanup
-hooks, and a command context.
+Base Python commands use the Base-owned `base_cli_app()` adapter. It passes
+`base_cli_profile()` to newer `base_cli.App` releases and preserves the
+historical constructor path for older installed releases. The generic framework
+adds standard options, logging, temp/cache directories, cleanup hooks, and a
+command context; the adapter supplies Base configuration, manifest discovery,
+runtime placement, and history policies.
 
 Important Python packages include:
 

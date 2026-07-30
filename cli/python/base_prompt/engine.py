@@ -6,9 +6,10 @@ from datetime import date
 from pathlib import Path
 
 import base_cli
+from base_cli_profile import base_cli_app
 
 
-app = base_cli.App(name="base_prompt", log_to_file=False)
+app = base_cli_app(name="base_prompt", log_to_file=False)
 
 PROMPTS_DIR = Path(".ai-context") / "prompts"
 

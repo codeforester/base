@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.config import UserConfig
 from base_cli.paths import discover_manifest
 from base_devcontainer.export import DevcontainerExportError
@@ -39,7 +40,7 @@ from .setup_reconcile import reconcile_bootstrap_artifacts
 from .setup_reconcile import reconcile_manifest
 
 
-app = base_cli.App(name="base_setup")
+app = base_cli_app(name="base_setup")
 
 
 @dataclass(frozen=True)
