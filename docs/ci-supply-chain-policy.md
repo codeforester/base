@@ -37,7 +37,7 @@ this policy if the rule changes.
 3. Run:
 
    ```bash
-   PYTHONPATH=lib/python:cli/python python -m pytest cli/python/base_setup/tests/test_ci_supply_chain_policy.py -q
+   PYTHONPATH=cli/python python -m pytest cli/python/base_setup/tests/test_ci_supply_chain_policy.py -q
    ```
 
 4. Let pull request CI run the pinned workflows before merging.

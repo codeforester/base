@@ -134,7 +134,7 @@ jobs:
 
           Use this workflow when adding or changing Python-backed Base behavior.
 
-          - Shared framework: `lib/python/base_cli/`
+          - Shared framework: the standalone `base-cli` repository
           - Command packages: `cli/python/`
           - Command execution wrapper: `bin/base-wrapper`
 

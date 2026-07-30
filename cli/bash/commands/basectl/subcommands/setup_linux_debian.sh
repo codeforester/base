@@ -405,6 +405,7 @@ setup_run_linux_debian_install() {
     setup_upgrade_base_pip || return $?
     setup_install_pyyaml
     setup_install_click
+    setup_install_base_cli
     if setup_profiles_enabled; then
         if setup_is_dry_run; then
             setup_run_base_dev_layer setup --dry-run || fatal_error "Python prerequisite profile layer failed."

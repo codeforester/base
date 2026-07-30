@@ -65,7 +65,7 @@ distribution.
 Run them with:
 
 ```bash
-PYTHONPATH=lib/python:cli/python python -m pytest
+PYTHONPATH=cli/python python -m pytest
 ```
 
 ## Bash Command And Runtime Tests
@@ -76,10 +76,11 @@ one command or helper at a time. Reusable Bash library tests live in the
 standalone `base-bash-libs` repository.
 
 Before running source-checkout BATS tests for the first time, clone the reusable
-Bash library checkout next to Base:
+Bash library and shared Python framework checkouts next to Base:
 
 ```bash
 git clone https://github.com/basefoundry/base-bash-libs.git ~/work/base-bash-libs
+git clone https://github.com/basefoundry/base-cli.git ~/work/base-cli
 ```
 
 From a source checkout, run the full command/library suite through:
@@ -88,16 +89,22 @@ From a source checkout, run the full command/library suite through:
 env -u BASE_HOME ./bin/base-test
 ```
 
-`bin/base-test` preflights this dependency before starting the source-checkout
-BATS suite. The full suite expects Base to resolve external reusable Bash libraries. A
-normal `~/work/base` checkout uses sibling `~/work/base-bash-libs`
+`bin/base-test` preflights the Bash dependency before starting the
+source-checkout BATS suite. The full suite expects Base to resolve the external
+reusable Bash libraries and the standalone `base-cli` package. A normal
+`~/work/base` checkout uses sibling `~/work/base-bash-libs` and
+`~/work/base-cli`
 automatically. A linked issue worktree under `~/work/base-worktrees/<slug>` is a
 nonstandard layout because the sibling lookup would search
-`~/work/base-worktrees/base-bash-libs`. For the standard contributor checkout
-shape, point Base at the reusable library checkout explicitly:
+`~/work/base-worktrees/base-bash-libs` and `~/work/base-worktrees/base-cli`.
+For the standard contributor checkout shape, point Base at the reusable Bash
+library explicitly and either place `base-cli` at the expected sibling path or
+set `BASE_CLI_SOURCE_DIR`:
 
 ```bash
-BASE_BASH_LIBS_DIR=~/work/base-bash-libs/lib/bash env -u BASE_HOME ./bin/base-test
+BASE_BASH_LIBS_DIR=~/work/base-bash-libs/lib/bash \
+BASE_CLI_SOURCE_DIR=~/work/base-cli/lib/python \
+env -u BASE_HOME ./bin/base-test
 ```
 
 `basectl test base` delegates to the same runner when the `base` project

@@ -187,6 +187,14 @@ setup_click_package() {
     printf '%s\n' "${BASE_SETUP_CLICK_PACKAGE:-click}"
 }
 
+setup_base_cli_package() {
+    printf '%s\n' "${BASE_SETUP_BASE_CLI_PACKAGE:-base-cli}"
+}
+
+setup_base_cli_package_required() {
+    [[ "$(base_cli_runtime_source_kind 2>/dev/null || true)" == pip ]]
+}
+
 setup_recovery_venv() {
     printf "%s\n" "Run 'basectl setup --recreate-venv' to back up and recreate the Base virtual environment."
 }
@@ -352,6 +360,11 @@ setup_install_click() {
     setup_install_base_python_package "$(setup_click_package)"
 }
 
+setup_install_base_cli() {
+    setup_base_cli_package_required || return 0
+    setup_install_base_python_package "$(setup_base_cli_package)"
+}
+
 setup_base_python_package_check_message() {
     local package="$1"
     local installed="$2"
@@ -468,6 +481,7 @@ setup_run_ci_runtime_install() {
     setup_upgrade_base_pip || return $?
     setup_install_pyyaml
     setup_install_click
+    setup_install_base_cli
     if setup_profiles_enabled; then
         if setup_is_dry_run; then
             setup_run_base_dev_layer setup --dry-run || fatal_error "Python prerequisite profile layer failed."

@@ -1,7 +1,9 @@
 # Python Package Ownership
 
-Base keeps Python code in focused packages under `cli/python/` and shared runtime
-helpers under `lib/python/`. Package boundaries should follow product
+Base keeps Python code in focused packages under `cli/python/` and shared
+runtime helpers under `lib/python/`. The reusable `base_cli` framework is
+maintained in the standalone `base-cli` repository; Base owns only its provider
+selection and command integration. Package boundaries should follow product
 responsibility, not file size.
 
 ## Current Boundaries

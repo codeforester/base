@@ -478,7 +478,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"BASE_HOME=$BASE_REPO_ROOT"* ]]
     [[ "$output" == *"BASE_PROJECT=demo"* ]]
-    [[ "$output" == *"PYTHONPATH=$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python:existing"* || "$output" == *"PYTHONPATH=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:existing"* ]]
+    [[ "$output" == *"PYTHONPATH=$BASE_REPO_ROOT/cli/python:existing"* ]]
     [[ "$output" == *"ARGS=-m base_setup --dry-run demo"* ]]
 }
 

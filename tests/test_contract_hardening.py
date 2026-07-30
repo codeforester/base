@@ -150,7 +150,7 @@ def test_contract_registry_maps_initial_review_contracts_to_enforcement() -> Non
         "Project installer template integrity": "cli/bash/commands/basectl/tests/repo.bats",
         "Base-owned remote shell installer policy": "tests/test_remote_installer_policy.py",
         "CLI docs, help, and completion drift": "cli/bash/commands/basectl/tests/completions.bats",
-        "CLI local log file privacy": "lib/python/base_cli/tests/test_logging.py",
+        "CLI local log file privacy": "base-cli/tests/test_logging.py",
         "Canonical positioning documentation": "tests/test_contract_hardening.py",
     }
     for contract, enforcement in expected_entries.items():
@@ -194,8 +194,6 @@ def test_contract_runner_composes_existing_policy_checks() -> None:
         "cli/python/base_setup/tests/test_remote_installers.py",
         "cli/python/base_projects/tests/test_workspace_manifest.py",
         "cli/python/base_projects/tests/test_workspace_pull.py",
-        "lib/python/base_cli/tests/test_logging.py",
-        "lib/python/base_cli/tests/test_inspection.py",
         "cli/python/base_release/tests/test_engine.py",
         "cli/bash/commands/basectl/tests/inspection-json.bats",
         'bats --filter "project installer template"',

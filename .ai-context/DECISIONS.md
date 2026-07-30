@@ -37,6 +37,10 @@ architecture discussion.
   dispatch.
 - Python owns structured parsing, project discovery, manifest logic, and
   reusable CLI behavior.
+- The shared `base_cli` framework is maintained and released by the standalone
+  `basefoundry/base-cli` repository. Base owns provider selection and command
+  integration, resolving an explicit source root, a sibling checkout, or the
+  installed `base-cli` distribution; it does not carry an in-tree copy.
 - Python CLIs run through `base-wrapper` so venv and `PYTHONPATH` behavior is
   consistent.
 - Python-to-Bash command metadata uses the strict versioned

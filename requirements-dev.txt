@@ -1,5 +1,6 @@
 pylint==3.3.9
 click==8.4.1
+base-cli==0.1.0
 PyYAML==6.0.3
 pytest==9.0.3
 tomli==2.4.1

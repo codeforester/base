@@ -173,15 +173,18 @@ Use this workflow when adding shared Bash behavior.
 
 Use this workflow when adding or changing Python-backed Base behavior.
 
-- Shared framework: `lib/python/base_cli/`
+- Shared framework: the standalone `base-cli` repository
 - Command packages: `cli/python/`
 - Command execution wrapper: `bin/base-wrapper`
-- Keep package tests next to the package under `tests/`.
-- Run Python commands with `PYTHONPATH=lib/python:cli/python`.
+- Keep Base-owned tests under `cli/python/**/tests/`; framework tests live in
+  the standalone `base-cli` repository.
+- Run Base Python commands with `PYTHONPATH=cli/python` and an installed
+  `base-cli` development dependency, or set `BASE_CLI_SOURCE_DIR` for a source
+  checkout.
 - Validate with:
 
 ```bash
-env PYTHONPATH=lib/python:cli/python python -m pytest
+env PYTHONPATH=cli/python python -m pytest
 ```
 
 ## Add or change artifact setup

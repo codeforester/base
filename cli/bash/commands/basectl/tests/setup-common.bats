@@ -12,6 +12,7 @@ run_setup_common_script() {
         PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         BASE_HOME="$BASE_REPO_ROOT" \
         BASE_BASH_LIBS_DIR="$bash_libs_dir" \
+        BASE_CLI_SOURCE_DIR="$(base_cli_test_source_dir)" \
         PYTHONPATH="${BASE_SETUP_TEST_PYTHONPATH:-}" \
         bash -c "source \"\$BASE_HOME/base_init.sh\"; source \"\$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_common.sh\"; $script"
 }
@@ -21,7 +22,7 @@ run_setup_common_script() {
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"venv=$TEST_HOME/.base.d/base/.venv"* ]]
-    [[ "$output" == *"pythonpath=$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python"* || "$output" == *"pythonpath=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python"* ]]
+    [[ "$output" == *"pythonpath=$BASE_REPO_ROOT/../../base-cli/lib/python:$BASE_REPO_ROOT/cli/python"* || "$output" == *"pythonpath=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python"* ]]
 }
 
 @test "setup_common appends an inherited PYTHONPATH after Base paths" {
@@ -29,7 +30,7 @@ run_setup_common_script() {
         run_setup_common_script 'setup_refresh_cached_paths; setup_pythonpath'
 
     [ "$status" -eq 0 ]
-    [ "$output" = "$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ] ||
+    [ "$output" = "$BASE_REPO_ROOT/../../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ] ||
         [ "$output" = "$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ]
 }
 

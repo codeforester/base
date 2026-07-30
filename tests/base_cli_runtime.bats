@@ -53,6 +53,22 @@ setup() {
     [ "$output" = "pip " ]
 }
 
+@test "base_cli runtime ignores the removed in-tree source copy" {
+    mkdir -p "$TEST_RUNTIME_HOME/lib/python/base_cli"
+    touch "$TEST_RUNTIME_HOME/lib/python/base_cli/__init__.py"
+
+    run env \
+        BASE_HOME="$TEST_RUNTIME_HOME" \
+        bash -c '
+            source "$BASE_HOME/lib/base/base_cli_runtime.sh"
+            base_cli_runtime_prepare
+            printf "%s %s\n" "${BASE_CLI_SOURCE}" "$(base_cli_runtime_source_root)"
+        '
+
+    [ "$status" -eq 0 ]
+    [ "$output" = "pip " ]
+}
+
 @test "base_cli runtime rejects malformed explicit source directories" {
     run env \
         BASE_HOME="$TEST_RUNTIME_HOME" \

@@ -587,8 +587,9 @@ project root is a repository root, so one active context maps cleanly to one
 directory. Sub-repo manifests blur that mapping in ways that affect the prompt,
 PATH manipulation, and virtual environment selection.
 
-What already works: `discover_manifest` in `lib/python/base_cli/paths.py` walks
-upward from the current directory, so a manifest anywhere in a repository subtree
+What already works: `discover_manifest` in the standalone
+[`base-cli` package](https://github.com/basefoundry/base-cli/blob/main/lib/python/base_cli/paths.py)
+walks upward from the current directory, so a manifest anywhere in a repository subtree
 is found when `basectl` is invoked from that directory. The gap is only in
 `basectl projects list`, which enumerates workspace siblings rather than trees.
 If a specific monorepo layout genuinely needs enumeration, the least-invasive

@@ -300,8 +300,8 @@ raise SystemExit(main())
 ```
 
 For standard options, `base_cli.ExitCode`, sensitive-option redaction, and the
-`--option value` syntax policy, use
-[`lib/python/base_cli/README.md`](lib/python/base_cli/README.md) as the
+`--option value` syntax policy, use the
+[`base-cli` repository](https://github.com/basefoundry/base-cli) as the
 canonical guide.
 
 ### 4.3 Logging And Output

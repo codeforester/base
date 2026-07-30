@@ -153,8 +153,13 @@ basectl test base
 Python tests run with:
 
 ```bash
-PYTHONPATH=lib/python:cli/python python -m pytest
+PYTHONPATH=cli/python python -m pytest
 ```
+
+The shared `base_cli` framework is maintained in the standalone `base-cli`
+repository. Source-checkout tests resolve it from `BASE_CLI_SOURCE_DIR`, a
+sibling `../base-cli/lib/python` checkout, or the installed `base-cli`
+development dependency; Base no longer provides an in-tree copy.
 
 Integration tests live under `tests/integration/` and run against temporary
 homes, workspaces, and fake projects. Add integration coverage for
