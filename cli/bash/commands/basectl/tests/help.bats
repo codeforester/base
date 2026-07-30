@@ -32,7 +32,7 @@ load ./basectl_helpers.bash
     [[ "$output" == *"demo [project] [options]"* ]]
     [[ "$output" == *"update [project] [options]"* ]]
     [[ "$output" == *"projects list [options]"* ]]
-    [[ "$output" == *"workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure> [options]"* ]]
+    [[ "$output" == *"workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]"* ]]
     [[ "$output" == *"Invoking \`basectl\` with no command starts a Base runtime shell"* ]]
     [[ "$output" == *"--version"* ]]
     [[ "$output" == *"Wrapper options:"* ]]
@@ -103,7 +103,7 @@ load ./basectl_helpers.bash
     grep -Fqx '  docs [options]' <<<"$output"
     grep -Fqx '  logs [options]' <<<"$output"
     grep -Fqx '  history [options]' <<<"$output"
-    grep -Fqx '  workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure> [options]' <<<"$output"
+    grep -Fqx '  workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]' <<<"$output"
     grep -Fqx '  trust <status|allow|revoke> [project] [options]' <<<"$output"
     [[ "$output" != *"-b DIR"* ]]
     [[ "$output" != *"Force install"* ]]
@@ -122,7 +122,7 @@ load ./basectl_helpers.bash
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"Usage:"* ]]
-    [[ "$output" == *"basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure> [options]"* ]]
+    [[ "$output" == *"basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]"* ]]
     [[ "$output" != *"Usage: basectl [options] <command> [args...]"* ]]
 
     run_basectl help release

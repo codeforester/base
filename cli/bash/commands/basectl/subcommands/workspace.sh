@@ -130,6 +130,23 @@ Apply or repair Base-managed GitHub repo configuration across workspace reposito
 EOF
 }
 
+base_workspace_setup_usage() {
+    cat <<'EOF'
+Usage:
+  basectl workspace setup [options]
+
+Options:
+  --workspace <path>  Workspace directory to prepare. Defaults to workspace.root, then BASE_HOME's parent.
+  --manifest <path>   Local workspace manifest describing expected repositories.
+                      Overrides workspace.manifest from ~/.base.d/config.yaml.
+  --dry-run           Show the ordered workspace setup plan without writing.
+  -v                  Enable DEBUG logging for this subcommand.
+  -h, --help          Show this help text.
+
+Plan setup across eligible repositories in a workspace manifest.
+EOF
+}
+
 base_workspace_subcommand_usage() {
     case "${1:-}" in
         status|check|doctor)
@@ -153,10 +170,13 @@ base_workspace_subcommand_usage() {
         configure)
             base_workspace_configure_usage
             ;;
+        setup)
+            base_workspace_setup_usage
+            ;;
         *)
             cat <<'EOF'
 Usage:
-  basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure> [options]
+  basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]
 
 Commands:
   status     Show workspace status. Supports --format text|csv|tsv|yaml|json.
@@ -168,6 +188,7 @@ Commands:
   pull       Fetch and validate a canonical workspace manifest source.
   init       Initialize a workspace from a workspace configuration repository.
   configure  Apply repo configure across workspace repositories.
+  setup      Plan setup across eligible workspace repositories.
 
 Run `basectl workspace <command> --help` for command-specific options.
 EOF
@@ -191,7 +212,7 @@ base_workspace_subcommand_main() {
             base_workspace_subcommand_usage
             return 0
             ;;
-        status|check|doctor|onboarding|agent-brief|clone|pull|init|configure)
+        status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup)
             shift
             ;;
         *)
