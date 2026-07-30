@@ -584,6 +584,7 @@ _base_basectl_completion() {
                         '--workspace[Workspace directory to prepare]:path:_files' \
                         '--manifest[Local workspace manifest]:path:_files' \
                         '--dry-run[Show the ordered workspace setup plan without writing]' \
+                        '--yes[Apply setup changes that require confirmation]' \
                         '-v[Enable DEBUG logging]' '(-h --help)'{-h,--help}'[Show help text]'
                     ;;
                 *)
