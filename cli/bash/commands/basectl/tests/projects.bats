@@ -108,8 +108,7 @@ EOF
     [[ "$output" == *$'base\t'"$workspace/base"* ]]
     [[ "$output" == *$'demo\t'"$workspace/demo"* ]]
     grep -Fqx "BASE_PROJECT=base" "$state_file"
-    grep -Fqx "PYTHONPATH=$BASE_REPO_ROOT/lib/python:$BASE_REPO_ROOT/cli/python" "$state_file" ||
-        grep -Fqx "PYTHONPATH=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python" "$state_file"
+    grep -Fqx "PYTHONPATH=$BASE_REPO_ROOT/cli/python" "$state_file"
     grep -Fqx "ARGS=-m base_projects list --workspace $workspace" "$state_file"
 }
 

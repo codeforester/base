@@ -28,16 +28,14 @@ when a `base_cli.App` command is invoked.
 - No full caching framework.
 - No automatic initialization on import.
 
-## Future Extraction Boundary
+## Standalone Package Boundary
 
-`base_cli` should remain in the Base repository until Base's platform contract is
-stable enough to support an independent Python package. The future extraction
-target is a small Click-compatible runtime package that could move to its own
-repository and later be published to PyPI, but that split should wait until
-Linux support and the intended Windows/WSL support story have both matured.
+`base_cli` is maintained in the standalone
+[`base-cli`](https://github.com/basefoundry/base-cli) repository and published
+as the `base-cli` distribution. Base consumes it through the provider contract
+below; Base-owned command behavior remains in `cli/python/`.
 
-Until then, treat extraction readiness as a design constraint for new
-`base_cli` work:
+Treat the package boundary as a design constraint for new Base work:
 
 - keep imports cheap, side-effect free, and safe on every supported platform;
 - keep the public API explicit through `base_cli.__all__`;
@@ -49,13 +47,13 @@ Until then, treat extraction readiness as a design constraint for new
 - reassess IDE and project-schema helpers before extraction so Base-specific
   schema ownership does not leak into a general-purpose CLI runtime.
 
-Extraction preparation should not add PyPI metadata, create a second repository,
-or rename public APIs early. The useful work now is to keep the package boundary
-clean while Linux and Windows evidence shapes the eventual public contract.
+The standalone repository owns package metadata, versioning, licensing, public
+API tests, and release workflow. Base owns provider selection and compatibility
+tests for its own command integration.
 
 ## Standalone Provider Resolution
 
-After extraction, Base consumes `base_cli` through the same source-versus-installed
+Base consumes `base_cli` through the same source-versus-installed
 provider model used by `base-bash-libs`:
 
 1. an explicit `BASE_CLI_SOURCE_DIR` source root for tests and nonstandard worktrees;
@@ -101,17 +99,8 @@ arguments: long options with values must use space-separated syntax, such as
 
 ## Package Layout
 
-```text
-lib/python/base_cli/
-  __init__.py
-  app.py
-  config.py
-  context.py
-  logging.py
-  paths.py
-  redaction.py
-  testing.py
-```
+See the package source and API layout in the standalone
+[`base-cli` repository](https://github.com/basefoundry/base-cli/tree/main/lib/python/base_cli).
 
 ## Command Shape
 

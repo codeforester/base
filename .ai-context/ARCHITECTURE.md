@@ -34,7 +34,10 @@ Base keeps clear layer ownership:
 - Bash owns runtime bootstrap, shell startup, setup/check/doctor orchestration,
   and command dispatch.
 - Python owns manifest parsing, structured project discovery, artifact
-  decisions, JSON output, and reusable CLI framework behavior.
+  decisions, JSON output, and Base's CLI integration. The reusable `base_cli`
+  framework is maintained in the standalone `basefoundry/base-cli` repository;
+  Base resolves it from an explicit source root, a sibling checkout, or the
+  installed `base-cli` distribution.
 - Project repositories own application code, tests, service definitions,
   project-specific setup, and product onboarding.
 - Persistent local state lives under `~/.base.d`.
@@ -53,7 +56,8 @@ an explicit Bash script, or an interactive Base runtime shell.
 
 `bin/base-wrapper` is the Python execution wrapper. It runs Base Python packages
 with the selected project virtual environment and a `PYTHONPATH` that includes
-Base's `lib/python` and `cli/python`.
+Base's `lib/python` and `cli/python`; the `base_cli` provider is selected by
+`lib/base/base_cli_runtime.sh` and is not copied into this repository.
 
 Project Python ownership is explicit. A top-level `python:` mapping (including
 `python: {}`) or a `python-package` artifact requires a project runtime.

@@ -32,7 +32,8 @@ patterns over new one-off conventions.
 Use the narrowest relevant validation first:
 
 - documentation-only changes: `git diff --check`;
-- Python changes: run the focused pytest target with `PYTHONPATH=lib/python:cli/python`;
+- Python changes: install the pinned `base-cli` development dependency and run
+  the focused pytest target with `PYTHONPATH=cli/python`;
 - Bash command changes: run the focused BATS tests;
 - general Base changes: run `env -u BASE_HOME ./bin/base-test` when practical.
 

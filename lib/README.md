@@ -11,7 +11,8 @@ Top-level library namespace for Base.
   Base Bash runtime libraries such as `std`, `git`, `file`, and runtime shell
   startup files.
 - `lib/python/`
-  Python package source for Base-owned Python libraries, including `base_cli`.
+  Python package source for Base-owned Python libraries. The shared `base_cli`
+  framework is maintained in the standalone `base-cli` repository.
 - `lib/shell/`
   Base-managed Bash/Zsh startup files and optional shared interactive defaults.
 

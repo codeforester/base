@@ -24,7 +24,7 @@ else
     PYTHON_BIN="python3"
 fi
 
-export PYTHONPATH="$REPO_ROOT/cli/python:$REPO_ROOT/lib/python${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$REPO_ROOT/cli/python${PYTHONPATH:+:$PYTHONPATH}"
 
 run_step() {
     printf '\n==> '
@@ -40,11 +40,9 @@ run_step "$PYTHON_BIN" -m pytest tests/test_github_workflows.py
 run_step "$PYTHON_BIN" -m pytest tests/test_contract_hardening.py
 run_step "$PYTHON_BIN" -m pytest tests/test_remote_installer_policy.py
 run_step "$PYTHON_BIN" -m pytest cli/python/base_setup/tests/test_remote_installers.py
-run_step "$PYTHON_BIN" -m pytest lib/python/base_cli/tests/test_logging.py
 run_step "$PYTHON_BIN" -m pytest cli/python/base_projects/tests/test_workspace_manifest.py
 run_step "$PYTHON_BIN" -m pytest cli/python/base_projects/tests/test_workspace_pull.py
 run_step "$PYTHON_BIN" -m pytest cli/python/base_projects/tests/test_workspace_agent_brief.py
-run_step "$PYTHON_BIN" -m pytest lib/python/base_cli/tests/test_inspection.py
 run_step "$PYTHON_BIN" -m pytest cli/python/base_release/tests/test_engine.py
 run_step "$PYTHON_BIN" -m pytest tests/test_stability_tiers_docs.py
 run_step bats --filter "project installer template" cli/bash/commands/basectl/tests/repo.bats

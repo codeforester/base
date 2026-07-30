@@ -155,8 +155,9 @@ generated release guide before preparing a release.
 
 - Keep public launchers in `bin/` thin.
 - Keep Bash command implementations under `cli/bash/commands/<command>/`.
-- Keep Python framework code under `lib/python/` and command packages under
-  `cli/python/`.
+- Keep Base-owned Python command packages under `cli/python/` and shared
+  framework integration here; the reusable `base_cli` framework is maintained
+  in the standalone `base-cli` repository.
 - Use structured parsers or existing Base helpers instead of ad hoc text
   manipulation when the repo provides one.
 - Keep stdout for user or automation output; send logs and diagnostics to

@@ -5,6 +5,8 @@ load ./bash_lib_readiness_helpers.bash
 bats_require_minimum_version 1.5.0
 
 setup() {
+    local base_cli_source_dir
+
     setup_test_tmpdir
     TEST_HOME="$TEST_TMPDIR/home"
     TEST_MOCKBIN="$TEST_TMPDIR/mockbin"
@@ -14,6 +16,12 @@ setup() {
 
     mkdir -p "$TEST_HOME" "$TEST_MOCKBIN" "$TEST_STATE_DIR"
     export BASH_ENV="$BASE_REPO_ROOT/cli/bash/commands/basectl/tests/command_protocol_fixtures.bash"
+    base_cli_source_dir="$(base_cli_test_source_dir)"
+    if [[ -n "$base_cli_source_dir" ]]; then
+        export BASE_CLI_SOURCE_DIR="$base_cli_source_dir"
+    else
+        unset BASE_CLI_SOURCE_DIR
+    fi
     create_uname_stub
 }
 
@@ -33,6 +41,24 @@ fi
 exec /bin/uname "$@"
 EOF
     chmod +x "$TEST_MOCKBIN/uname"
+}
+
+base_cli_test_source_dir() {
+    local candidate
+
+    if [[ -n "${BASE_CLI_SOURCE_DIR:-}" && -f "$BASE_CLI_SOURCE_DIR/base_cli/__init__.py" ]]; then
+        printf '%s\n' "$BASE_CLI_SOURCE_DIR"
+        return 0
+    fi
+
+    for candidate in \
+        "$BASE_REPO_ROOT/../base-cli/lib/python" \
+        "$BASE_REPO_ROOT/../../base-cli/lib/python"; do
+        if [[ -f "$candidate/base_cli/__init__.py" ]]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
 }
 
 create_xcode_stubs() {
@@ -676,6 +702,13 @@ run_base_command() {
     local command_args=()
     local python_prefix="$TEST_TMPDIR/python-prefix"
     local xcode_dir="$TEST_TMPDIR/CommandLineTools"
+    local base_cli_source_dir
+    local base_cli_env=()
+
+    base_cli_source_dir="$(base_cli_test_source_dir)"
+    if [[ -n "$base_cli_source_dir" ]]; then
+        base_cli_env+=("BASE_CLI_SOURCE_DIR=$base_cli_source_dir")
+    fi
 
     for arg in "$@"; do
         if [[ ${#command_args[@]} -eq 0 && "$arg" == *=* ]]; then
@@ -697,6 +730,7 @@ run_base_command() {
         BASE_SETUP_XCODE_COMMAND_LINE_TOOLS_DIR="$xcode_dir" \
         BASE_SETUP_XCODE_WAIT_TIMEOUT_SECONDS=5 \
         BASE_SETUP_XCODE_WAIT_INTERVAL_SECONDS=0 \
+        "${base_cli_env[@]}" \
         "${env_args[@]}" \
         "$BASE_REPO_ROOT/bin/basectl" "${command_args[@]}" \
         </dev/null
@@ -708,6 +742,13 @@ run_base_command_separate_stderr() {
     local command_args=()
     local python_prefix="$TEST_TMPDIR/python-prefix"
     local xcode_dir="$TEST_TMPDIR/CommandLineTools"
+    local base_cli_source_dir
+    local base_cli_env=()
+
+    base_cli_source_dir="$(base_cli_test_source_dir)"
+    if [[ -n "$base_cli_source_dir" ]]; then
+        base_cli_env+=("BASE_CLI_SOURCE_DIR=$base_cli_source_dir")
+    fi
 
     for arg in "$@"; do
         if [[ ${#command_args[@]} -eq 0 && "$arg" == *=* ]]; then
@@ -729,6 +770,7 @@ run_base_command_separate_stderr() {
         BASE_SETUP_XCODE_COMMAND_LINE_TOOLS_DIR="$xcode_dir" \
         BASE_SETUP_XCODE_WAIT_TIMEOUT_SECONDS=5 \
         BASE_SETUP_XCODE_WAIT_INTERVAL_SECONDS=0 \
+        "${base_cli_env[@]}" \
         "${env_args[@]}" \
         "$BASE_REPO_ROOT/bin/basectl" "${command_args[@]}" \
         </dev/null
