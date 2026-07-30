@@ -32,6 +32,7 @@ class ProjectCommandActions:
     workspace_pull: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
     workspace_init: Callable[[base_cli.Context, str, WorkspaceCommandOptions], int]
     workspace_configure: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
+    workspace_setup: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
     current_project: Callable[[base_cli.Context, str], int]
     manifest_project: Callable[[base_cli.Context, str | None, str], int]
     resolve_project: Callable[[base_cli.Context, str | None, str | None, str], int]
@@ -191,6 +192,16 @@ def _handle_configure(
     return actions.workspace_configure(ctx, options)
 
 
+def _handle_setup(
+    ctx: base_cli.Context,
+    arguments: tuple[str, ...],
+    options: WorkspaceCommandOptions,
+    actions: ProjectCommandActions,
+) -> int:
+    require_argument_count("setup", arguments, 0, 0)
+    return actions.workspace_setup(ctx, options)
+
+
 def _handle_current(
     ctx: base_cli.Context,
     arguments: tuple[str, ...],
@@ -312,6 +323,7 @@ SUPPORTED_PROJECT_COMMANDS = (
     "agent-brief",
     "clone",
     "configure",
+    "setup",
     "init",
     "test-command",
     "demo-script",
@@ -335,6 +347,7 @@ PROJECT_COMMAND_HANDLERS: dict[str, ProjectCommandHandler] = {
     "pull": _handle_pull,
     "init": _handle_init,
     "configure": _handle_configure,
+    "setup": _handle_setup,
     "current": _handle_current,
     "manifest": _handle_manifest,
     "resolve": _handle_resolve,

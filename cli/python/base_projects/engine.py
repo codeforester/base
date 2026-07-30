@@ -47,6 +47,7 @@ from base_projects.workspace_context import resolve_workspace_manifest
 from base_projects.workspace_context import resolve_workspace_root
 from base_projects.workspace_init import workspace_init_command
 from base_projects.workspace_pull_command import workspace_pull_command
+from base_projects.workspace_setup import workspace_setup_from_options
 from base_projects.workspace_onboarding import workspace_onboarding_summary
 from base_projects.workspace_report_json import workspace_check_to_json
 from base_projects.workspace_report_json import workspace_doctor_to_json
@@ -146,6 +147,7 @@ def project_command_actions() -> ProjectCommandActions:
         workspace_pull=workspace_pull_command,
         workspace_init=workspace_init_project_command,
         workspace_configure=workspace_configure_from_options,
+        workspace_setup=workspace_setup_from_options,
         current_project=current_project_command,
         manifest_project=manifest_project_command,
         resolve_project=resolve_project_command,
