@@ -23,6 +23,8 @@ Options:
   --notify           Force a best-effort macOS notification when setup ends.
   --no-notify        Disable the default best-effort macOS completion notification.
   --recreate-venv    Back up and recreate the project virtual environment.
+  --upgrade-pip      Upgrade pip in the selected Base-managed or pip-managed
+                     project virtual environment. uv-managed projects are left unchanged.
   --yes              Apply setup changes that require explicit confirmation.
   -v                 Enable DEBUG logging for this subcommand.
   -h, --help         Show this help text.
@@ -195,6 +197,9 @@ base_setup_subcommand_main() {
                 ;;
             --recreate-venv)
                 setup_enable_recreate_venv
+                ;;
+            --upgrade-pip)
+                setup_enable_upgrade_pip
                 ;;
             -v)
                 setup_enable_debug_logging

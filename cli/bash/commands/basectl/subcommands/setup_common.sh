@@ -56,7 +56,7 @@ setup_ensure_cached_paths() {
 setup_clear_run_state() {
     # Clear legacy lowercase state too so inherited environments cannot trigger
     # lib_std.sh dry-run behavior unless this command explicitly enables it.
-    unset dry_run DRY_RUN BASE_SETUP_CHECK_STATUS_FILE BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_YES
+    unset dry_run DRY_RUN BASE_SETUP_CHECK_STATUS_FILE BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_UPGRADE_PIP BASE_SETUP_YES
     setup_refresh_cached_paths
 }
 
@@ -151,6 +151,14 @@ setup_require_linux_debian_system_consent() {
 
 setup_enable_recreate_venv() {
     export BASE_SETUP_RECREATE_VENV=true
+}
+
+setup_enable_upgrade_pip() {
+    export BASE_SETUP_UPGRADE_PIP=true
+}
+
+setup_upgrade_pip_enabled() {
+    [[ "${BASE_SETUP_UPGRADE_PIP:-false}" == true ]]
 }
 
 setup_enable_notifications() {
@@ -1116,6 +1124,16 @@ setup_run_project_artifact_layer() {
             log_error "$(setup_recovery_project_layer)"
             log_error "Python project $action layer failed."
             return "$exit_code"
+        fi
+    fi
+
+    if [[ "$action" == setup ]] && setup_upgrade_pip_enabled && [[ "$project" != base ]]; then
+        if [[ "$project_uses_uv_manager" == true ]]; then
+            log_warn "Skipping pip upgrade for project '$project': its virtual environment is managed by uv. Run 'uv sync' to reconcile the project environment."
+        elif [[ "$project_requires_python" == true ]]; then
+            setup_upgrade_project_pip "$project" "$project_venv_dir" || return $?
+        else
+            log_warn "Skipping pip upgrade for project '$project': it does not declare a Python runtime."
         fi
     fi
 

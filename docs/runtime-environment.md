@@ -211,6 +211,7 @@ readonly by Base.
 | `BASE_SETUP_NOTIFY` | `basectl setup` | Enables or disables setup completion notifications. |
 | `BASE_SETUP_NOTIFY_MIN_SECONDS` | `basectl setup` | Minimum setup duration before completion notification. |
 | `BASE_SETUP_PYTHON_FORMULA` | `basectl setup` | Overrides the Homebrew Python formula. |
+| `BASE_SETUP_UPGRADE_PIP` | `basectl setup --upgrade-pip` | Internal setup flag requesting an explicit pip upgrade in the selected Base-managed or pip-managed virtual environment. |
 | `BASE_INSTALL_DIR` | `install.sh` | Overrides the default source install directory. |
 | `BASE_BOOTSTRAP_MODE` | `bootstrap.sh` | Selects bootstrap mode when no command-line mode overrides it. |
 

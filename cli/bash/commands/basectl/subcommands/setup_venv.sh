@@ -258,6 +258,46 @@ setup_create_virtualenv() {
     "$python_bin" -m venv "$venv_dir"
 }
 
+setup_upgrade_pip_in_virtualenv() {
+    local description="$1"
+    local python_bin="$2"
+
+    if setup_is_dry_run; then
+        log_info "[DRY-RUN] Would upgrade pip in the $description virtual environment."
+        return 0
+    fi
+
+    [[ -x "$python_bin" ]] || {
+        log_error "Cannot upgrade pip because the $description virtual environment Python was not found at '$python_bin'."
+        return 1
+    }
+
+    log_info "Upgrading pip in the $description virtual environment."
+    "$python_bin" -m pip install --disable-pip-version-check --upgrade pip || {
+        log_error "Unable to upgrade pip in the $description virtual environment."
+        return 1
+    }
+}
+
+setup_upgrade_base_pip() {
+    local python_bin venv_dir
+
+    setup_upgrade_pip_enabled || return 0
+    [[ -z "${BASE_SETUP_PROJECT_NAME:-}" || "${BASE_SETUP_PROJECT_NAME:-}" == base ]] || return 0
+
+    setup_ensure_cached_paths
+    venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
+    python_bin="$(setup_base_venv_python_bin "$venv_dir" 2>/dev/null || true)"
+    setup_upgrade_pip_in_virtualenv "Base" "$python_bin"
+}
+
+setup_upgrade_project_pip() {
+    local project="$1"
+    local venv_dir="$2"
+
+    setup_upgrade_pip_in_virtualenv "project '$project'" "$venv_dir/bin/python"
+}
+
 setup_base_venv_python_bin() {
     local venv_dir="$1"
     local python_bin="$venv_dir/bin/python"
@@ -425,6 +465,7 @@ setup_collect_ci_runtime_check_results() {
 
 setup_run_ci_runtime_install() {
     setup_create_virtualenv
+    setup_upgrade_base_pip || return $?
     setup_install_pyyaml
     setup_install_click
     if setup_profiles_enabled; then

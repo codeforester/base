@@ -26,7 +26,10 @@ basectl doctor --ci [project] [--format text|json]
 
 All commands also accept `--manifest <path>` for CI jobs that know the manifest
 path directly, plus `--profile <list>` for opt-in prerequisite profiles.
-`basectl setup --ci` additionally accepts `--recreate-venv`.
+`basectl setup --ci` additionally accepts `--recreate-venv` and
+`--upgrade-pip`. The latter is opt-in and upgrades pip only in the selected
+Base-managed or pip-managed project virtual environment; uv-managed project
+environments are reported and left unchanged.
 
 The default mode is non-interactive. If a required action cannot be performed
 without prompting, the command fails with a clear fix message.
