@@ -165,6 +165,10 @@ EOF
             COMP_CWORD=3; \
             _base_basectl_completion; \
             printf "workspace_configure_options=%s\n" "${COMPREPLY[*]}"; \
+            COMP_WORDS=(basectl workspace setup --); \
+            COMP_CWORD=3; \
+            _base_basectl_completion; \
+            printf "workspace_setup_options=%s\n" "${COMPREPLY[*]}"; \
             COMP_WORDS=(basectl onboard --); \
             COMP_CWORD=2; \
             _base_basectl_completion; \
@@ -294,13 +298,14 @@ EOF
     [[ "$output" == *"devenv_report_projects=base demo"* ]]
     [[ "$output" == *"devenv_report_options=--workspace --format"* ]]
     [[ "$output" == *"projects_options=--workspace --format"* ]]
-    [[ "$output" == *"workspace_commands=status check doctor onboarding agent-brief clone pull init configure"* ]]
+    [[ "$output" == *"workspace_commands=status check doctor onboarding agent-brief clone pull init configure setup"* ]]
     [[ "$output" == *"workspace_status_options=--workspace --manifest --format"* ]]
     [[ "$output" == *"workspace_agent_brief_options=--workspace --manifest --format"* ]]
     [[ "$output" == *"workspace_clone_options=--workspace --manifest --include-optional --dry-run"* ]]
     [[ "$output" == *"workspace_pull_options=--source --manifest --dry-run"* ]]
     [[ "$output" == *"workspace_init_options=--owner --path --workspace --manifest --include-optional --dry-run"* ]]
     [[ "$output" == *"workspace_configure_options=--workspace --manifest --dry-run"* ]]
+    [[ "$output" == *"workspace_setup_options=--workspace --manifest --dry-run"* ]]
     [[ "$output" == *"onboard_options=--profile --dry-run --yes --no-profile"* ]]
     [[ "$output" == *"onboard_projects=base demo"* ]]
     [[ "$output" == *"onboard_profiles=dev sre ai linux-lab dev,sre dev,ai dev,linux-lab sre,ai sre,linux-lab ai,linux-lab dev,sre,ai dev,sre,linux-lab dev,ai,linux-lab sre,ai,linux-lab dev,sre,ai,linux-lab"* ]]
@@ -441,6 +446,6 @@ EOF
             printf "options=%s\n" "${COMPREPLY[*]}"'
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"commands=status check doctor onboarding agent-brief clone pull init configure"* ]]
+    [[ "$output" == *"commands=status check doctor onboarding agent-brief clone pull init configure setup"* ]]
     [[ "$output" == *"options=--workspace --manifest --dry-run"* ]]
 }
