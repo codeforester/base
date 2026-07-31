@@ -34,6 +34,7 @@ repos:
     required: false
   - name: no-manifest
   - name: invalid
+    required: false
   - name: shell-only
   - name: python-project
 """,
@@ -90,7 +91,7 @@ class WorkspaceSetupTests(unittest.TestCase):
             self.assertIn("base_manifest.yaml is invalid", stdout)
             self.assertIn("SETUP repository 'shell-only'", stdout)
             self.assertIn("SETUP repository 'python-project'", stdout)
-            self.assertIn("Workspace setup plan complete: setup=2 skipped=4.", stdout)
+            self.assertIn("Workspace setup plan complete: setup=2 skipped=4 failed=0.", stdout)
             self.assertIn("[DRY-RUN] No repositories were modified.", stdout)
             self.assertLess(stdout.index("repository 'base'"), stdout.index("repository 'missing'"))
             self.assertLess(stdout.index("repository 'missing'"), stdout.index("repository 'no-manifest'"))
@@ -203,6 +204,11 @@ repos:
             home.mkdir()
             base_home.mkdir()
             workspace.mkdir()
+            (workspace / "invalid").mkdir()
+            (workspace / "invalid" / "base_manifest.yaml").write_text(
+                "schema_version: 1\nproject: invalid\n",
+                encoding="utf-8",
+            )
             write_fake_basectl(base_home, state_path)
             manifest_path.write_text(
                 """schema_version: 1
@@ -210,11 +216,12 @@ workspace:
   name: demo-suite
 repos:
   - name: missing
+  - name: invalid
 """,
                 encoding="utf-8",
             )
 
-            status, stdout, _ = invoke_engine(
+            status, stdout, _stderr = invoke_engine(
                 [
                     "setup",
                     "--workspace",
@@ -228,7 +235,8 @@ repos:
 
             self.assertEqual(status, 1)
             self.assertIn("repository is missing", stdout)
-            self.assertIn("Workspace setup completed: setup=0 skipped=1 failed=1.", stdout)
+            self.assertIn("base_manifest.yaml is invalid", stdout)
+            self.assertIn("Workspace setup completed: setup=0 skipped=2 failed=2.", stdout)
             self.assertFalse(state_path.exists())
 
     def test_workspace_setup_aggregates_timeout_as_a_failure(self) -> None:
