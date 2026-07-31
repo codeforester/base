@@ -169,10 +169,15 @@ jobs:
             PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
             "$brew_bash" --rcfile "$test_home/.bashrc" -i -c 'command -v basectl >/dev/null && basectl --version'
 
-      - name: Run focused macOS BATS tests
+      - name: Run prioritized macOS BATS tests
         run: |
           bats \
+            cli/bash/commands/basectl/tests/gh.bats \
+            cli/bash/commands/basectl/tests/repo.bats \
+            cli/bash/commands/basectl/tests/setup-common.bats \
+            cli/bash/commands/basectl/tests/setup.bats \
             cli/bash/commands/basectl/tests/update-profile.bats \
+            cli/bash/commands/basectl/tests/workspace.bats \
             lib/bash/version/tests/lib_version.bats \
             lib/shell/completions/tests/completions.bats \
             tests/base_init.bats \
