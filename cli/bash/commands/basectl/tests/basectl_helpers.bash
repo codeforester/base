@@ -19,3 +19,18 @@ run_basectl() {
         PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" "$@"
 }
+
+base_cli_test_pythonpath() {
+    local base_cli_path
+
+    # Use the same provider resolver as Base commands so these tests remain
+    # valid with either an installed package or a source checkout.
+    # shellcheck source=lib/base/base_cli_runtime.sh
+    source "$BASE_REPO_ROOT/lib/base/base_cli_runtime.sh"
+    base_cli_path="$(BASE_HOME="$BASE_REPO_ROOT" base_cli_runtime_source_root)" || return 1
+    if [[ -n "$base_cli_path" ]]; then
+        printf '%s:%s\n' "$base_cli_path" "$BASE_REPO_ROOT/cli/python"
+    else
+        printf '%s\n' "$BASE_REPO_ROOT/cli/python"
+    fi
+}

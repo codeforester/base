@@ -18,20 +18,35 @@ run_setup_common_script() {
 }
 
 @test "setup_common caches Base virtualenv and Python import paths" {
+    local expected_pythonpath="$BASE_REPO_ROOT/cli/python"
+    local base_cli_path
+
+    base_cli_path="$(base_cli_test_source_dir)"
+    if [[ -n "$base_cli_path" ]]; then
+        expected_pythonpath="$base_cli_path:$expected_pythonpath"
+    fi
+
     run_setup_common_script 'setup_refresh_cached_paths; printf "venv=%s\n" "$(setup_venv_dir)"; printf "pythonpath=%s\n" "$(setup_pythonpath)"'
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"venv=$TEST_HOME/.base.d/base/.venv"* ]]
-    [[ "$output" == *"pythonpath=$BASE_REPO_ROOT/../../base-cli/lib/python:$BASE_REPO_ROOT/cli/python"* || "$output" == *"pythonpath=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python"* ]]
+    [[ "$output" == *"pythonpath=$expected_pythonpath"* ]]
 }
 
 @test "setup_common appends an inherited PYTHONPATH after Base paths" {
+    local expected_pythonpath="$BASE_REPO_ROOT/cli/python"
+    local base_cli_path
+
+    base_cli_path="$(base_cli_test_source_dir)"
+    if [[ -n "$base_cli_path" ]]; then
+        expected_pythonpath="$base_cli_path:$expected_pythonpath"
+    fi
+
     BASE_SETUP_TEST_PYTHONPATH="/opt/example/python" \
         run_setup_common_script 'setup_refresh_cached_paths; setup_pythonpath'
 
     [ "$status" -eq 0 ]
-    [ "$output" = "$BASE_REPO_ROOT/../../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ] ||
-        [ "$output" = "$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:/opt/example/python" ]
+    [ "$output" = "$expected_pythonpath:/opt/example/python" ]
 }
 
 @test "setup_common parses explicit warning check results" {
