@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.inspection import InspectionStatus
 from base_cli.inspection import render_inspection_json
 from base_setup.manifest import read_manifest
@@ -19,7 +20,7 @@ from .release_publish import release_publish_recovery_guidance, require_interact
 from .release_publish import run_release_step, write_temp_release_notes
 from .release_readiness import extract_changelog_section, gh_cli_finding, github_release_finding
 
-app = base_cli.App(name="base_release")
+app = base_cli_app(name="base_release")
 
 
 def release_findings(ctx: ReleaseContext) -> tuple[ReleaseFinding, ...]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_setup.artifacts import reconcile_artifact
 from base_setup.artifacts import resolve_artifact_definitions  # pylint: disable=unused-import
 from base_setup.errors import ArtifactError
@@ -48,7 +49,7 @@ from .profile_output import print_check_results
 from .profile_output import print_doctor_results
 
 
-app = base_cli.App(name="base_dev")
+app = base_cli_app(name="base_dev")
 
 
 def main(argv: list[str] | None = None) -> int:

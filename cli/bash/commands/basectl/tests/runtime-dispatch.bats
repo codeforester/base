@@ -459,6 +459,7 @@ EOF
 
 @test "base-wrapper runs package commands in the selected project venv" {
     local python_bin="$TEST_HOME/.base.d/demo/.venv/bin/python"
+    local expected_pythonpath
 
     mkdir -p "$(dirname "$python_bin")"
     cat > "$python_bin" <<'EOF'
@@ -478,8 +479,8 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"BASE_HOME=$BASE_REPO_ROOT"* ]]
     [[ "$output" == *"BASE_PROJECT=demo"* ]]
-    [[ "$output" == *"PYTHONPATH=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:existing"* ||
-        "$output" == *"PYTHONPATH=$BASE_REPO_ROOT/../../base-cli/lib/python:$BASE_REPO_ROOT/cli/python:existing"* ]]
+    expected_pythonpath="$(base_cli_test_pythonpath)"
+    [[ "$output" == *"PYTHONPATH=$expected_pythonpath:existing"* ]]
     [[ "$output" == *"ARGS=-m base_setup --dry-run demo"* ]]
 }
 

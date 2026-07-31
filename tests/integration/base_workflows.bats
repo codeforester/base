@@ -304,3 +304,28 @@ EOF
     [[ "$output" == *"[DRY-RUN] No repositories were modified."* ]]
     [[ "$output" == *"Workspace configure completed: configured=1 skipped=1 failed=0."* ]]
 }
+
+@test "basectl workspace setup dry-run reports ordered setup plan" {
+    local manifest_path="$TEST_TMPDIR/workspace.yaml"
+
+    manifest_path="$(cd "$TEST_TMPDIR" && pwd -P)/workspace.yaml"
+    cat > "$manifest_path" <<'EOF'
+schema_version: 1
+workspace:
+  name: integration-suite
+repos:
+  - name: base
+  - name: demo
+  - name: missing
+    required: false
+EOF
+
+    run_basectl workspace setup --workspace "$TEST_WORKSPACE" --manifest "$manifest_path" --dry-run
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Workspace setup plan: $TEST_WORKSPACE (3 manifest repos)"* ]]
+    [[ "$output" == *"SKIP repository 'base'"* ]]
+    [[ "$output" == *"SETUP repository 'demo'"* ]]
+    [[ "$output" == *"SKIP repository 'missing'"* ]]
+    [[ "$output" == *"Workspace setup plan complete: setup=1 skipped=2 failed=0."* ]]
+    [[ "$output" == *"[DRY-RUN] No repositories were modified."* ]]
+}

@@ -41,6 +41,11 @@ architecture discussion.
   `basefoundry/base-cli` repository. Base owns provider selection and command
   integration, resolving an explicit source root, a sibling checkout, or the
   installed `base-cli` distribution; it does not carry an in-tree copy.
+- Base Python command engines use the Base-owned `base_cli_app()` adapter,
+  which passes an explicit `base_cli_profile()` to newer `base_cli.App`
+  releases and preserves compatibility with older installed releases. Base-specific
+  discovery, configuration, runtime, and history policies do not belong to the
+  reusable framework.
 - Python CLIs run through `base-wrapper` so venv and `PYTHONPATH` behavior is
   consistent.
 - Python-to-Bash command metadata uses the strict versioned

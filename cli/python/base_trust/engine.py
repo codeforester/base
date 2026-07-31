@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.history import base_version as read_base_version
 from base_projects import engine as project_engine
 from base_projects.project_discovery import Project
@@ -31,7 +32,7 @@ from .trust_store import sha256_file  # pylint: disable=unused-import
 from .trust_store import write_json_atomic  # pylint: disable=unused-import
 
 
-app = base_cli.App(
+app = base_cli_app(
     name="base_trust",
     help="Manage local approval for manifest-declared project commands.",
 )

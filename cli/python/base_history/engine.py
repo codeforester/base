@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.command_filters import command_matches
 from base_cli.command_filters import normalize_command_filters
 from base_cli.history import HISTORY_PATH
@@ -25,7 +26,7 @@ from base_cli.history import utc_now
 from base_cli.paths import base_cache_root
 
 
-app = base_cli.App(name="base_history", log_to_file=False)
+app = base_cli_app(name="base_history", log_to_file=False)
 
 
 @dataclass(frozen=True)

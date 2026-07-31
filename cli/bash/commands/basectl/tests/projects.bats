@@ -73,6 +73,7 @@ EOF
 @test "basectl projects list falls back to source python before setup" {
     local workspace="$TEST_TMPDIR/workspace"
     local state_file="$TEST_TMPDIR/projects-list-state"
+    local expected_pythonpath
 
     mkdir -p "$workspace/base" "$workspace/demo"
     cat > "$TEST_MOCKBIN/python3" <<'EOF'
@@ -108,8 +109,8 @@ EOF
     [[ "$output" == *$'base\t'"$workspace/base"* ]]
     [[ "$output" == *$'demo\t'"$workspace/demo"* ]]
     grep -Fqx "BASE_PROJECT=base" "$state_file"
-    grep -Fqx "PYTHONPATH=$BASE_REPO_ROOT/../base-cli/lib/python:$BASE_REPO_ROOT/cli/python" "$state_file" ||
-        grep -Fqx "PYTHONPATH=$BASE_REPO_ROOT/../../base-cli/lib/python:$BASE_REPO_ROOT/cli/python" "$state_file"
+    expected_pythonpath="$(base_cli_test_pythonpath)"
+    grep -Fqx "PYTHONPATH=$expected_pythonpath" "$state_file"
     grep -Fqx "ARGS=-m base_projects list --workspace $workspace" "$state_file"
 }
 

@@ -47,16 +47,17 @@ reusable-layer DEBUG diagnostics.
 - `basectl docs` - open the Base documentation home page on GitHub.
 - `basectl projects list` - list Base-managed projects discovered in the
   workspace.
-- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure>` -
+- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup>` -
   inspect workspace status, checks, diagnostics, read-only first-day
   onboarding, and local agent-handoff readiness; explicitly clone expected
   repositories from a manifest; initialize a workspace from a workspace
   configuration repo; explicitly sync a local manifest from a configured
-  canonical source; or apply repo configuration across a workspace.
+  canonical source; apply repo configuration across a workspace; or run local
+  project setup across eligible repositories.
   - `workspace status`, `workspace check`, `workspace doctor`,
     `workspace onboarding`, and `workspace agent-brief` support `--format json`;
-    `workspace clone`, `workspace pull`, `workspace init`, and
-    `workspace configure` use text output.
+    `workspace clone`, `workspace pull`, `workspace init`, `workspace configure`,
+    and `workspace setup` use text output.
   - `workspace onboarding` summarizes ready, needs-setup, invalid-manifest,
     missing-required, and missing-optional repository state without cloning
     repositories or running setup.
@@ -67,10 +68,15 @@ reusable-layer DEBUG diagnostics.
   - `workspace clone` mutates repository checkouts only when invoked directly;
     `workspace pull` mutates only the local workspace manifest after validating
     the source; `workspace init` can clone the workspace configuration repo,
-    update `~/.base.d/config.yaml`, and materialize manifest repositories.
+    update `~/.base.d/config.yaml`, and materialize manifest repositories;
+    `workspace setup` delegates local project setup serially in manifest order.
   - `workspace configure --dry-run` previews delegated `repo configure` calls;
     without `--dry-run`, it skips missing or non-Base-managed repos, continues
     after per-repo failures, and reports configured/skipped/failed counts.
+  - `workspace setup --dry-run` previews delegated `basectl setup` calls;
+    without `--dry-run`, it skips ineligible repositories, continues after
+    per-repo failures, and reports setup/skipped/failed counts. `--yes` forwards
+    confirmation to each delegated setup command.
 - `basectl repo <init|clone|check|configure|agent-guidance|installer-template>` -
   create repository baselines, clone GitHub repositories into the configured
   workspace, configure GitHub repository settings, default branch protection,
@@ -169,9 +175,12 @@ to Python packages under `cli/python/`.
 
 ## Python CLI Pattern
 
-Base Python commands use `base_cli.App`. The framework adds standard options,
-logging, config loading, project discovery, temp/cache directories, cleanup
-hooks, and a command context.
+Base Python commands use the Base-owned `base_cli_app()` adapter. It passes
+`base_cli_profile()` to newer `base_cli.App` releases and preserves the
+historical constructor path for older installed releases. The generic framework
+adds standard options, logging, temp/cache directories, cleanup hooks, and a
+command context; the adapter supplies Base configuration, manifest discovery,
+runtime placement, and history policies.
 
 Important Python packages include:
 
