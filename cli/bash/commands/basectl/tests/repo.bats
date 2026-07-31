@@ -124,7 +124,7 @@ run_repo_command_with_mocks() {
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
         BASE_REPO_TEST_REPO_VIEW_MISSING="${BASE_REPO_TEST_REPO_VIEW_MISSING:-}" \
         BASE_REPO_PROJECT_WRAPPER="${BASE_REPO_PROJECT_WRAPPER:-}" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo "$@"
 }
 
