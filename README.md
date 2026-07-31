@@ -348,7 +348,7 @@ Current implemented commands include:
 - `basectl update-profile`
 - `basectl update`
 - `basectl projects list`
-- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure>`
+- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup>`
 - `basectl trust status [project]`
 - `basectl trust <allow|revoke> <project>`
 - `basectl repo init <name>`
@@ -638,6 +638,7 @@ basectl workspace agent-brief --manifest ~/work/workspace.yaml --format json
 basectl workspace init basefoundry/base-workspace --dry-run
 basectl workspace clone --manifest ~/work/workspace.yaml --dry-run
 basectl workspace configure --dry-run
+basectl workspace setup --manifest ~/work/workspace.yaml --dry-run
 ```
 
 By default this scans `workspace.root` from `~/.base.d/config.yaml` when that
@@ -651,7 +652,7 @@ otherwise it reports a targeted setup diagnostic.
 `basectl projects list` and the read-only workspace status, check, doctor,
 onboarding, and agent-brief commands support `--format json` for
 machine-readable output.
-Workspace clone, pull, init, and configure use text output only. Status reports
+Workspace clone, pull, init, configure, and setup use text output only. Status reports
 each discovered project's manifest validity, whether the Base-managed project
 virtual environment is present, and the latest recorded `basectl check
 <project>` date when one exists. Check records live under
@@ -734,6 +735,18 @@ manifest, Base scans discovered local Base-managed projects under the workspace
 root. This is the fastest way to roll out shared repo or Project schema repairs
 across a local repo family while keeping each repository's `repo configure`
 behavior idempotent.
+
+Use `basectl workspace setup --dry-run` to preview project setup across the
+expected repositories, then run `basectl workspace setup` to execute it. Setup
+walks the manifest in order, skips the active `base` control plane and
+repositories that are not eligible for Base setup, and delegates each eligible
+repository to its local `basectl setup --manifest <path> <project>` command.
+Use `--yes` to forward setup confirmation to each delegated command. A setup
+failure does not prevent later repositories from running; the final counts
+report setup, skipped, and failed repositories and the command exits nonzero
+when any setup target fails. Required missing checkouts and invalid required
+manifests are also reported as failures during a dry run, so the preview can be
+used as a CI gate without modifying repositories.
 
 Start a new Base-managed repository with:
 
