@@ -12,7 +12,6 @@ from base_cli.config import load_yaml_file
 from base_cli.config import read_user_config
 from base_cli.history import HISTORY_SCOPE_INTERNAL
 from base_cli.history import write_finished_record
-from base_history.display import display_command as history_display_command
 from base_cli.paths import base_cache_root
 from base_cli.paths import discover_manifest
 from base_cli.paths import make_run_id
@@ -20,6 +19,7 @@ from base_cli.paths import normalize_runtime_owner
 from base_cli.paths import resolve_base_home
 from base_cli.paths import runtime_project_name
 from base_cli.paths import runtime_project_root
+from base_history.display import display_command as history_display_command
 from base_setup.ide_schema import SUPPORTED_IDES
 
 
