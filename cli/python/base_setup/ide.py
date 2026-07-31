@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import base_cli
 from base_cli.config import UserConfig
-from base_cli.ide_schema import IDE_DEFINITIONS
-from base_cli.ide_schema import IdeDefinition
+from .ide_schema import IDE_DEFINITIONS
+from .ide_schema import IdeDefinition
 
 from .checks import ArtifactCheck
 from .ide_diagnostics import IdeDiagnosticSnapshot

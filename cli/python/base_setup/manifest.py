@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from base_cli.ide_schema import PROJECT_AUTO_SETTING_KEYS
-from base_cli.ide_schema import SUPPORTED_IDES
 from base_cli.ide_schema import parse_ide_extensions
 from base_cli.ide_schema import parse_ide_settings
 from base_setup.github_manifest import GithubConfig
@@ -40,6 +38,9 @@ from base_setup.manifest_schema import SUPPORTED_PYTHON_MANAGERS
 from base_setup.manifest_schema import SUPPORTED_PYTHON_VENV_LOCATIONS
 from base_setup.manifest_schema import has_control_line_break
 from base_setup.manifest_schema import normalize_project_language
+
+from .ide_schema import PROJECT_AUTO_SETTING_KEYS
+from .ide_schema import SUPPORTED_IDES
 
 
 def read_manifest(path: Path) -> BaseManifest:

@@ -153,6 +153,7 @@ ctx.temp_dir       # run_root/tmp/<cli-name>/<run-id>
 ctx.log_file       # run_root/logs/primary.log, or None when disabled
 ctx.config         # dict
 ctx.user_config    # typed user config from ~/.base.d/config.yaml
+ctx.history_display_command  # consumer policy for persisted command labels
 ctx.environment    # str
 ctx.debug          # bool
 ctx.dry_run        # bool

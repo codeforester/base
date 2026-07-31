@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from base_cli.ide_schema import IdeDefinition
+from .ide_schema import IdeDefinition
 
 from . import process
 from .errors import ArtifactError

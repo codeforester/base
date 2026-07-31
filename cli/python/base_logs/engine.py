@@ -19,7 +19,6 @@ from base_cli.command_filters import command_matches
 from base_cli.command_filters import normalize_command_filters
 from base_cli.history import HISTORY_PATH
 from base_cli.history import compact_path
-from base_cli.history import display_command
 from base_cli.history import optional_int
 from base_cli.history import optional_string
 from base_cli.history import parse_finished_history_record_line
@@ -29,6 +28,7 @@ from base_cli.history import redact_history_text
 from base_cli.paths import base_cache_root
 from base_cli.redaction import REDACTED
 from base_cli.redaction import redact_text_value
+from base_history.display import display_command
 
 
 RUN_ID_RE = re.compile(r"^(?P<stamp>\d{8}T\d{6})_[A-Za-z0-9]+(?:__.*)?$")

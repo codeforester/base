@@ -9,6 +9,7 @@ import base_cli
 from base_cli_profile import base_cli_app
 from base_cli.config import UserConfig, load_user_config, read_user_config, user_config_path
 from base_cli.redaction import REDACTED, is_secret_key, redact_text_value
+from base_setup.ide_schema import SUPPORTED_IDES
 
 
 app = base_cli_app(
@@ -109,7 +110,7 @@ def doctor_config_command() -> int:
     print_finding("ok", "yaml", "Config YAML is valid.")
     print_finding("ok", "mapping", f"Config contains {len(config)} top-level key(s).")
     try:
-        user_config = read_user_config()
+        user_config = read_user_config(supported_ides=SUPPORTED_IDES)
     except (RuntimeError, ValueError) as exc:
         print_finding("error", "schema", str(exc))
         return base_cli.ExitCode.FAILURE
