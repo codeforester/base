@@ -19,6 +19,8 @@ from base_cli.paths import normalize_runtime_owner
 from base_cli.paths import resolve_base_home
 from base_cli.paths import runtime_project_name
 from base_cli.paths import runtime_project_root
+from base_history.display import display_command as history_display_command
+from base_setup.ide_schema import SUPPORTED_IDES
 
 
 # Keep the legacy patch point available while Base supports released base-cli
@@ -103,7 +105,7 @@ def base_cli_profile() -> base_cli.CliProfile:
 
     return base_cli.CliProfile(
         discover_project=discover,
-        load_user_config=read_user_config,
+        load_user_config=_read_user_config,
         load_config=lambda project, explicit: load_config(
             project.root if project is not None else None,
             explicit,
@@ -111,7 +113,12 @@ def base_cli_profile() -> base_cli.CliProfile:
         resolve_runtime=resolve_runtime,
         history_writer=_write_finished_record,
         display_command=_display_command,
+        history_display_command=history_display_command,
     )
+
+
+def _read_user_config() -> base_cli.UserConfig:
+    return read_user_config(supported_ides=SUPPORTED_IDES)
 
 
 def _write_finished_record(*args: Any) -> None:

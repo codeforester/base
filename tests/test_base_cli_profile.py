@@ -38,3 +38,4 @@ def test_base_profile_owns_base_runtime_and_history_policies(tmp_path: Path, mon
     assert binding.layout.owner_root == cache_root.resolve() / "base"
     assert profile.history_writer is not None
     assert profile.display_command() is None
+    assert profile.history_display_command("base_setup", ["--action", "check"]) == "check"

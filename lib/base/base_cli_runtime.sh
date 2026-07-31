@@ -6,10 +6,13 @@
 #   1. BASE_CLI_SOURCE_DIR, when explicitly supplied;
 #   2. a sibling base-cli checkout;
 #   3. an installed base-cli distribution in the selected Python environment.
+# The resolver functions accept an optional Base root for callers that need to
+# locate a sibling checkout while BASE_HOME is intentionally unset.
 #
 base_cli_runtime_source_root() {
+    local base_home="${1:-${BASE_HOME:-}}"
     local explicit_root="${BASE_CLI_SOURCE_DIR:-}"
-    local sibling_repo="${BASE_HOME:-}/../base-cli"
+    local sibling_repo="${base_home:+$base_home/../base-cli}"
     local sibling_root="$sibling_repo/lib/python"
 
     if [[ -n "$explicit_root" ]]; then
@@ -36,8 +39,9 @@ base_cli_runtime_source_root() {
 }
 
 base_cli_runtime_source_kind() {
+    local base_home="${1:-${BASE_HOME:-}}"
     local explicit_root="${BASE_CLI_SOURCE_DIR:-}"
-    local sibling_repo="${BASE_HOME:-}/../base-cli"
+    local sibling_repo="${base_home:+$base_home/../base-cli}"
     local sibling_root="$sibling_repo/lib/python"
 
     if [[ -n "$explicit_root" ]]; then
@@ -54,6 +58,6 @@ base_cli_runtime_source_kind() {
 base_cli_runtime_prepare() {
     local source_kind
 
-    source_kind="$(base_cli_runtime_source_kind)" || return 1
+    source_kind="$(base_cli_runtime_source_kind "$@")" || return 1
     export BASE_CLI_SOURCE="$source_kind"
 }

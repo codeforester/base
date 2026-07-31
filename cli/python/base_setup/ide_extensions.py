@@ -4,8 +4,8 @@ import subprocess
 from typing import TYPE_CHECKING
 
 import base_cli
-from base_cli.ide_schema import IDE_DEFINITIONS
-from base_cli.ide_schema import IdeDefinition
+from .ide_schema import IDE_DEFINITIONS
+from .ide_schema import IdeDefinition
 
 from . import process
 from .checks import ArtifactCheck

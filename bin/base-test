@@ -103,8 +103,8 @@ base_test_preflight_source_checkout() {
 base_test_run_python_suite() {
     local base_cli_path
 
-    base_cli_path="$(base_cli_runtime_source_root)" || return 1
-    base_cli_runtime_prepare || return 1
+    base_cli_path="$(base_cli_runtime_source_root "$base_test_home")" || return 1
+    base_cli_runtime_prepare "$base_test_home" || return 1
     if [[ -n "$base_cli_path" ]]; then
         base_test_pythonpath="$base_cli_path:$base_test_home/cli/python"
     else

@@ -24,6 +24,24 @@ setup() {
     [ "$output" = "sibling $TEST_RUNTIME_HOME/../base-cli/lib/python" ]
 }
 
+@test "base_cli runtime accepts an explicit Base root when BASE_HOME is unset" {
+    mkdir -p "$TEST_TMPDIR/base-cli/lib/python/base_cli"
+    touch "$TEST_TMPDIR/base-cli/lib/python/base_cli/__init__.py"
+
+    run env \
+        BASE_HOME="$TEST_RUNTIME_HOME" \
+        bash -c '
+            base_home="$BASE_HOME"
+            source "$base_home/lib/base/base_cli_runtime.sh"
+            unset BASE_HOME
+            base_cli_runtime_prepare "$base_home"
+            printf "%s %s\n" "${BASE_CLI_SOURCE}" "$(base_cli_runtime_source_root "$base_home")"
+        '
+
+    [ "$status" -eq 0 ]
+    [ "$output" = "sibling $TEST_RUNTIME_HOME/../base-cli/lib/python" ]
+}
+
 @test "base_cli runtime uses an explicit source directory before sibling checkout" {
     mkdir -p "$TEST_TMPDIR/base-cli/lib/python/base_cli" "$TEST_TMPDIR/explicit/base_cli"
     touch "$TEST_TMPDIR/base-cli/lib/python/base_cli/__init__.py" "$TEST_TMPDIR/explicit/base_cli/__init__.py"
