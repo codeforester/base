@@ -6,9 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 import base_cli
+from base_cli_profile import base_cli_app
 
 
-app = base_cli.App(name="base_export_context")
+app = base_cli_app(name="base_export_context")
 
 CONTEXT_DIR_NAME = ".ai-context"
 MARKDOWN_FORMAT = "markdown"

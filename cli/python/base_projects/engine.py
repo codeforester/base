@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.command_protocol import dumps_record
 from base_cli.command_protocol import dumps_records
 from base_projects.build_targets import build_targets_project_from_args
@@ -69,7 +70,7 @@ from base_setup.manifest import read_manifest
 from base_setup.manifest_loader import ManifestError
 
 
-app = base_cli.App(name="base_projects")
+app = base_cli_app(name="base_projects")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 import base_cli
+from base_cli_profile import base_cli_app
 import click
 from base_projects.command_helpers import ProjectUsageError
 
@@ -53,7 +54,7 @@ from .project_graphql import GITHUB_GRAPHQL_TIMEOUT_SECONDS, is_project_scope_er
 # pylint: enable=unused-import
 
 
-app = base_cli.App(
+app = base_cli_app(
     name="base_github_projects",
     help="Configure GitHub Projects for Base-managed repositories.",
 )

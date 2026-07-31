@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import base_cli
+from base_cli_profile import base_cli_app
 from base_cli.command_filters import command_matches
 from base_cli.command_filters import normalize_command_filters
 from base_cli.history import HISTORY_PATH
@@ -37,7 +38,7 @@ LOG_SECRET_ASSIGNMENT_RE = re.compile(
 )
 SECRET_KEY_RE = re.compile(r"token|password|secret|api[-_]?key|authorization", re.IGNORECASE)
 
-app = base_cli.App(name="base_logs", log_to_file=False)
+app = base_cli_app(name="base_logs", log_to_file=False)
 
 
 @dataclass(frozen=True)
