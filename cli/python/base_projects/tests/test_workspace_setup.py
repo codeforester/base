@@ -221,7 +221,7 @@ repos:
                 encoding="utf-8",
             )
 
-            status, stdout, _ = invoke_engine(
+            status, stdout, _stderr = invoke_engine(
                 [
                     "setup",
                     "--workspace",
