@@ -9,6 +9,7 @@ setup() {
     TEST_HOME="$TEST_TMPDIR/home"
     TEST_MOCKBIN="$TEST_TMPDIR/mockbin"
     TEST_STATE_DIR="$TEST_TMPDIR/state"
+    TEST_BASH_BIN_DIR="$(dirname "$(command -v bash)")"
     mkdir -p "$TEST_HOME" "$TEST_MOCKBIN" "$TEST_STATE_DIR"
     export BASH_ENV="$BASE_REPO_ROOT/cli/bash/commands/basectl/tests/command_protocol_fixtures.bash"
 }
@@ -16,7 +17,7 @@ setup() {
 run_basectl() {
     run env \
         HOME="$TEST_HOME" \
-        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" "$@"
 }
 

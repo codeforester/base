@@ -118,6 +118,16 @@ jobs:
           ref: 2c5ef2c3a9edfbe2cf68d0645be65b920255abff
           path: .dependencies/base-bash-libs
 
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: basefoundry/base-cli
+          ref: beb99953e5df66dea207a31cea3c00332aaadcad
+          path: .dependencies/base-cli
+
+      - name: Expose standalone Python package checkout as sibling
+        run: |
+          ln -s "$GITHUB_WORKSPACE/.dependencies/base-cli" "$GITHUB_WORKSPACE/../base-cli"
+
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -169,10 +179,15 @@ jobs:
             PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
             "$brew_bash" --rcfile "$test_home/.bashrc" -i -c 'command -v basectl >/dev/null && basectl --version'
 
-      - name: Run focused macOS BATS tests
+      - name: Run prioritized macOS BATS tests
         run: |
           bats \
+            cli/bash/commands/basectl/tests/gh.bats \
+            cli/bash/commands/basectl/tests/repo.bats \
+            cli/bash/commands/basectl/tests/setup-common.bats \
+            cli/bash/commands/basectl/tests/setup.bats \
             cli/bash/commands/basectl/tests/update-profile.bats \
+            cli/bash/commands/basectl/tests/workspace.bats \
             lib/bash/version/tests/lib_version.bats \
             lib/shell/completions/tests/completions.bats \
             tests/base_init.bats \

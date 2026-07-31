@@ -124,7 +124,7 @@ run_repo_command_with_mocks() {
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
         BASE_REPO_TEST_REPO_VIEW_MISSING="${BASE_REPO_TEST_REPO_VIEW_MISSING:-}" \
         BASE_REPO_PROJECT_WRAPPER="${BASE_REPO_PROJECT_WRAPPER:-}" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo "$@"
 }
 
@@ -2126,7 +2126,7 @@ EOF
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
         BASE_REPO_PROJECT_WRAPPER="$TEST_MOCKBIN/project-wrapper" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo
 
     [ "$status" -eq 0 ]
@@ -2259,7 +2259,7 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo --no-project
 
     [ "$status" -eq 0 ]
@@ -2325,7 +2325,7 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo --no-project
 
     [ "$status" -eq 0 ]
@@ -2394,7 +2394,7 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo --no-project
 
     [ "$status" -eq 0 ]
@@ -2440,7 +2440,7 @@ EOF
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
         EPOCHSECONDS=0 \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo --no-project
 
     [ "$status" -eq 0 ]
@@ -2487,7 +2487,7 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo --no-project
 
     [ "$status" -eq 0 ]
@@ -2538,7 +2538,7 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo --no-project
 
     [ "$status" -eq 0 ]
@@ -2585,7 +2585,7 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         BASE_REPO_TEST_STATE_DIR="$TEST_STATE_DIR" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$TEST_MOCKBIN:$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
         "$BASE_REPO_ROOT/bin/basectl" repo configure "$repo_dir" --repo codeforester/base-demo --no-project
 
     [ "$status" -eq 1 ]
