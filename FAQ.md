@@ -13,6 +13,14 @@ Base makes a participating repo set understandable and locally ready while
 projects keep ownership of their application behavior, services, and
 project-specific setup.
 
+### Can Base help if my team has only one repository?
+
+Yes. Base can standardize the project's environment setup, readiness checks,
+trusted commands, tests, builds, onboarding, and handoff even when there is
+only one repository. Multiple repositories amplify the need for shared
+inventory and workspace coordination, but they are not required for Base's
+project contract to be useful.
+
 ## First-Time Installation
 
 ### What should I run on a blank macOS machine?
@@ -162,7 +170,8 @@ while `base_cli` answers "how should a Base Python CLI behave?" See the
 Base's reusable Bash helpers live in the standalone
 `basefoundry/base-bash-libs` repository so other scripts can reuse the logging,
 command execution, filesystem, and Git conventions without depending on Base's
-full local operating contract for multi-repository readiness and handoff.
+full local operating contract for project readiness and handoff across one or
+more repositories.
 
 That separation also keeps the Homebrew packaging path cleaner: `base-bash-libs`
 can mature as its own formula, and a future Homebrew/core Base formula can

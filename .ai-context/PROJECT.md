@@ -12,17 +12,17 @@
 - Windows support is not currently in scope.
 
 Base is a local operating contract for developers and platform engineers who
-work across multiple independent Git repositories. Its core outcome is
-deterministic local readiness and handoff without turning the repo set into a
-monorepo.
+need deterministic local readiness and handoff within a project, whether that
+project is one repository or multiple independent Git repositories. Its core
+outcome does not require turning the repo set into a monorepo.
 
 ## Why It Exists
 
-Real engineering work often spans several peer repositories, while readiness
-rules and handoff context are scattered across docs, shell state, and maintainer
-memory. Base makes participation, local state, trusted execution, onboarding,
-and next actions inspectable while each repository keeps ownership of its code,
-tests, services, and project-specific setup.
+Real engineering work can involve one repository or several peer repositories,
+while readiness rules and handoff context are scattered across docs, shell
+state, and maintainer memory. Base makes local state, trusted execution,
+onboarding, and next actions inspectable while each repository keeps ownership
+of its code, tests, services, and project-specific setup.
 
 Deterministic is a narrow claim: declared inputs and inspectable local state
 should produce explicit ordering, stable findings or machine-readable
@@ -51,6 +51,9 @@ Participating projects declare `base_manifest.yaml`. Base discovers projects
 under a shared workspace root, reads manifests, and orchestrates setup, checks,
 activation, declared test commands, build targets, run commands, demos, and
 workspace reports.
+
+The same project contract is useful for a single repository; a multi-repository
+workspace adds shared inventory and workspace-level onboarding on top.
 
 Repository discovery, clone or synchronization, status, and command fan-out are
 shared ecosystem primitives rather than Base's differentiation. Base adds
