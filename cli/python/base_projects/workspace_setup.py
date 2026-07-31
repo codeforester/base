@@ -109,7 +109,6 @@ def workspace_setup_command(
             counts,
             yes=yes,
         )
-
     if dry_run:
         print(
             "Workspace setup plan complete: "
@@ -117,7 +116,6 @@ def workspace_setup_command(
         )
         print("[DRY-RUN] No repositories were modified.")
         return base_cli.ExitCode.FAILURE if counts.failed else base_cli.ExitCode.SUCCESS
-
     print(
         "Workspace setup completed: "
         f"setup={counts.setup} skipped={counts.skipped} failed={counts.failed}."
