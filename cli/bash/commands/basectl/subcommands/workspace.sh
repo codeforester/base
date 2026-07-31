@@ -140,10 +140,11 @@ Options:
   --manifest <path>   Local workspace manifest describing expected repositories.
                       Overrides workspace.manifest from ~/.base.d/config.yaml.
   --dry-run           Show the ordered workspace setup plan without writing.
+  --yes               Apply setup changes that require confirmation.
   -v                  Enable DEBUG logging for this subcommand.
   -h, --help          Show this help text.
 
-Plan setup across eligible repositories in a workspace manifest.
+Set up eligible repositories in a workspace manifest in manifest order.
 EOF
 }
 
@@ -188,7 +189,7 @@ Commands:
   pull       Fetch and validate a canonical workspace manifest source.
   init       Initialize a workspace from a workspace configuration repository.
   configure  Apply repo configure across workspace repositories.
-  setup      Plan setup across eligible workspace repositories.
+  setup      Set up eligible workspace repositories in manifest order.
 
 Run `basectl workspace <command> --help` for command-specific options.
 EOF

@@ -674,7 +674,7 @@ _base_basectl_completion() {
                         _base_basectl_completion_compgen "--workspace --manifest --dry-run -v -h --help" "$cur"
                         ;;
                     setup)
-                        _base_basectl_completion_compgen "--workspace --manifest --dry-run -v -h --help" "$cur"
+                        _base_basectl_completion_compgen "--workspace --manifest --dry-run --yes -v -h --help" "$cur"
                         ;;
                 esac
             fi

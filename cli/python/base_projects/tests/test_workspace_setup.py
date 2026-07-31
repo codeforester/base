@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import io
 import os
+import shlex
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -118,28 +120,101 @@ class WorkspaceSetupTests(unittest.TestCase):
             self.assertEqual(stdout, "")
             self.assertIn("requires a configured or explicit workspace manifest", stderr)
 
-    def test_workspace_setup_does_not_mutate_without_dry_run(self) -> None:
+    def test_workspace_setup_executes_serially_and_aggregates_failures(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             home = root / "home"
             base_home = root / "base"
             workspace = root / "workspace"
             manifest_path = root / "workspace.yaml"
+            state_path = root / "basectl-state.txt"
             home.mkdir()
             base_home.mkdir()
             workspace.mkdir()
-            write_manifest(workspace / "project", "project")
+            write_manifest(workspace / "base", "base")
+            write_manifest(workspace / "first", "first")
+            write_manifest(workspace / "failing", "failing")
+            write_manifest(workspace / "later", "later")
+            (workspace / "no-manifest").mkdir()
+            write_fake_basectl(base_home, state_path, failing_project="failing")
             manifest_path.write_text(
                 """schema_version: 1
 workspace:
   name: demo-suite
 repos:
-  - name: project
+  - name: base
+  - name: first
+  - name: failing
+  - name: missing
+    required: false
+  - name: later
+  - name: no-manifest
+    required: false
 """,
                 encoding="utf-8",
             )
 
             status, stdout, stderr = invoke_engine(
+                [
+                    "setup",
+                    "--workspace",
+                    str(workspace),
+                    "--manifest",
+                    str(manifest_path),
+                    "--yes",
+                ],
+                base_home,
+                home,
+            )
+
+            self.assertEqual(status, 1)
+            self.assertIn("SETUP repository 'first'", stdout)
+            self.assertIn("SETUP repository 'failing'", stdout)
+            self.assertIn("SETUP repository 'later'", stdout)
+            self.assertIn("fake setup first", stdout)
+            self.assertIn("fake setup later", stdout)
+            self.assertIn("simulated setup failure for failing", stderr)
+            self.assertIn("Setup failed for repository 'failing'.", stderr)
+            self.assertIn("Workspace setup completed: setup=2 skipped=3 failed=1.", stdout)
+
+            records = state_path.read_text(encoding="utf-8").splitlines()
+            resolved_workspace = workspace.resolve()
+            resolved_base_home = base_home.resolve()
+            self.assertEqual(
+                records,
+                [
+                    f"setup --manifest {resolved_workspace / 'first' / 'base_manifest.yaml'} --yes first\t"
+                    f"{resolved_workspace / 'first'}\t{resolved_base_home}\t\t\t\t",
+                    f"setup --manifest {resolved_workspace / 'failing' / 'base_manifest.yaml'} --yes failing\t"
+                    f"{resolved_workspace / 'failing'}\t{resolved_base_home}\t\t\t\t",
+                    f"setup --manifest {resolved_workspace / 'later' / 'base_manifest.yaml'} --yes later\t"
+                    f"{resolved_workspace / 'later'}\t{resolved_base_home}\t\t\t\t",
+                ],
+            )
+
+    def test_workspace_setup_fails_for_missing_required_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            workspace = root / "workspace"
+            manifest_path = root / "workspace.yaml"
+            state_path = root / "basectl-state.txt"
+            home.mkdir()
+            base_home.mkdir()
+            workspace.mkdir()
+            write_fake_basectl(base_home, state_path)
+            manifest_path.write_text(
+                """schema_version: 1
+workspace:
+  name: demo-suite
+repos:
+  - name: missing
+""",
+                encoding="utf-8",
+            )
+
+            status, stdout, _ = invoke_engine(
                 [
                     "setup",
                     "--workspace",
@@ -152,9 +227,76 @@ repos:
             )
 
             self.assertEqual(status, 1)
-            self.assertIn("SETUP repository 'project'", stdout)
-            self.assertIn("execution is not available yet", stderr)
-            self.assertFalse((workspace / "project" / ".venv").exists())
+            self.assertIn("repository is missing", stdout)
+            self.assertIn("Workspace setup completed: setup=0 skipped=1 failed=1.", stdout)
+            self.assertFalse(state_path.exists())
+
+    def test_workspace_setup_aggregates_timeout_as_a_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            workspace = root / "workspace"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            workspace.mkdir()
+            write_manifest(workspace / "project", "project")
+            write_fake_basectl(base_home, root / "basectl-state.txt")
+            manifest_path.write_text(
+                """schema_version: 1
+workspace:
+  name: demo-suite
+repos:
+  - name: project
+""",
+                encoding="utf-8",
+            )
+
+            with mock.patch(
+                "base_projects.workspace_setup.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(["basectl", "setup"], 1800),
+            ):
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "setup",
+                        "--workspace",
+                        str(workspace),
+                        "--manifest",
+                        str(manifest_path),
+                    ],
+                    base_home,
+                    home,
+                )
+
+            self.assertEqual(status, 1)
+            self.assertIn("Timed out running basectl setup for repository 'project'", stderr)
+            self.assertIn("Workspace setup completed: setup=0 skipped=0 failed=1.", stdout)
+
+
+def write_fake_basectl(
+    base_home: Path,
+    state_path: Path,
+    *,
+    failing_project: str | None = None,
+) -> None:
+    basectl = base_home / "bin" / "basectl"
+    basectl.parent.mkdir(parents=True)
+    script = """#!/usr/bin/env bash
+set -u
+project="${@: -1}"
+printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n' "$*" "$PWD" "${BASE_HOME-}" "${BASE_PROJECT-}" "${BASE_PROJECT_ROOT-}" "${BASE_PROJECT_MANIFEST-}" "${BASE_PROJECT_VENV_DIR-}" >> STATE_PATH
+""".replace("STATE_PATH", shlex.quote(str(state_path)))
+    if failing_project is not None:
+        script += (
+            f"if [[ \"$project\" == {shlex.quote(failing_project)} ]]; then\n"
+            "  printf 'simulated setup failure for %s\\n' \"$project\" >&2\n"
+            "  exit 1\n"
+            "fi\n"
+        )
+    script += "printf 'fake setup %s\\n' \"$project\"\n"
+    basectl.write_text(script, encoding="utf-8")
+    basectl.chmod(0o755)
 
 
 def invoke_engine(
@@ -168,7 +310,9 @@ def invoke_engine(
         "HOME": str(home),
         "BASE_HOME": str(base_home),
         "BASE_PROJECT": "",
+        "BASE_PROJECT_ROOT": "inherited-root",
         "BASE_PROJECT_MANIFEST": "",
+        "BASE_PROJECT_VENV_DIR": "inherited-venv",
     }
     with mock.patch.dict(os.environ, env):
         with redirect_stdout(stdout), redirect_stderr(stderr):

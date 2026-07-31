@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
-from typing import Any
+from typing import Any, Literal
 
 import base_cli
 from base_projects import workspace_context
@@ -17,6 +19,7 @@ from base_setup.manifest_loader import ManifestError
 
 
 WorkspaceSetupAction = Literal["setup", "skip"]
+WORKSPACE_SETUP_TIMEOUT_SECONDS = 1800
 
 
 @dataclass(frozen=True)
@@ -28,12 +31,14 @@ class WorkspaceSetupTarget:
     action: WorkspaceSetupAction
     reason: str | None = None
     required: bool = True
+    fatal: bool = False
 
 
 @dataclass(frozen=True)
 class WorkspaceSetupCounts:
     setup: int = 0
     skipped: int = 0
+    failed: int = 0
 
 
 def workspace_setup_from_options(
@@ -60,7 +65,7 @@ def workspace_setup_from_options(
         )
         return base_cli.ExitCode.FAILURE
 
-    return workspace_setup_command(ctx, workspace_root, manifest, dry_run=options.dry_run)
+    return workspace_setup_command(ctx, workspace_root, manifest, dry_run=options.dry_run, yes=options.yes)
 
 
 def workspace_setup_command(
@@ -69,27 +74,52 @@ def workspace_setup_command(
     workspace_manifest: WorkspaceManifest,
     *,
     dry_run: bool,
+    yes: bool = False,
 ) -> int:
     targets = workspace_setup_targets(workspace_root, workspace_manifest)
     print_workspace_setup_header(workspace_root, workspace_manifest, len(targets))
 
     counts = WorkspaceSetupCounts()
-    for target in targets:
-        counts = print_workspace_setup_target(target, counts)
+    if not dry_run and ctx.base_home is None:
+        ctx.log.error("BASE_HOME is required to execute workspace setup.")
+        return base_cli.ExitCode.FAILURE
 
-    print(
-        "Workspace setup plan complete: "
-        f"setup={counts.setup} skipped={counts.skipped}."
-    )
+    basectl = ctx.base_home / "bin" / "basectl" if ctx.base_home is not None else None
+    if not dry_run and (basectl is None or not basectl.is_file() or not os.access(basectl, os.X_OK)):
+        ctx.log.error("Base CLI '%s' is missing or is not executable.", basectl)
+        return base_cli.ExitCode.FAILURE
+
+    for target in targets:
+        if target.action == "skip":
+            counts = print_workspace_setup_skip(target, counts)
+            continue
+
+        print_workspace_setup_target(target)
+        if dry_run:
+            counts = WorkspaceSetupCounts(counts.setup + 1, counts.skipped, counts.failed)
+            continue
+        if basectl is None:
+            ctx.log.error("Base CLI is unavailable for workspace setup execution.")
+            return base_cli.ExitCode.FAILURE
+
+        counts = execute_workspace_setup_target(
+            ctx,
+            basectl,
+            target,
+            counts,
+            yes=yes,
+        )
+
     if dry_run:
+        print(f"Workspace setup plan complete: setup={counts.setup} skipped={counts.skipped}.")
         print("[DRY-RUN] No repositories were modified.")
         return base_cli.ExitCode.SUCCESS
 
-    ctx.log.error(
-        "Workspace setup execution is not available yet. "
-        "Use --dry-run to inspect the setup plan."
+    print(
+        "Workspace setup completed: "
+        f"setup={counts.setup} skipped={counts.skipped} failed={counts.failed}."
     )
-    return base_cli.ExitCode.FAILURE
+    return base_cli.ExitCode.FAILURE if counts.failed else base_cli.ExitCode.SUCCESS
 
 
 def workspace_setup_targets(
@@ -118,6 +148,7 @@ def workspace_setup_manifest_target(
             action="skip",
             reason=f"repository is missing at '{root}'",
             required=repo.required,
+            fatal=repo.required,
         )
 
     if repo.name == "base":
@@ -153,6 +184,7 @@ def workspace_setup_manifest_target(
             action="skip",
             reason=f"base_manifest.yaml is invalid: {exc}",
             required=repo.required,
+            fatal=repo.required,
         )
 
     return WorkspaceSetupTarget(
@@ -174,16 +206,71 @@ def print_workspace_setup_header(
     print(f"Workspace manifest: {workspace_manifest.path} ({workspace_manifest.name})")
 
 
-def print_workspace_setup_target(
-    target: WorkspaceSetupTarget,
-    counts: WorkspaceSetupCounts,
-) -> WorkspaceSetupCounts:
-    if target.action == "skip":
-        print(f"SKIP repository '{target.name}' at '{target.root}': {target.reason}.")
-        return WorkspaceSetupCounts(counts.setup, counts.skipped + 1)
-
+def print_workspace_setup_target(target: WorkspaceSetupTarget) -> None:
     print(
         f"SETUP repository '{target.name}' at '{target.root}' "
         f"using '{target.manifest_path}' for project '{target.project_name}'."
     )
-    return WorkspaceSetupCounts(counts.setup + 1, counts.skipped)
+
+
+def print_workspace_setup_skip(
+    target: WorkspaceSetupTarget,
+    counts: WorkspaceSetupCounts,
+) -> WorkspaceSetupCounts:
+    print(f"SKIP repository '{target.name}' at '{target.root}': {target.reason}.")
+    failed = counts.failed + (1 if target.fatal else 0)
+    return WorkspaceSetupCounts(counts.setup, counts.skipped + 1, failed)
+
+
+def execute_workspace_setup_target(
+    ctx: base_cli.Context,
+    basectl: Path,
+    target: WorkspaceSetupTarget,
+    counts: WorkspaceSetupCounts,
+    *,
+    yes: bool,
+) -> WorkspaceSetupCounts:
+    if target.manifest_path is None or target.project_name is None:
+        ctx.log.error("Setup target '%s' is missing manifest routing metadata.", target.name)
+        return WorkspaceSetupCounts(counts.setup, counts.skipped, counts.failed + 1)
+
+    command = [str(basectl), "setup", "--manifest", str(target.manifest_path)]
+    if yes:
+        command.append("--yes")
+    command.append(target.project_name)
+
+    env = os.environ.copy()
+    env["BASE_HOME"] = str(ctx.base_home)
+    for variable in ("BASE_PROJECT", "BASE_PROJECT_ROOT", "BASE_PROJECT_MANIFEST", "BASE_PROJECT_VENV_DIR"):
+        env.pop(variable, None)
+
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=target.root,
+            env=env,
+            timeout=WORKSPACE_SETUP_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        ctx.log.error(
+            "Timed out running basectl setup for repository '%s' after %s seconds.",
+            target.name,
+            WORKSPACE_SETUP_TIMEOUT_SECONDS,
+        )
+        return WorkspaceSetupCounts(counts.setup, counts.skipped, counts.failed + 1)
+    except OSError as exc:
+        ctx.log.error("Could not run basectl setup for repository '%s': %s", target.name, exc)
+        return WorkspaceSetupCounts(counts.setup, counts.skipped, counts.failed + 1)
+
+    if result.stdout:
+        print(result.stdout, end="")
+    if result.stderr:
+        print(result.stderr, end="", file=sys.stderr)
+    if result.returncode == 0:
+        return WorkspaceSetupCounts(counts.setup + 1, counts.skipped, counts.failed)
+
+    ctx.log.error("Setup failed for repository '%s'.", target.name)
+    return WorkspaceSetupCounts(counts.setup, counts.skipped, counts.failed + 1)

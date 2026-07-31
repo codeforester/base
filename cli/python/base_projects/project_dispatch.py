@@ -18,6 +18,7 @@ class WorkspaceCommandOptions:
     workspace_owner: str | None = None
     include_optional: bool = False
     dry_run: bool = False
+    yes: bool = False
 
 
 @dataclass(frozen=True)

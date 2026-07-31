@@ -428,6 +428,7 @@ EOF
     [[ "$output" == *"--workspace <path>"* ]]
     [[ "$output" == *"--manifest <path>"* ]]
     [[ "$output" == *"--dry-run"* ]]
+    [[ "$output" == *"--yes"* ]]
     [[ "$output" == *"ordered workspace setup plan"* ]]
     [[ "$output" != *"--format"* ]]
 
