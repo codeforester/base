@@ -34,6 +34,7 @@ class OptionState:
     copy_fields_from_project: str | None = None
     initiative_options: list[str] | None = None
     replace_project: bool = False
+    allow_cross_repo: bool = False
     dry_run: bool = False
     field_values: dict[str, str] | None = None
 
@@ -50,7 +51,8 @@ def print_usage(file=sys.stdout) -> None:
                 "[--owner <login>] [--repo <owner/name>] [--schema base-project] [--config <path>] "
                 "[--copy-fields-from <title>] [--replace-project] [--initiative-option <name>] [--dry-run]",
                 f"  {command} project issue set-fields <number> "
-                "--repo <owner/name> --project <title> [--config <path>] [field options...]",
+                "--repo <owner/name> --project <title> [--config <path>] "
+                "[--allow-cross-repo] [field options...]",
                 f"  {command} project issue defaults --config <path>",
             )
         ),
@@ -148,6 +150,10 @@ def parse_project_options(
             state.replace_project = True
             index += 1
             continue
+        if allow_issue and arg == "--allow-cross-repo":
+            state.allow_cross_repo = True
+            index += 1
+            continue
         consumed = apply_spaced_option(state, remaining, index, allow_fields=allow_fields)
         if consumed:
             index += consumed
@@ -218,6 +224,7 @@ def state_to_args(command: str, state: OptionState, issue_number: int | None = N
         copy_fields_from_project=state.copy_fields_from_project,
         initiative_options=tuple(state.initiative_options or ()),
         replace_project=state.replace_project,
+        allow_cross_repo=state.allow_cross_repo,
         dry_run=state.dry_run,
         issue_number=issue_number,
         field_values=dict(state.field_values or {}),

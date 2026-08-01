@@ -839,7 +839,7 @@ _base_basectl_completion() {
                                 _base_basectl_completion_compgen "-h --help" "$cur"
                                 ;;
                             create)
-                                _base_basectl_completion_compgen "--category --title --body --repo --assignee --no-assignee --project --project-owner --size --no-project -h --help" "$cur"
+                                _base_basectl_completion_compgen "--category --title --body --repo --assignee --no-assignee --project --project-owner --size --no-project --allow-cross-repo -h --help" "$cur"
                                 ;;
                             readiness)
                                 _base_basectl_completion_compgen "--repo --project-owner --project-number --format -h --help" "$cur"
@@ -890,7 +890,7 @@ _base_basectl_completion() {
                             if ((COMP_CWORD == 4)); then
                                 _base_basectl_completion_compgen "set-fields" "$cur"
                             else
-                                _base_basectl_completion_compgen "--repo --project --owner --config --status --priority --area --initiative --size --dry-run -h --help" "$cur"
+                                _base_basectl_completion_compgen "--repo --project --owner --config --allow-cross-repo --status --priority --area --initiative --size --dry-run -h --help" "$cur"
                             fi
                             ;;
                         esac

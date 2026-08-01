@@ -973,6 +973,7 @@ _base_basectl_completion() {
                                 '--project-owner[GitHub Project owner]:owner:' \
                                 '--size[Project size option]:size:(T S M L)' \
                                 '--no-project[Skip Project metadata updates]' \
+                                '--allow-cross-repo[Allow updating a Project not linked to the issue repository]' \
                                 '(-h --help)'{-h,--help}'[Show help text]'
                             ;;
                         start)
@@ -1077,6 +1078,7 @@ _base_basectl_completion() {
                                 '--area[Area option]:area:' \
                                 '--initiative[Initiative option]:initiative:' \
                                 '--size[Size option]:size:' \
+                                '--allow-cross-repo[Allow updating a Project not linked to the issue repository]' \
                                 '--dry-run[Print planned changes]' \
                                 '(-h --help)'{-h,--help}'[Show help text]'
                             ;;

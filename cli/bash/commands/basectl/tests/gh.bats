@@ -497,6 +497,7 @@ run_gh_subcommand() {
     [ "$status" -eq 0 ]
     [[ "$output" == *"basectl gh issue create --title <title> [options]"* ]]
     [[ "$output" == *"--no-project"* ]]
+    [[ "$output" == *"--allow-cross-repo"* ]]
     [[ "$output" != *"--project-number"* ]]
 
     run_basectl gh issue readiness --help
@@ -653,6 +654,7 @@ run_gh_subcommand() {
     [[ "$output" == *"--area <name>"* ]]
     [[ "$output" == *"--initiative <name>"* ]]
     [[ "$output" == *"--size <T|S|M|L>"* ]]
+    [[ "$output" == *"--allow-cross-repo"* ]]
     [[ "$output" != *"[field options...]"* ]]
     [[ "$output" != *"basectl gh project configure"* ]]
 }
@@ -879,14 +881,14 @@ EOF
             cd "$1"
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
-            base_gh_subcommand_main issue create --category enhancement --title "Add transaction filter"
+            base_gh_subcommand_main issue create --category enhancement --title "Add transaction filter" --allow-cross-repo
         ' bash "$repo"
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"https://github.com/codeforester/bankbuddy/issues/51"* ]]
     [[ "$output" == *"Project 'bankbuddy': Status=Backlog, Priority=P1, Size=M, Area=CLI, Initiative=MVP applied."* ]]
     [ "$(cat "$TEST_STATE_DIR/gh-args")" = "issue create --title Add transaction filter --label enhancement --repo codeforester/bankbuddy" ]
-    [ "$(cat "$TEST_STATE_DIR/wrapper-args")" = "--project base base_github_projects project issue set-fields 51 --project bankbuddy --owner codeforester --repo codeforester/bankbuddy --config $repo_root/.github/base-project.yml" ]
+    [ "$(cat "$TEST_STATE_DIR/wrapper-args")" = "--project base base_github_projects project issue set-fields 51 --project bankbuddy --owner codeforester --repo codeforester/bankbuddy --config $repo_root/.github/base-project.yml --allow-cross-repo" ]
 }
 
 @test "basectl gh issue create accepts explicit project size override" {

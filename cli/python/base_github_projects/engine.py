@@ -130,6 +130,7 @@ def project_operations() -> ProjectOperations:
         create_single_select_field=create_single_select_field,
         fetch_issue_id=fetch_issue_id,
         fetch_project_fields=fetch_project_fields,
+        fetch_project_repository_names=fetch_project_repository_names,
         fetch_project_views=fetch_project_views,
         find_owner_and_project=find_owner_and_project,
         find_project_item_id=find_project_item_id,

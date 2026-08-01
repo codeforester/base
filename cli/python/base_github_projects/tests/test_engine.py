@@ -91,6 +91,31 @@ def test_parse_project_configure_accepts_config_path() -> None:
     assert args.config_path == ".github/base-project.yml"
 
 
+def test_parse_project_issue_set_fields_accepts_cross_repo_opt_in() -> None:
+    args = engine.parse_args(
+        (
+            "project",
+            "issue",
+            "set-fields",
+            "1604",
+            "--project",
+            "Base Roadmap",
+            "--owner",
+            "basefoundry",
+            "--repo",
+            "basefoundry/base-cli",
+            "--allow-cross-repo",
+            "--priority",
+            "P2",
+        )
+    )
+
+    assert args.command == "issue-set-fields"
+    assert args.repo == "basefoundry/base-cli"
+    assert args.allow_cross_repo is True
+    assert args.field_values == {"priority": "P2"}
+
+
 def test_parse_project_configure_accepts_copy_fields_from_project() -> None:
     args = engine.parse_args(
         (
