@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from base_cli.command_protocol import dumps_record
+from base_cli_adapters.protocol import dumps_record
 
 from .manifest import BaseManifest
 from .project_environment import project_venv_dir_override

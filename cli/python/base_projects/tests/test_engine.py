@@ -11,8 +11,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from base_cli.command_protocol import loads_records
 from base_cli_adapters.history import build_finished_record
+from base_cli_adapters.protocol import loads_records
 from base_projects import engine, project_discovery
 
 

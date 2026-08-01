@@ -5,8 +5,8 @@ from pathlib import Path
 
 import base_cli
 from base_cli_profile import base_cli_app
-from base_cli.command_protocol import dumps_record
-from base_cli.command_protocol import dumps_records
+from base_cli_adapters.protocol import dumps_record
+from base_cli_adapters.protocol import dumps_records
 from base_projects.build_targets import build_targets_project_from_args
 from base_projects.build_targets import list_build_targets_from_args
 from base_projects.command_helpers import ProjectUsageError
