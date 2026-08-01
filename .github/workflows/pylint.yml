@@ -25,8 +25,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          # Keep the consumer validation paired with base-cli #24 until it merges.
-          ref: 03c50fb
+          # Keep the consumer validation paired with base-cli #25 until it merges.
+          ref: 03c50fb65cb0a52d5e2f58e208d2fd8c4dee5130
           path: .dependencies/base-cli
 
       - name: Set up Python ${{ matrix.python-version }}
