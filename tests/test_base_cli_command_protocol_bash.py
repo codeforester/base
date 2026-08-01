@@ -5,8 +5,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from base_cli.command_protocol import dumps_record
-from base_cli.command_protocol import dumps_records
+from base_cli_adapters.protocol import dumps_record
+from base_cli_adapters.protocol import dumps_records
 
 
 def project_command_record(**overrides: object) -> dict[str, object]:

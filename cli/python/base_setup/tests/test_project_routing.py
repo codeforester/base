@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from base_cli.command_protocol import loads_records
+from base_cli_adapters.protocol import loads_records
 from base_setup.manifest import read_manifest
 from base_setup.project_routing import manifest_requires_project_python
 from base_setup.tests.helpers import run_engine

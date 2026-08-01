@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Protocol
 
 import base_cli
-from base_cli.command_protocol import dumps_records
+from base_cli_adapters.protocol import dumps_records
 from base_projects.project_commands import route_metadata_record
 from base_setup.manifest import read_manifest
 from base_setup.manifest_loader import ManifestError

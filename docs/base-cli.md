@@ -49,7 +49,10 @@ Treat the package boundary as a design constraint for new Base work:
 
 The standalone repository owns package metadata, versioning, licensing, public
 API tests, and release workflow. Base owns provider selection and compatibility
-tests for its own command integration.
+tests for its own command integration. Base-specific command-protocol schemas
+and the `BASE_COMMAND_PROTOCOL_V1` Bash compatibility header live in
+`cli/python/base_cli_adapters/protocol.py`; the standalone package owns only
+generic protocol framing and schema registration.
 
 ## Standalone Provider Resolution
 
