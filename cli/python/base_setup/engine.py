@@ -8,7 +8,7 @@ from pathlib import Path
 import base_cli
 from base_cli_profile import base_cli_app
 from base_cli.config import UserConfig
-from base_cli.paths import discover_manifest
+from base_cli_adapters.paths import discover_manifest
 from base_devcontainer.export import DevcontainerExportError
 from base_devcontainer.export import build_devcontainer_export
 from base_devcontainer.export import dumps_export_json

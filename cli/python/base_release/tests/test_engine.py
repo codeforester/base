@@ -12,7 +12,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from base_cli.history import build_finished_record
+from base_cli_adapters.history import build_finished_record
 from base_release import release_publish
 from base_release import release_readiness
 from base_release.engine import ReleaseError
@@ -213,7 +213,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
             with (
                 mock.patch("base_cli.app.current_working_dir", return_value=outside),
                 mock.patch(
-                    "base_cli.app.write_finished_record",
+                    "base_cli_profile.write_finished_record",
                     side_effect=lambda *args: captured.append(args),
                 ),
             ):

@@ -5,33 +5,27 @@ from pathlib import Path
 from typing import Any
 
 import base_cli
-import base_cli.app as base_cli_app_module
-from base_cli._runtime import runtime_layout
-from base_cli.config import load_config
-from base_cli.config import load_yaml_file
-from base_cli.config import read_user_config
-from base_cli.history import HISTORY_SCOPE_INTERNAL
-from base_cli.history import write_finished_record
-from base_cli.paths import base_cache_root
-from base_cli.paths import discover_manifest
 from base_cli.paths import make_run_id
-from base_cli.paths import normalize_runtime_owner
-from base_cli.paths import resolve_base_home
-from base_cli.paths import runtime_project_name
-from base_cli.paths import runtime_project_root
 from base_history.display import display_command as history_display_command
 from base_setup.ide_schema import SUPPORTED_IDES
 
-
-# Keep the legacy patch point available while Base supports released base-cli
-# versions that still own this callback in base_cli.app.
-base_cli_app_module.write_finished_record = write_finished_record
+from base_cli_adapters.config import load_config
+from base_cli_adapters.config import load_yaml_file
+from base_cli_adapters.config import read_user_config
+from base_cli_adapters.history import HISTORY_SCOPE_INTERNAL
+from base_cli_adapters.history import write_finished_record
+from base_cli_adapters.paths import base_cache_root
+from base_cli_adapters.paths import discover_manifest
+from base_cli_adapters.paths import normalize_runtime_owner
+from base_cli_adapters.paths import resolve_base_home
+from base_cli_adapters.paths import runtime_project_name
+from base_cli_adapters.paths import runtime_project_root
+from base_cli_adapters.runtime import runtime_layout
 
 
 def base_cli_app(*args: Any, **kwargs: Any) -> Any:
-    """Construct a Base CLI app with compatibility for older base-cli releases."""
-    if hasattr(base_cli, "CliProfile"):
-        kwargs["profile"] = base_cli_profile()
+    """Construct a Base CLI app with Base's explicit consumer profile."""
+    kwargs["profile"] = base_cli_profile()
     return base_cli.App(*args, **kwargs)
 
 
@@ -122,7 +116,8 @@ def _read_user_config() -> base_cli.UserConfig:
 
 
 def _write_finished_record(*args: Any) -> None:
-    base_cli_app_module.write_finished_record(*args)
+    """Resolve the adapter at call time so consumers can test the lifecycle."""
+    write_finished_record(*args)
 
 
 def _display_command() -> str | None:

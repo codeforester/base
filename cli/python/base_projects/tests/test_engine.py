@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from base_cli.command_protocol import loads_records
-from base_cli.history import build_finished_record
+from base_cli_adapters.history import build_finished_record
 from base_projects import engine, project_discovery
 
 
@@ -832,7 +832,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             with (
                 mock.patch("base_cli.app.current_working_dir", return_value=outside),
                 mock.patch(
-                    "base_cli.app.write_finished_record",
+                    "base_cli_profile.write_finished_record",
                     side_effect=lambda *args: captured.append(args),
                 ),
             ):

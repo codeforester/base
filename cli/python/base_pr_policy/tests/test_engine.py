@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest import mock
 
-from base_cli.history import build_finished_record
+from base_cli_adapters.history import build_finished_record
 from base_cli.testing import invoke
 from base_pr_policy import engine
 from base_pr_policy.engine import PrPolicyInputs, render_pr_body
@@ -23,7 +23,7 @@ def test_explicit_manifest_populates_history_project_metadata(tmp_path) -> None:
     captured = []
 
     with mock.patch(
-        "base_cli.app.write_finished_record",
+        "base_cli_profile.write_finished_record",
         side_effect=lambda *args: captured.append(args),
     ):
         result = invoke(

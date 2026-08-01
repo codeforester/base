@@ -9,8 +9,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from base_cli.history import HISTORY_PATH
-from base_cli.config import user_config_path
+from base_cli_adapters.history import HISTORY_PATH
+from base_cli_adapters.config import user_config_path
 from base_cli.testing import invoke
 from base_config import engine
 

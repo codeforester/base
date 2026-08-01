@@ -13,17 +13,17 @@ import base_cli
 from base_cli_profile import base_cli_app
 from base_cli.command_filters import command_matches
 from base_cli.command_filters import normalize_command_filters
-from base_cli.history import HISTORY_PATH
-from base_cli.history import HISTORY_SCOPE_INTERNAL
-from base_cli.history import HISTORY_SCOPE_PRIMARY
-from base_cli.history import optional_int
-from base_cli.history import optional_string
-from base_cli.history import parse_finished_history_record_line
-from base_cli.history import parse_positive_int
-from base_cli.history import redact_history_argv
-from base_cli.history import redact_history_text
-from base_cli.history import utc_now
-from base_cli.paths import base_cache_root
+from base_cli_adapters.history import HISTORY_PATH
+from base_cli_adapters.history import HISTORY_SCOPE_INTERNAL
+from base_cli_adapters.history import HISTORY_SCOPE_PRIMARY
+from base_cli_adapters.history import optional_int
+from base_cli_adapters.history import optional_string
+from base_cli_adapters.history import parse_finished_history_record_line
+from base_cli_adapters.history import parse_positive_int
+from base_cli_adapters.history import redact_history_argv
+from base_cli_adapters.history import redact_history_text
+from base_cli_adapters.history import utc_now
+from base_cli_adapters.paths import base_cache_root
 
 
 app = base_cli_app(name="base_history", log_to_file=False)

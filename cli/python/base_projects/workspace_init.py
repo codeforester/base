@@ -7,8 +7,8 @@ from typing import Any, Protocol
 from urllib.parse import urlparse
 
 import base_cli
-from base_cli.config import load_user_config
-from base_cli.config import user_config_path
+from base_cli_adapters.config import load_user_config
+from base_cli_adapters.config import user_config_path
 from base_projects.command_helpers import ProjectCommandError as ProjectRunnerError
 from base_projects.command_helpers import ProjectUsageError
 from base_projects.command_helpers import github_repo_spec

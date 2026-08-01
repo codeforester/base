@@ -13,7 +13,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from base_cli.history import build_finished_record
+from base_cli_adapters.history import build_finished_record
 from base_setup import artifacts, process, python_artifacts
 from base_setup.artifacts import merge_artifacts
 from base_setup.errors import ArtifactError
@@ -913,7 +913,7 @@ class EngineArtifactTests(unittest.TestCase):
             with (
                 mock.patch("base_cli.app.current_working_dir", return_value=outside),
                 mock.patch(
-                    "base_cli.app.write_finished_record",
+                    "base_cli_profile.write_finished_record",
                     side_effect=lambda *args: captured.append(args),
                 ),
             ):

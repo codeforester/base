@@ -8,7 +8,7 @@ from pathlib import Path
 
 import base_cli
 from base_cli_profile import base_cli_app
-from base_cli.paths import base_cache_root
+from base_cli_adapters.paths import base_cache_root
 
 
 app = base_cli_app(name="base_clean")
