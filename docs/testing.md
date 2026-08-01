@@ -68,6 +68,23 @@ Run them with:
 PYTHONPATH=cli/python python -m pytest
 ```
 
+The Python CI job also measures coverage for production code under
+`cli/python`:
+
+```bash
+PYTHONPATH=cli/python python -m pytest \
+  --cov=cli/python \
+  --cov-report=term-missing \
+  --cov-fail-under=85
+```
+
+The shared [coverage configuration](../.coveragerc) excludes Python test
+modules, package initializers, and `__main__.py` entrypoints from the measured
+source set. The initial floor is 85%, based on an 87% baseline from the full
+Python suite across 11,428 production statements. This is a regression guard,
+not a claim that every module has ideal behavioral coverage; ratchet it upward
+as lower-covered areas gain focused tests.
+
 ## Bash Command And Runtime Tests
 
 BATS tests next to Bash commands and Base runtime helpers cover shell parsing,
@@ -112,6 +129,11 @@ resolves to a source checkout. In a packaged install such as Homebrew,
 `basectl test base` is package-aware: it runs the packaged Python test layer and
 skips source-checkout-only BATS and integration tests with a message pointing
 back to the source checkout command above.
+
+There is not yet an equivalent Bash/BATS line-coverage floor. The BATS suite
+continues to provide behavior and contract coverage, while a lightweight Bash
+coverage tool (such as `kcov` or `bashcov`) is evaluated separately so it can
+be introduced without making the shell test job platform-dependent.
 
 ## Integration Tests
 

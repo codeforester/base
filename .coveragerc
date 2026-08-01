@@ -1,0 +1,7 @@
+[run]
+source =
+    cli/python
+omit =
+    cli/python/**/tests/*
+    cli/python/**/__main__.py
+    cli/python/**/__init__.py

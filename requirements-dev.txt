@@ -3,6 +3,7 @@ click==8.4.1
 base-cli==0.1.0
 PyYAML==6.0.3
 pytest==9.0.3
+pytest-cov==7.1.0
 tomli==2.4.1
 bandit==1.9.4
 pip-audit==2.10.1
