@@ -331,7 +331,7 @@ class WorkspaceInitTests(unittest.TestCase):
     def test_resolve_workspace_config_repo_path_uses_explicit_repo_name_guard(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace_root = Path(tmpdir) / "workspace"
-            ctx = SimpleNamespace(workspace_root=workspace_root, base_home=None)
+            ctx = SimpleNamespace(workspace_root=workspace_root, application_home=None)
             source = workspace_init_module.WorkspaceInitSource(
                 display="codeforester/base-workspace",
                 repo_spec="codeforester/base-workspace",

@@ -13,9 +13,9 @@ def resolve_workspace_root(ctx: base_cli.Context, workspace: str | None) -> Path
         return Path(workspace).expanduser().resolve()
     if ctx.workspace_root is not None:
         return ctx.workspace_root
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         raise ProjectDiscoveryError("BASE_HOME is required to discover workspace projects.")
-    return ctx.base_home.parent.resolve()
+    return ctx.application_home.parent.resolve()
 
 
 def effective_workspace_manifest(ctx: base_cli.Context, workspace_manifest: str | None) -> str | None:

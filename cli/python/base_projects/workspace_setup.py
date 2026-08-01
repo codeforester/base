@@ -80,11 +80,11 @@ def workspace_setup_command(
     print_workspace_setup_header(workspace_root, workspace_manifest, len(targets))
 
     counts = WorkspaceSetupCounts()
-    if not dry_run and ctx.base_home is None:
+    if not dry_run and ctx.application_home is None:
         ctx.log.error("BASE_HOME is required to execute workspace setup.")
         return base_cli.ExitCode.FAILURE
 
-    basectl = ctx.base_home / "bin" / "basectl" if ctx.base_home is not None else None
+    basectl = ctx.application_home / "bin" / "basectl" if ctx.application_home is not None else None
     if not dry_run and (basectl is None or not basectl.is_file() or not os.access(basectl, os.X_OK)):
         ctx.log.error("Base CLI '%s' is missing or is not executable.", basectl)
         return base_cli.ExitCode.FAILURE
@@ -241,7 +241,7 @@ def execute_workspace_setup_target(
     command.append(target.project_name)
 
     env = os.environ.copy()
-    env["BASE_HOME"] = str(ctx.base_home)
+    env["BASE_HOME"] = str(ctx.application_home)
     for variable in ("BASE_PROJECT", "BASE_PROJECT_ROOT", "BASE_PROJECT_MANIFEST", "BASE_PROJECT_VENV_DIR"):
         env.pop(variable, None)
 

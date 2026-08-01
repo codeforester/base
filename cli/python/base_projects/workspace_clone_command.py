@@ -39,11 +39,11 @@ def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOption
 
     workspace_root = workspace_root.resolve(strict=False)
 
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         ctx.log.error("BASE_HOME is required to clone workspace repositories.")
         return base_cli.ExitCode.FAILURE
 
-    basectl = ctx.base_home / "bin" / "basectl"
+    basectl = ctx.application_home / "bin" / "basectl"
     print(f"Workspace clone: {workspace_root} ({len(manifest.repos)} repositories)")
     print(f"Workspace manifest: {manifest.path} ({manifest.name})")
 

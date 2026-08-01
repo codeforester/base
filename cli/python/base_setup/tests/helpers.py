@@ -7,7 +7,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from base_cli.config import UserConfig, UserIdeConfig
+from base_cli_adapters.config import UserConfig, UserIdeConfig
 from base_setup.engine import main
 
 

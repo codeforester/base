@@ -62,13 +62,13 @@ def read_profile_manifests(ctx: base_cli.Context, profiles: tuple[str, ...]) -> 
 
 
 def read_profile_manifest(ctx: base_cli.Context, profile: str) -> BaseManifest:
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         raise ManifestError("BASE_HOME is required to load Base's prerequisite profile manifests.")
-    return read_manifest(profile_manifest_path(ctx.base_home, profile))
+    return read_manifest(profile_manifest_path(ctx.application_home, profile))
 
 
 def read_dev_manifest(ctx: base_cli.Context) -> BaseManifest:
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         raise ManifestError("BASE_HOME is required to load Base's developer prerequisite manifest.")
     return read_profile_manifest(ctx, "dev")
 

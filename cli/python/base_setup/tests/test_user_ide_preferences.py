@@ -9,7 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
-from base_cli.config import UserConfig, UserIdeConfig, UserIdePreference
+from base_cli_adapters.config import UserConfig, UserIdeConfig, UserIdePreference
 from base_setup import engine, ide
 from base_setup.github_manifest import GithubConfig, GithubPrConfig
 from base_setup.manifest import BaseManifest, IdeConfig, read_manifest

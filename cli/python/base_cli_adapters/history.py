@@ -48,7 +48,7 @@ def build_finished_record(
     )
     if "project" not in record:
         record["project"] = project_name(context)
-    version = base_version(context.base_home)
+    version = base_version(context.application_home)
     if version:
         record["base_version"] = version
     return {key: value for key, value in record.items() if value}

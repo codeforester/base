@@ -7,7 +7,7 @@ from pathlib import Path
 
 import base_cli
 from base_cli_profile import base_cli_app
-from base_cli.config import UserConfig
+from base_cli_adapters.config import UserConfig
 from base_cli_adapters.paths import discover_manifest
 from base_devcontainer.export import DevcontainerExportError
 from base_devcontainer.export import build_devcontainer_export
@@ -246,9 +246,9 @@ def validate_project_name(manifest: BaseManifest, expected_project: str | None) 
 
 
 def read_default_manifest(ctx: base_cli.Context) -> BaseManifest:
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         raise ManifestError("BASE_HOME is required to load Base's default artifact manifest.")
-    default_manifest_path = ctx.base_home / "lib" / "base" / "default_manifest.yaml"
+    default_manifest_path = ctx.application_home / "lib" / "base" / "default_manifest.yaml"
     return read_manifest(default_manifest_path)
 
 

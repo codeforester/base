@@ -179,16 +179,16 @@ def resolve_workspace_init_root(ctx: base_cli.Context, workspace: str | None, co
     if ctx.workspace_root is not None:
         return ctx.workspace_root
     if config_repo is None:
-        if ctx.base_home is None:
+        if ctx.application_home is None:
             raise ProjectDiscoveryError("BASE_HOME is required to resolve the default workspace root.")
-        return ctx.base_home.parent.resolve(strict=False)
+        return ctx.application_home.parent.resolve(strict=False)
     return config_repo.parent.resolve(strict=False)
 
 
 def clone_workspace_config_repo(ctx: base_cli.Context, repo_spec: str, target: Path, *, dry_run: bool) -> None:
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         raise WorkspaceManifestError("BASE_HOME is required to clone the workspace configuration repository.")
-    basectl = ctx.base_home / "bin" / "basectl"
+    basectl = ctx.application_home / "bin" / "basectl"
     command = [str(basectl), "repo", "clone", repo_spec, "--path", str(target)]
     if dry_run:
         command.append("--dry-run")

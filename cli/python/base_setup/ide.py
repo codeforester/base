@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base_cli
-from base_cli.config import UserConfig
+from base_cli_adapters.config import UserConfig
 from .ide_schema import IDE_DEFINITIONS
 from .ide_schema import IdeDefinition
 

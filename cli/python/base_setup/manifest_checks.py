@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from base_cli.config import UserConfig, UserIdeConfig
+from base_cli_adapters.config import UserConfig, UserIdeConfig
 
 from .artifacts import check_artifact
 from .artifacts import resolve_artifact_definitions
