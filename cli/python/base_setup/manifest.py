@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from base_cli.ide_schema import parse_ide_extensions
-from base_cli.ide_schema import parse_ide_settings
+from base_setup.ide_schema import parse_ide_extensions
+from base_setup.ide_schema import parse_ide_settings
 from base_setup.github_manifest import GithubConfig
 from base_setup.github_manifest import GithubManifestError
 from base_setup.github_manifest import read_github_config

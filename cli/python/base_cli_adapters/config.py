@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from base_cli.config import load_yaml_file as load_cli_yaml_file
-from base_cli.ide_schema import parse_ide_extensions
-from base_cli.ide_schema import parse_ide_settings
+from base_setup.ide_schema import parse_ide_extensions
+from base_setup.ide_schema import parse_ide_settings
 
 from base_setup.ide_schema import SUPPORTED_IDES
 
