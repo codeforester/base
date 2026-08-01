@@ -48,7 +48,10 @@ jobs:
         env:
           PYTHONPATH: .dependencies/base-cli/lib/python:lib/python:cli/python
         run: |
-          python -m pytest
+          python -m pytest \
+            --cov=cli/python \
+            --cov-report=term-missing \
+            --cov-fail-under=85
 
   bats:
     name: BATS tests

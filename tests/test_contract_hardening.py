@@ -12,6 +12,11 @@ ACTIVE_WORKFLOW_GUIDANCE_FILES = (
     REPO_ROOT / "CONTRIBUTING.md",
 )
 GITHUB_WORKFLOW_DOC = REPO_ROOT / "docs" / "github-workflow.md"
+COVERAGE_CONFIG = REPO_ROOT / ".coveragerc"
+DEV_REQUIREMENTS = REPO_ROOT / "requirements-dev.txt"
+TESTS_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
+TESTING_DOC = REPO_ROOT / "docs" / "testing.md"
+PYTHON_COVERAGE_FLOOR = 85
 CANONICAL_POSITIONING_DOCS = tuple(
     REPO_ROOT / relative_path
     for relative_path in (
@@ -83,6 +88,23 @@ def test_default_pytest_discovery_includes_top_level_contract_tests() -> None:
 
 def test_default_pytest_pythonpath_includes_base_package_roots() -> None:
     assert pytest_config_list("pythonpath") == ["lib/python", "cli/python"]
+
+
+def test_python_coverage_policy_is_wired_and_documented() -> None:
+    requirements = DEV_REQUIREMENTS.read_text(encoding="utf-8")
+    workflow = TESTS_WORKFLOW.read_text(encoding="utf-8")
+    coverage_config = COVERAGE_CONFIG.read_text(encoding="utf-8")
+    testing_doc = TESTING_DOC.read_text(encoding="utf-8")
+
+    assert "pytest-cov==7.1.0" in requirements
+    assert "--cov=cli/python" in workflow
+    assert "--cov-report=term-missing" in workflow
+    assert f"--cov-fail-under={PYTHON_COVERAGE_FLOOR}" in workflow
+    assert "source =\n    cli/python" in coverage_config
+    assert "cli/python/**/tests/*" in coverage_config
+    assert f"--cov-fail-under={PYTHON_COVERAGE_FLOOR}" in testing_doc
+    assert f"{PYTHON_COVERAGE_FLOOR}%" in testing_doc
+    assert "Bash/BATS" in testing_doc
 
 
 def test_active_project_guidance_uses_repo_named_project_language() -> None:
