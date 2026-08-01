@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: 8c3854fc69564a264bf66e27a4c046f28ebfcfc5
+          ref: d8c703fd805523607f76ba8702edc22b85b083d5
           path: .dependencies/base-cli
 
       - name: Set up Python ${{ matrix.python-version }}
