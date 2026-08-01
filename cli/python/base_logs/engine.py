@@ -14,10 +14,10 @@ from pathlib import Path
 from typing import Any
 
 import base_cli
-from base_cli.command_filters import command_matches
-from base_cli.command_filters import normalize_command_filters
 from base_cli.redaction import REDACTED
 from base_cli.redaction import redact_text_value
+from base_cli_adapters.command_filters import command_matches
+from base_cli_adapters.command_filters import normalize_command_filters
 from base_cli_adapters.history import HISTORY_PATH
 from base_cli_adapters.history import compact_path
 from base_cli_adapters.history import optional_int

@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: d8c703fd805523607f76ba8702edc22b85b083d5
+          ref: beccaec40de324a8ff6b951ea0f2d1eb44d70bf3
           path: .dependencies/base-cli
 
       - name: Set up Python
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: d8c703fd805523607f76ba8702edc22b85b083d5
+          ref: beccaec40de324a8ff6b951ea0f2d1eb44d70bf3
           path: .dependencies/base-cli
 
       - name: Expose standalone Python package checkout as sibling
@@ -121,7 +121,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: d8c703fd805523607f76ba8702edc22b85b083d5
+          ref: beccaec40de324a8ff6b951ea0f2d1eb44d70bf3
           path: .dependencies/base-cli
 
       - name: Expose standalone Python package checkout as sibling
@@ -213,7 +213,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: d8c703fd805523607f76ba8702edc22b85b083d5
+          ref: beccaec40de324a8ff6b951ea0f2d1eb44d70bf3
           path: .dependencies/base-cli
 
       - name: Expose standalone Python package checkout as sibling
@@ -275,7 +275,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: d8c703fd805523607f76ba8702edc22b85b083d5
+          ref: beccaec40de324a8ff6b951ea0f2d1eb44d70bf3
           path: .dependencies/base-cli
 
       - name: Expose reusable Bash library checkout as sibling

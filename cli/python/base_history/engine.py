@@ -11,8 +11,8 @@ from typing import Any
 
 import base_cli
 from base_cli_profile import base_cli_app
-from base_cli.command_filters import command_matches
-from base_cli.command_filters import normalize_command_filters
+from base_cli_adapters.command_filters import command_matches
+from base_cli_adapters.command_filters import normalize_command_filters
 from base_cli_adapters.history import HISTORY_PATH
 from base_cli_adapters.history import HISTORY_SCOPE_INTERNAL
 from base_cli_adapters.history import HISTORY_SCOPE_PRIMARY

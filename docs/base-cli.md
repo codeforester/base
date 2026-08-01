@@ -53,6 +53,9 @@ tests for its own command integration. Base-specific command-protocol schemas
 and the `BASE_COMMAND_PROTOCOL_V1` Bash compatibility header live in
 `cli/python/base_cli_adapters/protocol.py`; the standalone package owns only
 generic protocol framing and schema registration.
+Base history and log filtering similarly use an adapter-owned compatibility
+policy for legacy `base_` command names; standalone consumers can provide
+their own normalizer to the generic `base_cli.command_filters` helpers.
 
 ## Standalone Provider Resolution
 
