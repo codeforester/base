@@ -7,13 +7,13 @@ import os
 from datetime import datetime, timezone
 
 import base_cli
-from base_cli.history import HISTORY_PATH
-from base_cli.history import optional_int
-from base_cli.history import optional_string
-from base_cli.history import parse_finished_history_record_line
-from base_cli.history import utc_now
-from base_cli.paths import base_cache_root
-from base_cli.history import write_primary_record
+from base_cli_adapters.history import HISTORY_PATH
+from base_cli_adapters.history import optional_int
+from base_cli_adapters.history import optional_string
+from base_cli_adapters.history import parse_finished_history_record_line
+from base_cli_adapters.history import utc_now
+from base_cli_adapters.paths import base_cache_root
+from base_cli_adapters.history import write_primary_record
 
 
 def main(argv: list[str] | None = None) -> int:

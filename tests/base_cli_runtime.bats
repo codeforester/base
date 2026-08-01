@@ -14,6 +14,7 @@ setup() {
     touch "$TEST_TMPDIR/base-cli/lib/python/base_cli/__init__.py"
 
     run env \
+        -u BASE_CLI_SOURCE_DIR \
         BASE_HOME="$TEST_RUNTIME_HOME" \
         bash -c '
             source "$BASE_HOME/lib/base/base_cli_runtime.sh"
@@ -29,6 +30,7 @@ setup() {
     touch "$TEST_TMPDIR/base-cli/lib/python/base_cli/__init__.py"
 
     run env \
+        -u BASE_CLI_SOURCE_DIR \
         BASE_HOME="$TEST_RUNTIME_HOME" \
         bash -c '
             base_home="$BASE_HOME"
@@ -60,6 +62,7 @@ setup() {
 
 @test "base_cli runtime reports pip when no source checkout exists" {
     run env \
+        -u BASE_CLI_SOURCE_DIR \
         BASE_HOME="$TEST_RUNTIME_HOME" \
         bash -c '
             source "$BASE_HOME/lib/base/base_cli_runtime.sh"
@@ -76,6 +79,7 @@ setup() {
     touch "$TEST_RUNTIME_HOME/lib/python/base_cli/__init__.py"
 
     run env \
+        -u BASE_CLI_SOURCE_DIR \
         BASE_HOME="$TEST_RUNTIME_HOME" \
         bash -c '
             source "$BASE_HOME/lib/base/base_cli_runtime.sh"

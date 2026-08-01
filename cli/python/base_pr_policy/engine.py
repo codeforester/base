@@ -8,7 +8,7 @@ from pathlib import Path
 
 import base_cli
 from base_cli_profile import base_cli_app
-from base_cli.paths import discover_manifest
+from base_cli_adapters.paths import discover_manifest
 from base_setup.github_manifest import GithubPrConfig
 from base_setup.manifest import read_manifest
 from base_setup.manifest_loader import ManifestError

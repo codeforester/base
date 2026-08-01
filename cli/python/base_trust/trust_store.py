@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from base_cli.history import format_timestamp, utc_now
-from base_cli.paths import base_state_root
+from base_cli_adapters.history import format_timestamp, utc_now
+from base_cli_adapters.paths import base_state_root
 from base_setup.git_commands import run_git
 from base_setup.git_remote_parse import parse_origin_remote
 from base_setup.manifest import read_manifest

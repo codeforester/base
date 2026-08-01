@@ -7,7 +7,7 @@ from typing import Any
 
 import base_cli
 from base_cli_profile import base_cli_app
-from base_cli.history import base_version as read_base_version
+from base_cli_adapters.history import base_version as read_base_version
 from base_projects import engine as project_engine
 from base_projects.project_discovery import Project
 from base_projects.project_discovery import discover_projects_cached

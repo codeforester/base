@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from base_cli.paths import base_state_root
+from base_cli_adapters.paths import base_state_root
 from base_projects.workspace_manifest import WorkspaceManifestRepo
 from base_setup.manifest_model import BaseManifest
 from base_setup.project_routing import route_for_manifest
