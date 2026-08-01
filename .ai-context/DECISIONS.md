@@ -6,14 +6,16 @@ architecture discussion.
 ## Product And Scope
 
 - Base is a local operating contract for deterministic readiness and handoff
-  across independent Git repositories; macOS remains the primary platform.
+  within a project, including across independent Git repositories when the
+  project spans more than one; macOS remains the primary platform.
 - Ubuntu/Debian runtime support, source-checkout CI validation, and apt-backed
   setup for conservative Base prerequisites are implemented. Broader Linux
   distribution and WSL support remain outside the current contract; keep
   platform details in `docs/linux-support.md`.
 - Windows support is not currently in scope.
-- Base should solve the author's real multi-repo workflow elegantly before
-  trying to be a broad general-purpose platform.
+- Base should solve the author's real multi-repo workflow elegantly while
+  keeping single-repository project adoption low-friction; it should not become
+  a broad general-purpose platform.
 - Base should strengthen the loop
   `inventory -> prepare -> verify -> trust -> onboard -> hand off`.
 - Repository discovery, clone or synchronization, status, and command fan-out

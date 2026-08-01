@@ -53,7 +53,8 @@ broader prompt ergonomics, broader Linux distribution support, and broader
 setup policy work remaining outside the 1.7 release contract.
 
 The accepted product position is now a local operating contract for
-deterministic readiness and handoff. `workspace agent-brief` summarizes local
+deterministic readiness and handoff within a project, from a single repository
+to a multi-repository workspace. `workspace agent-brief` summarizes local
 repository readiness, while onboarding, diagnostics, history reports, and
 context exports provide deeper handoff evidence. The issue-oriented artifact in
 #1562 remains planned.

@@ -1,12 +1,14 @@
 # Why Base
 
 Status: maintained product entry point
-Last reviewed: 2026-07-25
+Last reviewed: 2026-07-30
 
-Base is a local operating contract for developers and platform engineers whose
-work spans multiple independent Git repositories. It makes a participating repo
-set understandable and locally ready without forcing a monorepo or taking
-project-specific behavior away from the repositories that own it.
+Base is a local operating contract for developers and platform engineers who
+need repeatable project readiness and handoff, whether their work lives in one
+repository or spans multiple independent Git repositories. It makes a project
+or participating repo set understandable and locally ready without forcing a
+monorepo or taking project-specific behavior away from the repositories that
+own it.
 
 The product outcome is:
 
@@ -15,8 +17,12 @@ inventory -> prepare -> verify -> trust -> onboard -> hand off
 ```
 
 Base is most useful when setup rules, readiness state, safe execution, and
-handoff context would otherwise live in several READMEs, shell sessions, and one
-maintainer's memory.
+handoff context would otherwise live in READMEs, shell sessions, and maintainer
+memory. That need does not depend on repository count. A single repository can
+use Base to standardize environment setup, readiness checks, trusted commands,
+tests, builds, and contributor handoff. A multi-repository workspace gets the
+same contract across participating projects, with the additional benefit of
+shared inventory and workspace-level onboarding.
 
 ## What Deterministic Means Here
 
@@ -103,6 +109,8 @@ For the complete shipped command surface, see the
 
 Base is a strong fit when:
 
+- you work in one repository with recurring setup, onboarding, readiness, or
+  handoff friction;
 - your daily work crosses several independent Git repositories;
 - each repository should keep owning its code, tests, services, and setup
   details;
@@ -114,7 +122,8 @@ Base is a strong fit when:
 
 Base is not the first tool to choose when:
 
-- you work in one simple repository with no recurring handoff problem;
+- you work in one simple repository with no recurring setup, onboarding, or
+  handoff problem;
 - a monorepo is the correct source and ownership model;
 - generic multi-repo clone/sync/status is the whole requirement;
 - language version pinning, dotfiles, or task execution is the whole

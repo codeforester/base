@@ -6,11 +6,13 @@
 ![Version](https://img.shields.io/badge/version-1.7.0-blue)
 
 Base is a local operating contract for developers and platform engineers who
-work across multiple independent Git repositories.
+need a repeatable way to prepare, verify, test, build, and hand off a project,
+whether that project lives in one repository or spans multiple independent Git
+repositories.
 
-It makes that repo set easier to inventory, prepare, verify, trust, onboard,
-and hand off without turning it into a monorepo or moving project-specific
-logic into Base.
+It makes that project or repo set easier to inventory, prepare, verify, trust,
+onboard, and hand off without turning it into a monorepo or moving
+project-specific logic into Base.
 
 ```text
 inventory -> prepare -> verify -> trust -> onboard -> hand off
@@ -18,20 +20,21 @@ inventory -> prepare -> verify -> trust -> onboard -> hand off
 
 ## Why Base Exists
 
-Most real engineering environments are not a single repository. Their setup
-steps, readiness rules, trusted commands, and handoff context are often spread
-across READMEs, shell state, and maintainer memory. Base gives participating
-repositories one explicit local contract for answering: what belongs here,
-what is ready, what is missing, what may run, and what the next person or agent
-needs to know.
+Every engineering project accumulates setup steps, readiness rules, trusted
+commands, and handoff context that can become scattered across READMEs, shell
+state, and maintainer memory. That problem exists within a single repository
+and becomes more visible when work spans several repositories. Base gives a
+project or participating repo set one explicit local contract for answering:
+what belongs here, what is ready, what is missing, what may run, and what the
+next person or agent needs to know.
 
 In this product promise, **deterministic** is deliberately narrow. Base makes
 declared inputs, inspection order, findings, and next actions explicit and
 repeatable. It does not promise hermetic builds, byte-for-byte environments, or
 transactional mutation across every repository and external tool.
 
-For a concise evaluator view of where Base fits, what it gives a multi-repo
-workspace, and how it compares with adjacent tools, see
+For a concise evaluator view of where Base fits, what it gives a project or
+multi-repo workspace, and how it compares with adjacent tools, see
 [Why Base](docs/why-base.md).
 For a candid maintained assessment of Base's originality, usefulness, adoption
 potential, and engineering evidence, see
@@ -332,7 +335,7 @@ packs, and adapters that support that outcome.
 ### 1. Core Outcome And Enabling Execution Contract
 
 Base should give the user one entry point for setting up and validating a
-workspace that contains multiple project repositories.
+project or a workspace that contains multiple project repositories.
 
 Current implemented commands include:
 
@@ -1861,10 +1864,13 @@ Base should orchestrate those things, not replace them.
 
 ## Mental Model
 
-Think of Base as the local operating contract beside a set of independent Git
-repositories.
+Think of Base as the local operating contract for a project, whether that
+project is one repository or a set of independent Git repositories.
 
-Each project repo remains independent. Base sits beside those repos and offers:
+A single repository can use Base to make setup, readiness, trusted execution,
+and handoff explicit. When a project spans several repositories, Base extends
+the same contract across the repo set. Each project repo remains independent;
+Base sits beside those repos and offers:
 
 - one declared way to inventory, prepare, and verify local readiness
 - one explicit trust boundary for project-owned commands

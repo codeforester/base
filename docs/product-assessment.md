@@ -1,7 +1,7 @@
 # Base Product Assessment
 
 Status: maintained product review artifact
-Last reviewed: 2026-07-25
+Last reviewed: 2026-07-30
 Base era reviewed: 1.7.0 + Unreleased
 
 This document records a candid assessment of Base as a product and engineering
@@ -38,8 +38,9 @@ When revising the assessment, prefer evidence in this order:
 ## Current Product Thesis
 
 Base is a local operating contract for developers and platform engineers who
-work across multiple independent Git repositories. Its core outcome is
-deterministic local readiness and handoff:
+need deterministic local readiness and handoff within a project, whether that
+project is one repository or multiple independent Git repositories. Its core
+outcome is:
 
 ```text
 inventory -> prepare -> verify -> trust -> onboard -> hand off
@@ -76,15 +77,16 @@ bootstrap scripts, environment managers, task runners, manifests, health checks,
 repo templates, release scripts, and dotfile managers.
 
 The original part is the composition and product boundary. Base treats local
-readiness and transferable operating context as the product surface across a
-set of independent repositories without making them a monorepo.
+readiness and transferable operating context as the product surface within a
+project, including a set of independent repositories when the project spans
+more than one, without making them a monorepo.
 
 Adjacent tools already cover project environments, tasks, machine bootstrap,
 containers, dotfiles, and generic multi-repository operations. Base's narrower
 question is:
 
-> What repositories participate, what do they declare, what is ready, what may
-> execute, and what evidence lets the next implementer continue safely?
+> What does this project declare, what is ready, what may execute, and what
+> evidence lets the next implementer continue safely?
 
 That framing is distinctive. Base is not original because every primitive is
 new; it is original because the primitives are assembled into a clear local
@@ -102,12 +104,16 @@ that Base delegates those domains and owns the local readiness/handoff contract.
 
 ## 2. Usefulness
 
-Assessment: high usefulness for the target audience.
-Working rating: 8/10 for multi-repo platform-style developers; lower for the
-general developer population.
+Assessment: high usefulness when a team has recurring setup, readiness,
+onboarding, or handoff friction.
+Working rating: 8/10 for teams with that recurring friction, especially
+multi-repo platform-style developers; lower when a repository is genuinely
+simple and self-explanatory.
 
 Base is especially useful for:
 
+- teams standardizing setup, checks, tests, builds, or handoff within one
+  repository;
 - engineers working across several sibling repositories;
 - platform, SRE, infrastructure, and internal-tooling engineers;
 - teams that need repeatable readiness, onboarding, and handoff without forcing
@@ -123,7 +129,8 @@ Base is especially useful for:
 
 Base is less useful when:
 
-- the developer works in one simple repository;
+- the developer works in one simple repository with no recurring setup,
+  onboarding, or handoff problem;
 - a monorepo is already the right product shape;
 - the main problem is only language version pinning;
 - the main problem is full reproducibility through Nix, Devbox, or Dev
@@ -146,14 +153,16 @@ not yet packaged into the issue-oriented artifact planned in #1562.
 Assessment: medium overall adoption potential, high potential inside a narrow
 wedge.
 
-The strongest wedge is:
+The strongest initial wedge remains:
 
 > A local operating contract for deterministic readiness and handoff across
 > independent Git repositories.
 
 That is a real market of users, especially among platform engineering,
 infrastructure, SRE, internal developer platform, and product engineers who
-work across multiple peer repositories.
+work across multiple peer repositories. A single repository is also a valid,
+lower-friction entry point when its setup and operating conventions need to be
+made explicit; multi-repository support can expand from there.
 
 The blockers to broader adoption are also real:
 
@@ -183,8 +192,17 @@ The best adoption path is evidence-driven:
 
 Base can become much larger, but the larger possibility is not "put every tool
 inside Base." The larger possibility is to make readiness and operating context
-portable across a repo set without absorbing the tools that prepare, build, or
-host those repositories.
+portable within a project, from a single repository to a repo set, without
+absorbing the tools that prepare, build, or host those repositories.
+
+### 2026-07-30 / Single-repository positioning
+
+This documentation update clarifies that Base's project contract is useful
+within a single repository as well as across independent repositories. The
+single-repository case covers recurring setup, readiness, test, build,
+onboarding, and handoff friction; multi-repository work remains the strongest
+initial wedge and an expansion path. This broadens the entry point without
+changing Base's product boundary or serving as evidence of external adoption.
 
 ### 2026-06-17 Product Review Delta
 
