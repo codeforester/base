@@ -63,11 +63,11 @@ def workspace_configure_command(
     *,
     dry_run: bool,
 ) -> int:
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         ctx.log.error("BASE_HOME is required to configure workspace repositories.")
         return base_cli.ExitCode.FAILURE
 
-    basectl = ctx.base_home / "bin" / "basectl"
+    basectl = ctx.application_home / "bin" / "basectl"
     targets = workspace_configure_targets(workspace_root, workspace_manifest)
     print_workspace_configure_header(workspace_root, workspace_manifest, len(targets))
 

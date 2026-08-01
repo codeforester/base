@@ -105,9 +105,9 @@ def prompt_definition(name: str) -> PromptDefinition:
 
 
 def require_base_home(ctx: base_cli.Context) -> Path:
-    if ctx.base_home is None:
+    if ctx.application_home is None:
         raise PromptError("Base home is unavailable. Run this command through 'basectl prompt'.")
-    return ctx.base_home
+    return ctx.application_home
 
 
 def render_prompt(base_home: Path, prompt: PromptDefinition) -> str:

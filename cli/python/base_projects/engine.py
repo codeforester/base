@@ -879,8 +879,8 @@ def bind_project_context(ctx: base_cli.Context, project: Project) -> Project:
 
 
 def find_named_project(ctx: base_cli.Context, project_name: str, workspace: str | None) -> Project | None:
-    if workspace is None and project_name == "base" and ctx.base_home is not None:
-        return read_project(ctx.base_home / "base_manifest.yaml")
+    if workspace is None and project_name == "base" and ctx.application_home is not None:
+        return read_project(ctx.application_home / "base_manifest.yaml")
 
     if workspace is None:
         active_project = resolve_active_project(project_name)

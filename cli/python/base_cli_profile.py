@@ -12,6 +12,7 @@ from base_setup.ide_schema import SUPPORTED_IDES
 from base_cli_adapters.config import load_config
 from base_cli_adapters.config import load_yaml_file
 from base_cli_adapters.config import read_user_config
+from base_cli_adapters.config import UserConfig
 from base_cli_adapters.history import HISTORY_SCOPE_INTERNAL
 from base_cli_adapters.history import write_finished_record
 from base_cli_adapters.paths import base_cache_root
@@ -105,14 +106,21 @@ def base_cli_profile() -> base_cli.CliProfile:
             explicit,
         ),
         resolve_runtime=resolve_runtime,
+        resolve_workspace_root=_resolve_workspace_root,
         history_writer=_write_finished_record,
         display_command=_display_command,
         history_display_command=history_display_command,
     )
 
 
-def _read_user_config() -> base_cli.UserConfig:
+def _read_user_config() -> UserConfig:
     return read_user_config(supported_ides=SUPPORTED_IDES)
+
+
+def _resolve_workspace_root(user_config: object | None) -> Path | None:
+    if isinstance(user_config, UserConfig):
+        return user_config.workspace.root
+    return None
 
 
 def _write_finished_record(*args: Any) -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 import base_cli
-from base_cli.config import UserConfig
+from base_cli_adapters.config import UserConfig
 
 from .artifacts import merge_artifacts
 from .artifacts import ProjectRuntimeConfig

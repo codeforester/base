@@ -137,7 +137,7 @@ def allow_command(ctx: base_cli.Context, project: str, workspace: str | None, ma
         return base_cli.ExitCode.USAGE_ERROR
 
     print_identity("Allowing manifest command trust", identity)
-    ManifestCommandTrustStore().allow(identity, base_version=read_base_version(ctx.base_home))
+    ManifestCommandTrustStore().allow(identity, base_version=read_base_version(ctx.application_home))
     print(f"Allowed manifest commands for project '{identity.project_name}'.")
     return base_cli.ExitCode.SUCCESS
 
@@ -220,8 +220,8 @@ def workspace_status_projects(ctx: base_cli.Context, workspace: str | None) -> t
         if active_project is not None:
             projects_by_name[active_project.name] = active_project
 
-        if ctx.base_home is not None:
-            base_manifest = ctx.base_home / "base_manifest.yaml"
+        if ctx.application_home is not None:
+            base_manifest = ctx.application_home / "base_manifest.yaml"
             if base_manifest.is_file():
                 base_project = read_project(base_manifest)
                 projects_by_name[base_project.name] = base_project
