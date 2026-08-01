@@ -8,6 +8,7 @@ from .paths import runtime_owner_root
 from .paths import runtime_run_directory_name
 
 
+# pylint: disable=too-many-arguments
 def runtime_layout(
     cache_root: Path,
     cli_name: str,

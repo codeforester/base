@@ -14,9 +14,10 @@ from pathlib import Path
 from typing import Any
 
 import base_cli
-from base_cli_profile import base_cli_app
 from base_cli.command_filters import command_matches
 from base_cli.command_filters import normalize_command_filters
+from base_cli.redaction import REDACTED
+from base_cli.redaction import redact_text_value
 from base_cli_adapters.history import HISTORY_PATH
 from base_cli_adapters.history import compact_path
 from base_cli_adapters.history import optional_int
@@ -26,8 +27,7 @@ from base_cli_adapters.history import parse_positive_int
 from base_cli_adapters.history import redact_history_argv
 from base_cli_adapters.history import redact_history_text
 from base_cli_adapters.paths import base_cache_root
-from base_cli.redaction import REDACTED
-from base_cli.redaction import redact_text_value
+from base_cli_profile import base_cli_app
 from base_history.display import display_command
 
 
