@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -265,9 +266,22 @@ def render_check_record(project: str, status: str, checked_at: str) -> str:
 
 def write_check_record(path: Path, project: str, status: str, checked_at: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_name(f"{path.name}.tmp")
-    temp_path.write_text(render_check_record(project, status, checked_at), encoding="utf-8")
-    temp_path.replace(path)
+    record = render_check_record(project, status, checked_at)
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as temp_file:
+        temp_file.write(record)
+        temp_path = Path(temp_file.name)
+
+    try:
+        temp_path.replace(path)
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 def diagnostic_check(name: str, status: str, message: str, fix: str = "") -> DiagnosticCheck:
