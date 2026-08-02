@@ -167,6 +167,13 @@ base_project_run_shell_command() {
         # A project command gets its own owner-scoped bundle. Keep the parent
         # history ID, but do not let it write raw logs into Base's bundle.
         unset BASE_CLI_RUN_ROOT BASE_CLI_RUN_ID BASE_CLI_PRIMARY_LOG
+        # setup and diagnostics also recognize user-local tool installs. Keep
+        # the project environment first, then make $HOME/.local/bin available
+        # for runners such as uv and mise.
+        if [[ -n "${HOME:-}" ]]; then
+            PATH="${PATH:+$PATH:}$HOME/.local/bin"
+            export PATH
+        fi
         cd "$working_dir" && bash -c "$command_to_run" "$command_name" "$@"
     )
 }
@@ -179,9 +186,10 @@ base_validate_command_runner() {
             return 0
             ;;
         uv)
-            command -v uv >/dev/null 2>&1 || {
-                fatal_error "Command runner 'uv' is not available. Install uv or remove runner: uv from the project manifest."
-            }
+            if command -v uv >/dev/null 2>&1 || [[ -n "${HOME:-}" && -x "$HOME/.local/bin/uv" ]]; then
+                return 0
+            fi
+            fatal_error "Command runner 'uv' is not available. Install uv or remove runner: uv from the project manifest."
             ;;
         *)
             fatal_error "Unsupported command runner '$runner'."

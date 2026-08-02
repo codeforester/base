@@ -41,12 +41,12 @@ EOF
     [[ "$(cat "$state_file")" == *"path=$workspace/demo/.venv/bin:"* ]]
 }
 
-@test "basectl run routes uv runner commands through uv" {
+@test "basectl run routes uv runner commands through user-local uv" {
     local python_bin="$TEST_HOME/.base.d/base/.venv/bin/python"
     local workspace="$TEST_TMPDIR/workspace"
     local state_file="$TEST_TMPDIR/run-state"
 
-    mkdir -p "$(dirname "$python_bin")" "$workspace/demo" "$workspace/demo/.venv/bin"
+    mkdir -p "$(dirname "$python_bin")" "$workspace/demo" "$workspace/demo/.venv/bin" "$TEST_HOME/.local/bin"
     cat > "$python_bin" <<'EOF'
 #!/usr/bin/env bash
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "run-command" && "${4:-}" == "demo" && "${5:-}" == "audit" ]]; then
@@ -58,7 +58,7 @@ fi
 printf 'unexpected run python args: %s\n' "$*" >&2
 exit 1
 EOF
-    cat > "$workspace/demo/.venv/bin/uv" <<'EOF'
+    cat > "$TEST_HOME/.local/bin/uv" <<'EOF'
 #!/usr/bin/env bash
 {
     printf 'pwd=%s\n' "$PWD"
@@ -67,7 +67,7 @@ EOF
     printf '\n'
 } > "${BASE_TEST_RUN_STATE:?}"
 EOF
-    chmod +x "$python_bin" "$workspace/demo/.venv/bin/uv"
+    chmod +x "$python_bin" "$TEST_HOME/.local/bin/uv"
     printf 'project:\n  name: demo\ncommands:\n  audit:\n    command: pytest tests/audit\n    runner: uv\nartifacts: []\n' > "$workspace/demo/base_manifest.yaml"
     workspace="$(cd "$workspace" && pwd -P)"
 
@@ -235,11 +235,12 @@ fi
 printf 'unexpected run python args: %s\n' "$*" >&2
 exit 1
 EOF
-    cat > "$workspace/demo/.venv/bin/mise" <<'EOF'
+    mkdir -p "$TEST_HOME/.local/bin"
+    cat > "$TEST_HOME/.local/bin/mise" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "${BASE_TEST_RUN_STATE:?}"
 EOF
-    chmod +x "$python_bin" "$workspace/demo/.venv/bin/mise"
+    chmod +x "$python_bin" "$TEST_HOME/.local/bin/mise"
     printf 'project:\n  name: demo\ncommands:\n  dev: mise run dev\nartifacts: []\n' > "$workspace/demo/base_manifest.yaml"
     workspace="$(cd "$workspace" && pwd -P)"
 
