@@ -61,6 +61,11 @@ architecture discussion.
   overrides require paired URL/SHA-256 values and execute the verified bytes.
   First-mile Homebrew installers stay independent of Python and are aligned by
   contract tests.
+- Supported Bash installation is first-mile Base bootstrap behavior, not a
+  reusable `base-bash-libs` responsibility. `bootstrap.sh --ensure-bash`
+  repairs only the Bash 4.2+ prerequisite, using Homebrew on macOS and apt on
+  Ubuntu/Debian, while `base-bash-libs` remains passive with version checks and
+  recovery guidance only.
 
 ## Activation And Environment
 

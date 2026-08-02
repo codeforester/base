@@ -23,6 +23,8 @@ below when precise detail matters:
 - `docs/product-assessment.md` - maintained evidence-backed product review.
 - `docs/product-requirements.md` - accepted product intent, target users,
   durable requirements, non-goals, and PRD maintenance rules.
+- `docs/bootstrap.md` - first-mile bootstrap behavior, including the targeted
+  supported-Bash repair path.
 - `docs/architecture.md` - product direction, command model, environment model,
   and repository conventions.
 - `docs/execution-model.md` - `basectl` runtime and dispatch contract.
