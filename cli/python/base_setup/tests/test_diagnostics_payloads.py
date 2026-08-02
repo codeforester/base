@@ -4,7 +4,9 @@ import io
 import json
 import os
 import tempfile
+import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
@@ -85,6 +87,31 @@ class DiagnosticsPayloadTests(unittest.TestCase):
             self.assertEqual(status, 0)
             self.assertTrue(output_path.exists())
             self.assertFalse((cache_root / "cli" / "base_setup.diagnostics").exists())
+
+    def test_write_check_record_is_safe_for_concurrent_writers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "last.json"
+            render = diagnostics.render_check_record
+
+            def slow_render(project: str, status: str, checked_at: str) -> str:
+                time.sleep(0.005)
+                return render(project, status, checked_at)
+
+            def write_record(index: int) -> None:
+                diagnostics.write_check_record(
+                    path,
+                    project=f"demo-{index}",
+                    status="ok",
+                    checked_at="2026-06-28T12:00:00Z",
+                )
+
+            with mock.patch.object(diagnostics, "render_check_record", side_effect=slow_render):
+                with ThreadPoolExecutor(max_workers=8) as executor:
+                    list(executor.map(write_record, range(32)))
+
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "ok")
+            self.assertFalse(list(Path(tmpdir).glob(".last.json.*.tmp")))
 
     def test_render_base_check_payload_merges_embedded_statuses(self) -> None:
         payload_text = render_base_check_payload(
