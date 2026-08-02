@@ -2,16 +2,20 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from base_cli.command_protocol import BOOLEAN
-from base_cli.command_protocol import CommandProtocolError
-from base_cli.command_protocol import FieldSpec
-from base_cli.command_protocol import NULLABLE_STRING
-from base_cli.command_protocol import STRING
-from base_cli.command_protocol import dumps_record as _dumps_record
-from base_cli.command_protocol import dumps_records as _dumps_records
-from base_cli.command_protocol import loads_records as _loads_records
-from base_cli.command_protocol import register_record_schema
-from base_cli.command_protocol import RECORD_SCHEMAS as _registered_schemas
+from .provider import load_command_protocol
+
+
+_command_protocol = load_command_protocol()
+BOOLEAN = _command_protocol.BOOLEAN
+CommandProtocolError = _command_protocol.CommandProtocolError
+FieldSpec = _command_protocol.FieldSpec
+NULLABLE_STRING = _command_protocol.NULLABLE_STRING
+STRING = _command_protocol.STRING
+_dumps_record = _command_protocol.dumps_record
+_dumps_records = _command_protocol.dumps_records
+_loads_records = _command_protocol.loads_records
+register_record_schema = _command_protocol.register_record_schema
+_registered_schemas = _command_protocol.RECORD_SCHEMAS
 
 
 BASE_PROTOCOL_HEADER = "BASE_COMMAND_PROTOCOL_V1"

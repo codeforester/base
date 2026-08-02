@@ -100,6 +100,10 @@ such command directories exist. Optional utility CLIs such as `caff` and
   provided, project manifest artifacts with suggested fixes.
 - `basectl doctor explain <finding-id>` prints local, deterministic guidance
   for selected stable finding IDs, with optional JSON output.
+- Base's extracted adapters require a `base-cli` provider that exports
+  `base_cli.command_protocol.register_record_schema`. If setup reports an
+  incompatible provider, upgrade `base-cli` or set `BASE_CLI_SOURCE_DIR` to a
+  compatible source checkout before retrying the command.
 - `basectl gh` manages GitHub authentication, issues, pull requests, branch naming, repository
   hygiene, and GitHub Project metadata using Base's opinionated workflow. It
   uses standard GitHub-style issue categories such as `bug`, `enhancement`,
