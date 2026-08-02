@@ -170,3 +170,5 @@ base_test_protocol_demo() {
     base_test_protocol_demo_record 0 "$@"
     base_test_protocol_end
 }
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/diagnostics_module_fixture.bash"
