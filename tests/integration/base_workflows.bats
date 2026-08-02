@@ -47,6 +47,7 @@ create_base_runtime() {
     cp "$BASE_REPO_ROOT/base_manifest.yaml" "$base_home/base_manifest.yaml"
     cp "$BASE_REPO_ROOT/VERSION" "$base_home/VERSION"
 
+    copy_base_cli_fixture "$base_home/../base-cli/lib/python"
     copy_base_bash_libs_fixture "$base_home/../base-bash-libs/lib/bash"
 
     case "$base_home" in
@@ -55,6 +56,32 @@ create_base_runtime() {
             copy_base_bash_libs_fixture "$homebrew_prefix/opt/base-bash-libs/libexec/lib/bash"
             ;;
     esac
+}
+
+copy_base_cli_fixture() {
+    local source_dir="${BASE_CLI_SOURCE_DIR:-}"
+    local candidate target_dir="$1"
+
+    if [[ -n "$source_dir" && -f "$source_dir/base_cli/__init__.py" ]]; then
+        :
+    else
+        source_dir=""
+        for candidate in \
+            "$BASE_REPO_ROOT/../base-cli/lib/python" \
+            "$BASE_REPO_ROOT/../../base-cli/lib/python"; do
+            if [[ -f "$candidate/base_cli/__init__.py" ]]; then
+                source_dir="$candidate"
+                break
+            fi
+        done
+    fi
+
+    [[ -n "$source_dir" ]] || {
+        printf 'Base integration tests require a base-cli source checkout.\n' >&2
+        return 1
+    }
+    mkdir -p "$target_dir"
+    cp -R "$source_dir/." "$target_dir/"
 }
 
 create_fake_platform_tools() {
@@ -164,6 +191,7 @@ run_basectl() {
         BASE_SETUP_BREW_BIN="$TEST_MOCKBIN/brew" \
         BASE_SETUP_NOTIFY=false \
         BASE_SETUP_XCODE_COMMAND_LINE_TOOLS_DIR="$TEST_XCODE_DIR" \
+        BASE_CLI_SOURCE_DIR="$TEST_BASE_HOME/../base-cli/lib/python" \
         PIP_DISABLE_PIP_VERSION_CHECK=1 \
         "$TEST_BASE_HOME/bin/basectl" "$@"
 }
@@ -179,6 +207,7 @@ run_basectl_separate_stderr() {
         BASE_SETUP_BREW_BIN="$TEST_MOCKBIN/brew" \
         BASE_SETUP_NOTIFY=false \
         BASE_SETUP_XCODE_COMMAND_LINE_TOOLS_DIR="$TEST_XCODE_DIR" \
+        BASE_CLI_SOURCE_DIR="$TEST_BASE_HOME/../base-cli/lib/python" \
         PIP_DISABLE_PIP_VERSION_CHECK=1 \
         "$TEST_BASE_HOME/bin/basectl" "$@"
 }
