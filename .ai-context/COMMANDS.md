@@ -19,6 +19,13 @@ reusable-layer DEBUG diagnostics.
 
 ## Current Public Commands
 
+- `bootstrap.sh` - first-mile installer/repair script used before `basectl`
+  may be available. `bootstrap.sh --ensure-bash --dry-run` previews the
+  supported Bash 4.2+ repair path, and `bootstrap.sh --ensure-bash --yes`
+  applies only that Bash prerequisite: Homebrew `bash` on macOS, or
+  `sudo apt-get update` plus `sudo apt-get install -y bash` on Ubuntu/Debian.
+  It does not clone Base, install Python, create virtualenvs, install developer
+  tools, or run project setup.
 - `basectl activate <project>` - start an interactive Base Bash runtime shell
   for a project.
 - `basectl setup [project]` - install and bootstrap the local Base CLI

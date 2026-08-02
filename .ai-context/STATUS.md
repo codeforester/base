@@ -10,6 +10,8 @@ only during release-prep PRs, not on every ordinary PR.
 The current command surface covers:
 
 - setup and first-mile bootstrap
+- targeted first-mile Bash 4.2+ repair through `bootstrap.sh --ensure-bash`
+  without cloning Base or running full setup
 - checks and doctor diagnostics
 - project discovery
 - project activation
@@ -72,6 +74,8 @@ Recent released work includes:
   apt-backed setup behind explicit `--dry-run` / `--yes` confirmation, and
   policy-governed uv/mise CLI bootstrap with explicit consent and optional
   managed checksum verification
+- targeted `bootstrap.sh --ensure-bash` support for Mac and Ubuntu/Debian Bash
+  4.2+ repair before the normal `basectl setup` path can run
 - `basectl docs` for opening the GitHub README documentation entrypoint
 - standardized `basectl` help, option, logging, and usage-error behavior
 - Python-backed CI setup JSON rendering and Project issue-default handling
