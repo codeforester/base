@@ -334,7 +334,7 @@ EOF
     [[ "$output" == *"gh_auth_refresh_options=--hostname --scope --scopes --clipboard --help"* ]]
     [[ "$output" == *"gh_project_commands=doctor configure issue"* ]]
     [[ "$output" == *"gh_project_configure_options=--project --owner --schema --config --copy-fields-from --initiative-option --repo --replace-project --dry-run"* ]]
-    [[ "$output" == *"gh_project_issue_set_fields_options=--repo --project --owner --config --status --priority --area --initiative --size --dry-run"* ]]
+    [[ "$output" == *"gh_project_issue_set_fields_options=--repo --project --owner --config --status --priority --area --initiative --size --allow-cross-project --dry-run"* ]]
     [[ "$output" == *"gh_worktree_commands=prune"* ]]
     [[ "$output" == *"gh_worktree_prune_options=--dry-run --yes"* ]]
 }

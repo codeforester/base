@@ -34,6 +34,7 @@ class OptionState:
     copy_fields_from_project: str | None = None
     initiative_options: list[str] | None = None
     replace_project: bool = False
+    allow_cross_project: bool = False
     dry_run: bool = False
     field_values: dict[str, str] | None = None
 
@@ -50,7 +51,8 @@ def print_usage(file=sys.stdout) -> None:
                 "[--owner <login>] [--repo <owner/name>] [--schema base-project] [--config <path>] "
                 "[--copy-fields-from <title>] [--replace-project] [--initiative-option <name>] [--dry-run]",
                 f"  {command} project issue set-fields <number> "
-                "--repo <owner/name> --project <title> [--config <path>] [field options...]",
+                "--repo <owner/name> [--project <title>] [--allow-cross-project] "
+                "[--config <path>] [field options...]",
                 f"  {command} project issue defaults --config <path>",
             )
         ),
@@ -95,35 +97,54 @@ def parse_args(
         require_project_title(state)
         return state_to_args("configure", state)
     if command == "issue":
-        if remaining and remaining[0] == "defaults":
-            state = parse_project_options(
-                remaining[1:],
-                allow_fields=False,
-                allow_issue=False,
-                infer_owner_from_git=infer_owner,
-            )
-            if not state.config_path:
-                raise ProjectUsageError("The 'project issue defaults' command requires --config.")
-            return state_to_args("issue-defaults", state)
-        if len(remaining) < 2 or remaining[0] != "set-fields":
-            raise ProjectUsageError("Expected 'project issue set-fields <number>'.")
-        try:
-            issue_number = int(remaining[1])
-        except ValueError as exc:
-            raise ProjectUsageError(f"Invalid issue number '{remaining[1]}'.") from exc
+        return parse_issue_args(remaining, infer_owner=infer_owner, infer_repo=infer_repo)
+    raise ProjectUsageError(f"Unknown project command '{command}'.")
+
+
+def parse_issue_args(
+    remaining: list[str],
+    *,
+    infer_owner: Callable[[], str | None],
+    infer_repo: Callable[[], str | None],
+) -> ProjectArguments:
+    if remaining and remaining[0] == "defaults":
         state = parse_project_options(
-            remaining[2:],
-            allow_fields=True,
-            allow_issue=True,
+            remaining[1:],
+            allow_fields=False,
+            allow_issue=False,
             infer_owner_from_git=infer_owner,
         )
-        require_project_title(state)
-        if not state.repo:
-            state.repo = infer_repo()
-        if not state.repo:
-            raise ProjectUsageError("The 'project issue set-fields' command requires --repo.")
-        return state_to_args("issue-set-fields", state, issue_number=issue_number)
-    raise ProjectUsageError(f"Unknown project command '{command}'.")
+        if not state.config_path:
+            raise ProjectUsageError("The 'project issue defaults' command requires --config.")
+        return state_to_args("issue-defaults", state)
+    if len(remaining) < 2 or remaining[0] != "set-fields":
+        raise ProjectUsageError("Expected 'project issue set-fields <number>'.")
+    try:
+        issue_number = int(remaining[1])
+    except ValueError as exc:
+        raise ProjectUsageError(f"Invalid issue number '{remaining[1]}'.") from exc
+    state = parse_project_options(
+        remaining[2:],
+        allow_fields=True,
+        allow_issue=True,
+        infer_owner_from_git=infer_owner,
+    )
+    if not state.repo:
+        state.repo = infer_repo()
+    if not state.repo:
+        raise ProjectUsageError("The 'project issue set-fields' command requires --repo.")
+    expected_project = repository_project_title(state.repo)
+    if expected_project is None:
+        raise ProjectUsageError(f"Repository must be in owner/name form, got '{state.repo}'.")
+    if state.project_title is None:
+        state.project_title = expected_project
+    elif state.project_title != expected_project and not state.allow_cross_project:
+        raise ProjectUsageError(
+            f"Project '{state.project_title}' does not match repository '{state.repo}' "
+            f"(expected '{expected_project}'). Use '--project {expected_project}' or pass "
+            "'--allow-cross-project' for an intentional cross-project update."
+        )
+    return state_to_args("issue-set-fields", state, issue_number=issue_number)
 
 
 def parse_project_options(
@@ -146,6 +167,10 @@ def parse_project_options(
             continue
         if arg == "--replace-project":
             state.replace_project = True
+            index += 1
+            continue
+        if allow_issue and arg == "--allow-cross-project":
+            state.allow_cross_project = True
             index += 1
             continue
         consumed = apply_spaced_option(state, remaining, index, allow_fields=allow_fields)
@@ -218,6 +243,7 @@ def state_to_args(command: str, state: OptionState, issue_number: int | None = N
         copy_fields_from_project=state.copy_fields_from_project,
         initiative_options=tuple(state.initiative_options or ()),
         replace_project=state.replace_project,
+        allow_cross_project=state.allow_cross_project,
         dry_run=state.dry_run,
         issue_number=issue_number,
         field_values=dict(state.field_values or {}),
@@ -226,3 +252,11 @@ def state_to_args(command: str, state: OptionState, issue_number: int | None = N
 
 def no_inferred_value() -> str | None:
     return None
+
+
+def repository_project_title(repo: str) -> str | None:
+    """Return the repository-named Project title for a GitHub owner/name value."""
+    owner, separator, name = repo.partition("/")
+    if not owner or not separator or not name:
+        return None
+    return name

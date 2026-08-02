@@ -29,7 +29,7 @@ Usage:
   basectl gh pr merge [gh options...]
   basectl gh project doctor --project <title> [--owner <login>] [--schema base-project]
   basectl gh project configure --project <title> [--owner <login>] [--repo <owner/name>] [--schema base-project] [--config <path>] [--copy-fields-from <title>] [--replace-project] [--initiative-option <name>] [--dry-run]
-  basectl gh project issue set-fields <number> --project <title> [--owner <login>] [--repo <owner/name>] [field options...]
+  basectl gh project issue set-fields <number> [--project <title>] [--owner <login>] [--repo <owner/name>] [field options...]
   basectl gh branch stale [--days <days>] [--format <text|json>]
   basectl gh branch prune [--dry-run] [--yes] [--remote]
   basectl gh worktree prune [--dry-run] [--yes]
@@ -512,13 +512,13 @@ EOF
 base_gh_project_issue_set_fields_usage() {
     cat <<'EOF'
 Usage:
-  basectl gh project issue set-fields <number> --project <title> --repo <owner/name> [--owner <login>] [--config <path>] [--status <name>] [--priority <name>] [--area <name>] [--initiative <name>] [--size <T|S|M|L>] [--dry-run]
+  basectl gh project issue set-fields <number> [--project <title>] --repo <owner/name> [--owner <login>] [--config <path>] [--status <name>] [--priority <name>] [--area <name>] [--initiative <name>] [--size <T|S|M|L>] [--allow-cross-project] [--dry-run]
 
 Purpose:
   Add or update Base Project field values for a GitHub issue.
 
 Options:
-  --project <title>     Project title to update.
+  --project <title>     Project title to update. Defaults to the repository name.
   --repo <owner/name>   Repository containing the issue. Defaults to the origin remote when available.
   --owner <login>       Project owner. Defaults to the repository owner or Git remote owner.
   --config <path>       Project intake config for issue defaults and repository-specific options.
@@ -527,6 +527,7 @@ Options:
   --area <name>         Area option.
   --initiative <name>   Initiative option.
   --size <T|S|M|L>      Size option.
+  --allow-cross-project Allow an intentional update to a Project with a different name than the repository.
   --dry-run             Print the planned Project updates without applying them.
   -h, --help            Show this help text.
 EOF

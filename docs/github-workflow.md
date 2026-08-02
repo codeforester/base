@@ -181,6 +181,11 @@ be rerun through `workflow_dispatch` after the secret is repaired.
 Use `basectl gh project` directly for lower-level Project inspection,
 schema repair, or issue field updates.
 
+For issue field updates, the Project defaults to the repository name derived
+from `--repo`. An explicitly different Project is rejected to prevent an issue
+from being routed to the wrong board; use `--allow-cross-project` only for an
+intentional migration or shared-Project update.
+
 Base-managed repositories also carry
 `.github/workflows/issue-branch-policy.yml`. Unlike Project Intake, this
 workflow does not need a repository secret and is installed even when Project

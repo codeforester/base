@@ -1077,6 +1077,7 @@ _base_basectl_completion() {
                                 '--area[Area option]:area:' \
                                 '--initiative[Initiative option]:initiative:' \
                                 '--size[Size option]:size:' \
+                                '--allow-cross-project[Allow an intentional cross-project update]' \
                                 '--dry-run[Print planned changes]' \
                                 '(-h --help)'{-h,--help}'[Show help text]'
                             ;;

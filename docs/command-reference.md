@@ -168,7 +168,7 @@ daily project loop commands from the local checkout.
 | `basectl gh worktree prune` | Prune stale merged worktrees. | `--dry-run`, `--yes` |
 | `basectl gh project doctor` | Inspect GitHub Project metadata against the Base Project schema. | `--project <title>`, `--owner <login>`, `--schema base-project` |
 | `basectl gh project configure` | Create or repair Base-managed Project metadata. | `--project <title>`, `--owner <login>`, `--repo <owner/name>`, `--schema base-project`, `--config <path>`, `--copy-fields-from <title>`, `--replace-project`, `--initiative-option <name>`, `--dry-run` |
-| `basectl gh project issue set-fields <number>` | Add an issue to the Project if needed and update metadata fields. | `--project <title>`, `--repo <owner/name>`, `--config <path>`, field options |
+| `basectl gh project issue set-fields <number>` | Add an issue to the repository-named Project if needed and update metadata fields. | `--project <title>` (defaults to the repository name), `--repo <owner/name>`, `--allow-cross-project`, `--config <path>`, field options |
 
 ## Release And Context
 

@@ -890,7 +890,7 @@ _base_basectl_completion() {
                             if ((COMP_CWORD == 4)); then
                                 _base_basectl_completion_compgen "set-fields" "$cur"
                             else
-                                _base_basectl_completion_compgen "--repo --project --owner --config --status --priority --area --initiative --size --dry-run -h --help" "$cur"
+                                _base_basectl_completion_compgen "--repo --project --owner --config --status --priority --area --initiative --size --allow-cross-project --dry-run -h --help" "$cur"
                             fi
                             ;;
                         esac

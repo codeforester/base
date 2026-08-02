@@ -653,6 +653,7 @@ run_gh_subcommand() {
     [[ "$output" == *"--area <name>"* ]]
     [[ "$output" == *"--initiative <name>"* ]]
     [[ "$output" == *"--size <T|S|M|L>"* ]]
+    [[ "$output" == *"--allow-cross-project"* ]]
     [[ "$output" != *"[field options...]"* ]]
     [[ "$output" != *"basectl gh project configure"* ]]
 }
