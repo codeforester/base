@@ -206,6 +206,11 @@ fi
 if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
     exit 0
 fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup.diagnostics" ]]; then
+    shift 2
+    base_test_diagnostics_module "$@"
+    exit $?
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     if [[ "$*" == *"--action route"* ]]; then
         base_test_protocol_project_setup_route base "$BASE_HOME" "$BASE_HOME/base_manifest.yaml" \
@@ -416,6 +421,11 @@ fi
 if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
     exit 0
 fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup.diagnostics" ]]; then
+    shift 2
+    base_test_diagnostics_module "$@"
+    exit $?
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     if [[ "$*" == *"--action route"* ]]; then
         base_test_protocol_project_setup_route base "$BASE_HOME" "$BASE_HOME/base_manifest.yaml" \
@@ -589,6 +599,11 @@ if [[ "${1:-}" == "--version" ]]; then
 fi
 if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
     exit 0
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup.diagnostics" ]]; then
+    shift 2
+    base_test_diagnostics_module "$@"
+    exit $?
 fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup" ]]; then
     if [[ "$*" == *"--action route"* ]]; then
@@ -793,6 +808,11 @@ fi
 if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
     exit 0
 fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup.diagnostics" ]]; then
+    shift 2
+    base_test_diagnostics_module "$@"
+    exit $?
+fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "show" && "${4:-}" == "$pyyaml_package" ]]; then
     printf '%s\n' "$4" >> "${BASE_SETUP_TEST_STATE_DIR:?}/pip-show.log"
     [[ -f "${BASE_SETUP_TEST_STATE_DIR:?}/pyyaml-installed" ]]
@@ -854,6 +874,11 @@ if [[ "${1:-}" == "--version" ]]; then
 fi
 if [[ "${1:-}" == "-c" && "${2:-}" == "import base_setup.diagnostics" ]]; then
     exit 0
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_setup.diagnostics" ]]; then
+    shift 2
+    base_test_diagnostics_module "$@"
+    exit $?
 fi
 if [[ "${1:-}" == "-m" && "${2:-}" == "pip" && "${3:-}" == "install" && "${4:-}" == "--disable-pip-version-check" && "${5:-}" == "--upgrade" && "${6:-}" == "pip" ]]; then
     touch "${BASE_SETUP_TEST_STATE_DIR:?}/pip-upgrade-ran"
