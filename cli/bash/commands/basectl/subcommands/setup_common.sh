@@ -20,6 +20,7 @@ readonly _base_setup_common_sourced
 import_base_lib str/lib_str.sh
 
 source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_check_results.sh"
+source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_diagnostics_fallback.sh"
 source "$BASE_HOME/lib/base/base_cli_runtime.sh"
 source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_linux_debian.sh"
 source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_macos_homebrew.sh"
@@ -505,8 +506,10 @@ setup_diagnostics_python_bin() {
 setup_run_diagnostics_json() {
     local python_bin
 
-    python_bin="$(setup_diagnostics_python_bin)" ||
-        fatal_error "Python is required to render Base diagnostic JSON."
+    if ! python_bin="$(setup_diagnostics_python_bin)"; then
+        setup_diagnostics_fallback_json "$@"
+        return $?
+    fi
     setup_ensure_cached_paths
     env BASE_HOME="$BASE_HOME" PYTHONPATH="$_BASE_SETUP_PYTHONPATH_CACHE" \
         "$python_bin" -m base_setup.diagnostics "$@"
