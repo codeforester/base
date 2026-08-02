@@ -179,7 +179,12 @@ operation once. `401 Unauthorized` / `Bad credentials` errors are treated as
 token configuration failures with `BASE_PROJECT_TOKEN` rotation guidance and can
 be rerun through `workflow_dispatch` after the secret is repaired.
 Use `basectl gh project` directly for lower-level Project inspection,
-schema repair, or issue field updates.
+schema repair, or issue field updates. `basectl gh project issue set-fields`
+checks that the selected Project is linked to the issue's repository before it
+can add or update the item. This prevents a repository typo or stale Project
+name from silently placing an issue in another repository's Project. For a
+deliberate cross-repository maintenance operation, pass
+`--allow-cross-repo`; the command emits a warning when that override is used.
 
 Base-managed repositories also carry
 `.github/workflows/issue-branch-policy.yml`. Unlike Project Intake, this

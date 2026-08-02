@@ -68,6 +68,7 @@ class ProjectOperations:
     create_single_select_field: Callable[[str, SelectFieldSpec], None]
     fetch_issue_id: Callable[[str, str, int], str]
     fetch_project_fields: Callable[[str], tuple[ProjectField, ...]]
+    fetch_project_repository_names: Callable[[str], set[str]]
     fetch_project_views: Callable[[str], tuple[ProjectView, ...]]
     find_owner_and_project: Callable[[str, str], OwnerInfo]
     find_project_item_id: Callable[[str, str], str | None]

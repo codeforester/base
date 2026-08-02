@@ -19,7 +19,7 @@ Usage:
   basectl gh auth status [--hostname <host>]
   basectl gh auth refresh [--hostname <host>] [--scope <scope>]... [--scopes <scope,...>] [--clipboard]
   basectl gh issue list [gh options...]
-  basectl gh issue create [--category <bug|enhancement|documentation|ci|security>] --title <title> [--body <body>] [--repo <owner/name>] [--assignee <login>|--no-assignee] [--size <T|S|M|L>] [project options...]
+  basectl gh issue create [--category <bug|enhancement|documentation|ci|security>] --title <title> [--body <body>] [--repo <owner/name>] [--assignee <login>|--no-assignee] [--size <T|S|M|L>] [--allow-cross-repo] [project options...]
   basectl gh issue readiness <number> [--repo <owner/name>] [--project-owner <login> --project-number <number>] [--format <text|json>]
   basectl gh issue start <number> [--category <bug|enhancement|documentation|ci|security>] [--title <title>] [--repo <owner/name>|-R <owner/name>]
   basectl gh pr create [--no-fixes] [gh options...]
@@ -29,7 +29,7 @@ Usage:
   basectl gh pr merge [gh options...]
   basectl gh project doctor --project <title> [--owner <login>] [--schema base-project]
   basectl gh project configure --project <title> [--owner <login>] [--repo <owner/name>] [--schema base-project] [--config <path>] [--copy-fields-from <title>] [--replace-project] [--initiative-option <name>] [--dry-run]
-  basectl gh project issue set-fields <number> --project <title> [--owner <login>] [--repo <owner/name>] [field options...]
+  basectl gh project issue set-fields <number> --project <title> [--owner <login>] [--repo <owner/name>] [--allow-cross-repo] [field options...]
   basectl gh branch stale [--days <days>] [--format <text|json>]
   basectl gh branch prune [--dry-run] [--yes] [--remote]
   basectl gh worktree prune [--dry-run] [--yes]
@@ -50,6 +50,7 @@ Issue create project options:
   --project-owner <login>       Project owner. Defaults to the repository owner.
   --size <T|S|M|L>              Project Size value. Defaults to .github/base-project.yml or S.
   --no-project                  Skip Project metadata updates.
+  --allow-cross-repo            Allow an intentional update to a Project not linked to the issue repository.
 
 Issue categories:
   bug, enhancement, documentation, ci, security
@@ -279,7 +280,7 @@ base_gh_issue_usage() {
     cat <<'EOF'
 Usage:
   basectl gh issue list [gh options...]
-  basectl gh issue create [--category <bug|enhancement|documentation|ci|security>] --title <title> [--body <body>] [--repo <owner/name>] [--assignee <login>|--no-assignee] [--size <T|S|M|L>] [project options...]
+  basectl gh issue create [--category <bug|enhancement|documentation|ci|security>] --title <title> [--body <body>] [--repo <owner/name>] [--assignee <login>|--no-assignee] [--size <T|S|M|L>] [--allow-cross-repo] [project options...]
   basectl gh issue readiness <number> [--repo <owner/name>] [--project-owner <login> --project-number <number>] [--format <text|json>]
   basectl gh issue start <number> [--category <bug|enhancement|documentation|ci|security>] [--title <title>] [--repo <owner/name>|-R <owner/name>]
 
@@ -298,6 +299,7 @@ Issue create project options:
   --project-owner <login>       Project owner. Defaults to the repository owner.
   --size <T|S|M|L>              Project Size value. Defaults to .github/base-project.yml or S.
   --no-project                  Skip Project metadata updates.
+  --allow-cross-repo            Allow an intentional update to a Project not linked to the issue repository.
 
 Issue readiness options:
   --repo <owner/name>           Repository containing the issue. Defaults to the origin remote.
@@ -369,6 +371,7 @@ Options:
   --project-owner <login>  GitHub Project owner.
   --size <T|S|M|L>         GitHub Project Size value.
   --no-project             Skip GitHub Project metadata updates.
+  --allow-cross-repo       Allow an intentional update to a Project not linked to the issue repository.
   -h, --help               Show this help text.
 
 Categories: bug, enhancement, documentation, ci, security.
@@ -450,7 +453,7 @@ base_gh_project_usage() {
 Usage:
   basectl gh project doctor --project <title> [--owner <login>] [--schema base-project]
   basectl gh project configure --project <title> [--owner <login>] [--repo <owner/name>] [--schema base-project] [--config <path>] [--copy-fields-from <title>] [--replace-project] [--initiative-option <name>] [--dry-run]
-  basectl gh project issue set-fields <number> --project <title> [--owner <login>] [--repo <owner/name>] [field options...]
+  basectl gh project issue set-fields <number> --project <title> [--owner <login>] [--repo <owner/name>] [--allow-cross-repo] [field options...]
 
 Purpose:
   Diagnose, configure, and update GitHub Project metadata for Base-managed repositories.
@@ -512,7 +515,7 @@ EOF
 base_gh_project_issue_set_fields_usage() {
     cat <<'EOF'
 Usage:
-  basectl gh project issue set-fields <number> --project <title> --repo <owner/name> [--owner <login>] [--config <path>] [--status <name>] [--priority <name>] [--area <name>] [--initiative <name>] [--size <T|S|M|L>] [--dry-run]
+  basectl gh project issue set-fields <number> --project <title> --repo <owner/name> [--owner <login>] [--config <path>] [--allow-cross-repo] [--status <name>] [--priority <name>] [--area <name>] [--initiative <name>] [--size <T|S|M|L>] [--dry-run]
 
 Purpose:
   Add or update Base Project field values for a GitHub issue.
@@ -522,6 +525,7 @@ Options:
   --repo <owner/name>   Repository containing the issue. Defaults to the origin remote when available.
   --owner <login>       Project owner. Defaults to the repository owner or Git remote owner.
   --config <path>       Project intake config for issue defaults and repository-specific options.
+  --allow-cross-repo    Explicitly allow updating a Project that is not linked to the issue repository.
   --status <name>       Status option, such as Backlog, In Progress, In Review, or Done.
   --priority <name>     Priority option, such as P0, P1, P2, or P3.
   --area <name>         Area option.
@@ -1452,6 +1456,7 @@ base_gh_issue_create() {
     local configure_project=1
     local config_path=""
     local github_repo=""
+    local allow_cross_repo=0
     local issue_args=()
     local issue_number=""
     local issue_output=""
@@ -1501,6 +1506,9 @@ base_gh_issue_create() {
                 ;;
             --no-project)
                 configure_project=0
+                ;;
+            --allow-cross-repo)
+                allow_cross_repo=1
                 ;;
             -h|--help)
                 base_gh_issue_create_usage
@@ -1584,6 +1592,9 @@ base_gh_issue_create() {
             if [[ -n "$project_size" ]]; then
                 field_args+=(--size "$project_size")
             fi
+            if ((allow_cross_repo)); then
+                field_args+=(--allow-cross-repo)
+            fi
             base_gh_apply_project_issue_fields "$project_title" "$config_path" "$project_size" "${field_args[@]}" || return $?
         else
             [[ -n "$project_size" ]] || project_size="S"
@@ -1596,6 +1607,9 @@ base_gh_issue_create() {
                 --priority P2
                 --size "$project_size"
             )
+            if ((allow_cross_repo)); then
+                field_args+=(--allow-cross-repo)
+            fi
             base_gh_apply_project_issue_fields "$project_title" "" "$project_size" "${field_args[@]}" || return $?
         fi
     fi

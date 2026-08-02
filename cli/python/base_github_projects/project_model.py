@@ -89,6 +89,7 @@ class ProjectArguments:
     copy_fields_from_project: str | None = None
     initiative_options: tuple[str, ...] = ()
     replace_project: bool = False
+    allow_cross_repo: bool = False
     dry_run: bool = False
     issue_number: int | None = None
     field_values: dict[str, str] | None = None

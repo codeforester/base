@@ -79,6 +79,9 @@ def base_operations() -> ProjectOperations:
         require_repo=lambda args: args.repo or pytest.fail("repo is required"),
         find_owner_and_project=find_project,
         fetch_project_fields=fetch_fields,
+        fetch_project_repository_names=lambda project_id: (
+            {"basefoundry/base"} if project_id == "project-id" else set()
+        ),
         issue_field_values_for_args=lambda args: args.field_values or {},
         resolve_issue_field_updates=resolve_updates,
         split_repo=engine.split_repo,
@@ -141,7 +144,6 @@ def test_missing_field_updates_is_a_usage_error_before_issue_lookup() -> None:
         base_operations(),
         issue_field_values_for_args=lambda _args: {},
         resolve_issue_field_updates=lambda _fields, _values, *, project_title: (),
-        split_repo=unexpected("split_repo"),
         fetch_issue_id=unexpected("fetch_issue_id"),
     )
 
@@ -149,6 +151,67 @@ def test_missing_field_updates_is_a_usage_error_before_issue_lookup() -> None:
         project_issue_fields_command.issue_set_fields_command(issue_arguments(), ops)
 
     assert str(excinfo.value) == "At least one field option must be provided."
+
+
+def test_unlinked_repository_is_rejected_before_field_or_issue_lookup() -> None:
+    ops = replace(
+        base_operations(),
+        fetch_project_repository_names=lambda _project_id: {"basefoundry/base"},
+        fetch_project_fields=unexpected("fetch_project_fields"),
+        fetch_issue_id=unexpected("fetch_issue_id"),
+    )
+    args = issue_arguments(repo="basefoundry/base-cli")
+
+    with pytest.raises(engine.ProjectUsageError) as excinfo:
+        project_issue_fields_command.issue_set_fields_command(args, ops)
+
+    assert str(excinfo.value) == (
+        "Project 'Base Roadmap' is not linked to repository 'basefoundry/base-cli'. "
+        "Refusing to add or update an issue across repositories. "
+        "Use the repository's linked Project or pass --allow-cross-repo intentionally. "
+        "Linked repositories: basefoundry/base."
+    )
+
+
+def test_allow_cross_repo_preserves_explicit_cross_project_behavior(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    events: list[tuple[str, ...]] = []
+
+    def find_item(project_id: str, issue_id: str) -> None:
+        events.append(("find", project_id, issue_id))
+
+    def add_item(project_id: str, issue_id: str) -> str:
+        events.append(("add", project_id, issue_id))
+        return "new-item"
+
+    def update_item(project_id: str, item_id: str, update: engine.FieldUpdate) -> None:
+        events.append(("update", project_id, item_id, update.field_name, update.option_name))
+
+    ops = replace(
+        base_operations(),
+        fetch_project_repository_names=lambda _project_id: {"basefoundry/base"},
+        fetch_issue_id=lambda owner, name, number: (
+            "issue-id"
+            if (owner, name, number) == ("basefoundry", "base-cli", 1604)
+            else pytest.fail("unexpected issue lookup")
+        ),
+        find_project_item_id=find_item,
+        add_project_item=add_item,
+        update_item_field=update_item,
+    )
+    args = replace(issue_arguments(repo="basefoundry/base-cli"), allow_cross_repo=True)
+
+    status = project_issue_fields_command.issue_set_fields_command(args, ops)
+
+    assert status == base_cli.ExitCode.SUCCESS
+    assert events == [
+        ("find", "project-id", "issue-id"),
+        ("add", "project-id", "issue-id"),
+        ("update", "project-id", "new-item", "Status", "In Progress"),
+        ("update", "project-id", "new-item", "Priority", "P2"),
+    ]
+    assert "--allow-cross-repo" in capsys.readouterr().err
 
 
 def test_malformed_repo_is_a_usage_error_before_issue_lookup() -> None:

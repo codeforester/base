@@ -111,7 +111,9 @@ reusable-layer DEBUG diagnostics.
     `project.issue_defaults.assignee` in `.github/base-project.yml` for a
     repo-local default. Pass `--no-assignee` to ignore that default for one
     issue. Pass `--size <T|S|M|L>` when the issue scope is clear; otherwise
-    Project metadata defaults to `Size=S`.
+    Project metadata defaults to `Size=S`. Project updates must target a
+    Project linked to the issue repository unless `--allow-cross-repo` is
+    supplied for an intentional cross-repository maintenance operation.
   - `basectl gh issue readiness <number>` checks required implementation issue
     body sections and reports labels and assignees. Pass `--project-owner` and
     `--project-number` with `--repo` to validate Base Project fields; without
@@ -130,7 +132,9 @@ reusable-layer DEBUG diagnostics.
     to archive and recreate a repo Project whose views are nonstandard; Projects
     that already have standard Base views are left intact.
   - `basectl gh project issue set-fields <number>` - add an issue to the
-    Project if needed and update its metadata fields.
+    Project if needed and update its metadata fields. The command rejects
+    repository/Project mismatches by default; pass `--allow-cross-repo` only
+    when that mismatch is deliberate.
 
 Stable read-only inspection JSON uses one schema-versioned envelope across
 `repo check`, `release check`, `gh issue readiness`, and `gh branch stale`.
