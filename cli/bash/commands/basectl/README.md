@@ -98,6 +98,9 @@ such command directories exist. Optional utility CLIs such as `caff` and
   `~/.base.d/trust/manifest-commands/`.
 - `basectl doctor [project]` diagnoses the local Base environment and, when
   provided, project manifest artifacts with suggested fixes.
+- `basectl check --format json` and `basectl doctor --format json` preserve
+  valid structured output even when no usable Python diagnostics renderer is
+  available; the result still carries the blocking finding and recovery hint.
 - `basectl doctor explain <finding-id>` prints local, deterministic guidance
   for selected stable finding IDs, with optional JSON output.
 - `basectl gh` manages GitHub authentication, issues, pull requests, branch naming, repository
