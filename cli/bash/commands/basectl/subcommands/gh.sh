@@ -250,7 +250,7 @@ base_gh_auth_refresh_command() {
     args=(auth refresh --hostname "$hostname")
     [[ -z "$scopes_csv" ]] || args+=(--scopes "$scopes_csv")
     ((clipboard)) && args+=(--clipboard)
-    base_gh_run "${args[@]}" || status=$?
+    base_cli_gh_run "${args[@]}" || status=$?
     ((status == 0)) || return "$status"
     printf "GitHub credentials refreshed for '%s'.\n" "$hostname"
 }
@@ -641,23 +641,14 @@ base_gh_require_command() {
     }
 }
 
-base_gh_auth_status_diagnostics() {
-    base_gh_auth_status_diagnostics
-}
-
-base_gh_report_command_failure() {
-    local status="$1"
-    shift
-
-    base_gh_report_command_failure "$status" "$@"
-}
-
 base_gh_run() {
     local status=0
 
-    base_gh_run "$@" || status=$?
+    base_gh_require_cli || return 1
+    gh "$@" || status=$?
     ((status == 0)) && return 0
 
+    base_gh_report_command_failure "$status" "$@" || true
     base_gh_auth_environment_warning github.com || true
     if [[ "${1:-}" == project ]]; then
         base_std_log_warn "GitHub Project operations require the 'project' scope for stored OAuth credentials."
@@ -665,6 +656,10 @@ base_gh_run() {
     fi
 
     return "$status"
+}
+
+base_cli_gh_run() {
+    base_gh_run "$@"
 }
 
 base_gh_args_request_help() {
@@ -865,7 +860,7 @@ base_gh_issue_readiness_project_row() {
 
     repo_literal="$(base_gh_jq_string_literal "$repo")"
     query=".items[] | select((.content.number == $issue) and (.content.repository == $repo_literal)) | [.status // \"\", .priority // \"\", .size // \"\", .area // \"\", .initiative // \"\"] | join(\"\u001f\")"
-    base_gh_run project item-list "$project_number" --owner "$project_owner" --format json --limit 1000 --jq "$query"
+    base_cli_gh_run project item-list "$project_number" --owner "$project_owner" --format json --limit 1000 --jq "$query"
 }
 
 base_gh_issue_readiness_format_error() {
@@ -999,19 +994,19 @@ base_gh_issue_readiness() {
         return $?
     }
 
-    body="$(base_gh_run issue view "$issue" --repo "$github_repo" --json body --jq .body)"
+    body="$(base_cli_gh_run issue view "$issue" --repo "$github_repo" --json body --jq .body)"
     status=$?
     ((status == 0)) || {
         base_gh_issue_readiness_upstream_error "$output_format" issue_view_body "$status"
         return $?
     }
-    labels_output="$(base_gh_run issue view "$issue" --repo "$github_repo" --json labels --jq '.labels[].name')"
+    labels_output="$(base_cli_gh_run issue view "$issue" --repo "$github_repo" --json labels --jq '.labels[].name')"
     status=$?
     ((status == 0)) || {
         base_gh_issue_readiness_upstream_error "$output_format" issue_view_labels "$status"
         return $?
     }
-    assignees_output="$(base_gh_run issue view "$issue" --repo "$github_repo" --json assignees --jq '.assignees[].login')"
+    assignees_output="$(base_cli_gh_run issue view "$issue" --repo "$github_repo" --json assignees --jq '.assignees[].login')"
     status=$?
     ((status == 0)) || {
         base_gh_issue_readiness_upstream_error "$output_format" issue_view_assignees "$status"
@@ -1419,7 +1414,7 @@ base_gh_do_issue() {
                 base_gh_issue_list_usage
                 return 0
             fi
-            base_gh_run issue list "$@"
+            base_cli_gh_run issue list "$@"
             ;;
         create)
             if base_gh_args_request_help "$@"; then
@@ -1570,7 +1565,7 @@ base_gh_issue_create() {
     if [[ -n "$github_repo" ]]; then
         issue_args+=(--repo "$github_repo")
     fi
-    issue_output="$(base_gh_run "${issue_args[@]}")" || return $?
+    issue_output="$(base_cli_gh_run "${issue_args[@]}")" || return $?
     printf '%s\n' "$issue_output"
 
     if ((configure_project)) && [[ -n "$github_repo" ]]; then
@@ -1670,12 +1665,12 @@ base_gh_pr_create() {
             return "$status"
         }
         printf 'Auto-linking PR to issue #%s from branch name. Pass --no-fixes to suppress.\n' "$issue"
-        base_gh_run pr create --fill --body-file "$body_file" "${passthrough[@]}"
+        base_cli_gh_run pr create --fill --body-file "$body_file" "${passthrough[@]}"
         status=$?
         rm -f "$body_file"
         return "$status"
     fi
-    base_gh_run pr create --fill "${passthrough[@]}"
+    base_cli_gh_run pr create --fill "${passthrough[@]}"
 }
 
 base_gh_issue_start() {
@@ -1794,28 +1789,28 @@ base_gh_do_pr() {
                 base_gh_pr_leaf_usage status
                 return 0
             fi
-            base_gh_run pr status "$@"
+            base_cli_gh_run pr status "$@"
             ;;
         checks)
             if base_gh_args_request_help "$@"; then
                 base_gh_pr_leaf_usage checks
                 return 0
             fi
-            base_gh_run pr checks "$@"
+            base_cli_gh_run pr checks "$@"
             ;;
         ready)
             if base_gh_args_request_help "$@"; then
                 base_gh_pr_leaf_usage ready
                 return 0
             fi
-            base_gh_run pr ready "$@"
+            base_cli_gh_run pr ready "$@"
             ;;
         merge)
             if base_gh_args_request_help "$@"; then
                 base_gh_pr_leaf_usage merge
                 return 0
             fi
-            base_gh_run pr merge "$@"
+            base_cli_gh_run pr merge "$@"
             ;;
         -h|--help|help|"")
             base_gh_pr_usage

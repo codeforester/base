@@ -190,7 +190,7 @@ base_gh_branch_github_merged() {
         base_gh_error "GitHub merge verification requires the GitHub CLI 'gh' on PATH."
         return 2
     fi
-    count="$(base_gh_run pr list --head "$branch" --state merged --json number --jq 'length')" || return 2
+    count="$(base_cli_gh_run pr list --head "$branch" --state merged --json number --jq 'length')" || return 2
     if [[ ! "$count" =~ ^[0-9]+$ ]]; then
         base_gh_error "GitHub merge verification returned an invalid result for branch '$branch'."
         return 2
