@@ -24,7 +24,7 @@ EOF
 
 base_activate_usage_error() {
     base_activate_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -105,11 +105,11 @@ base_activate_subcommand_main() {
     }
 
     wrapper="$BASE_HOME/bin/base-wrapper"
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     resolve_output="$(base_activate_resolve_project "$project" "$wrapper" "${args[@]}")" || return $?
     base_command_protocol_decode_one project-route "$resolve_output" || {
-        fatal_error "Unable to resolve project '$project'."
+        base_std_fatal_error "Unable to resolve project '$project'."
     }
     resolved_name="${BASE_COMMAND_PROTOCOL_FIELDS[project_name]}"
     project_root="${BASE_COMMAND_PROTOCOL_FIELDS[project_root]}"
@@ -120,7 +120,7 @@ base_activate_subcommand_main() {
     base_project_set_history_context "$resolved_name" "$project_root" "$manifest_path"
 
     [[ -n "$resolved_name" && -n "$project_root" && -n "$manifest_path" ]] || {
-        fatal_error "Unable to resolve project '$project'."
+        base_std_fatal_error "Unable to resolve project '$project'."
     }
 
     base_project_require_manifest_command_trust "$resolved_name" "$manifest_path" "$trust_required" || return $?
@@ -128,11 +128,11 @@ base_activate_subcommand_main() {
     venv_dir="$(base_activate_project_venv_dir "$resolved_name" "$project_root" "$route_venv_dir")"
     venv_fix="$(base_project_venv_fix "$resolved_name" "$project_root" "$venv_dir" "$uses_uv_manager")"
     [[ -x "$venv_dir/bin/python" ]] || {
-        fatal_error "Project virtual environment Python was not found at '$venv_dir/bin/python'. $venv_fix"
+        base_std_fatal_error "Project virtual environment Python was not found at '$venv_dir/bin/python'. $venv_fix"
     }
 
     shell_rc="$BASE_HOME/lib/bash/runtime/bashrc"
-    [[ -f "$shell_rc" ]] || fatal_error "Base runtime shell rcfile '$shell_rc' was not found."
+    [[ -f "$shell_rc" ]] || base_std_fatal_error "Base runtime shell rcfile '$shell_rc' was not found."
 
     export BASE_PROJECT="$resolved_name"
     export BASE_PROJECT_ROOT="$project_root"
@@ -141,11 +141,11 @@ base_activate_subcommand_main() {
     export BASE_HOME
 
     if [[ "$preserve_cwd" != "1" ]]; then
-        cd "$project_root" || fatal_error "Unable to enter project root '$project_root'."
+        cd "$project_root" || base_std_fatal_error "Unable to enter project root '$project_root'."
     fi
     activate_shell="${BASE_ACTIVATE_SHELL:-${BASH:-bash}}"
     if ! base_activate_shell_is_bash "$activate_shell"; then
-        fatal_error "basectl activate requires Bash. BASE_ACTIVATE_SHELL='$activate_shell' is not supported. Unset BASE_ACTIVATE_SHELL to use the default Bash runtime shell."
+        base_std_fatal_error "basectl activate requires Bash. BASE_ACTIVATE_SHELL='$activate_shell' is not supported. Unset BASE_ACTIVATE_SHELL to use the default Bash runtime shell."
     fi
     "$activate_shell" --rcfile "$shell_rc"
 }

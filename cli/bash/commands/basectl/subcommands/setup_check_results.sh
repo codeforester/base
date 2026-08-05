@@ -42,7 +42,7 @@ setup_add_check_result_with_status() {
             ok=false
             ;;
         *)
-            fatal_error "Invalid Base check status '$status'."
+            base_std_fatal_error "Invalid Base check status '$status'."
             ;;
     esac
 
@@ -92,7 +92,7 @@ setup_write_check_result_file() {
 setup_parse_check_result_file() {
     local line path="$1"
 
-    [[ -f "$path" ]] || fatal_error "Base check probe did not produce result file '$path'."
+    [[ -f "$path" ]] || base_std_fatal_error "Base check probe did not produce result file '$path'."
 
     _BASE_SETUP_PARSED_CHECK_NAME=""
     _BASE_SETUP_PARSED_CHECK_OK=""
@@ -124,12 +124,12 @@ setup_parse_check_result_file() {
         esac
     done <"$path"
 
-    [[ -n "$_BASE_SETUP_PARSED_CHECK_NAME" ]] || fatal_error "Base check probe result '$path' is missing a name."
+    [[ -n "$_BASE_SETUP_PARSED_CHECK_NAME" ]] || base_std_fatal_error "Base check probe result '$path' is missing a name."
     case "$_BASE_SETUP_PARSED_CHECK_OK" in
         true|false)
             ;;
         *)
-            fatal_error "Base check probe result '$path' has invalid ok value '$_BASE_SETUP_PARSED_CHECK_OK'."
+            base_std_fatal_error "Base check probe result '$path' has invalid ok value '$_BASE_SETUP_PARSED_CHECK_OK'."
             ;;
     esac
     if [[ -z "$_BASE_SETUP_PARSED_CHECK_STATUS" ]]; then
@@ -139,10 +139,10 @@ setup_parse_check_result_file() {
         ok|warn|error)
             ;;
         *)
-            fatal_error "Base check probe result '$path' has invalid status value '$_BASE_SETUP_PARSED_CHECK_STATUS'."
+            base_std_fatal_error "Base check probe result '$path' has invalid status value '$_BASE_SETUP_PARSED_CHECK_STATUS'."
             ;;
     esac
-    [[ -n "$_BASE_SETUP_PARSED_CHECK_MESSAGE" ]] || fatal_error "Base check probe result '$path' is missing a message."
+    [[ -n "$_BASE_SETUP_PARSED_CHECK_MESSAGE" ]] || base_std_fatal_error "Base check probe result '$path' is missing a message."
 }
 
 setup_add_parsed_check_result() {

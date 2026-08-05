@@ -119,7 +119,7 @@ setup_refresh_brew_path() {
     local brew_bin
 
     brew_bin="$(setup_find_brew_bin)" || return 1
-    add_to_path -p "$(dirname "$brew_bin")"
+    base_std_add_to_path -p "$(dirname "$brew_bin")"
     return 0
 }
 
@@ -187,8 +187,8 @@ setup_homebrew_installer_sha256() {
 }
 
 setup_log_homebrew_mutable_policy() {
-    log_info "Homebrew installer trust policy: using Homebrew's official mutable installer without checksum verification."
-    log_info "Set BASE_HOMEBREW_INSTALLER_URL and BASE_HOMEBREW_INSTALLER_SHA256 to use a pinned verified installer."
+    base_std_log_info "Homebrew installer trust policy: using Homebrew's official mutable installer without checksum verification."
+    base_std_log_info "Set BASE_HOMEBREW_INSTALLER_URL and BASE_HOMEBREW_INSTALLER_SHA256 to use a pinned verified installer."
 }
 
 setup_fetch_homebrew_installer() {
@@ -219,28 +219,28 @@ setup_run_verified_homebrew_installer() {
     local actual_sha256
     local exit_code
 
-    std_make_temp_file installer_file base-homebrew-installer || fatal_error "Failed to create a temporary Homebrew installer file."
+    base_std_make_temp_file installer_file base-homebrew-installer || base_std_fatal_error "Failed to create a temporary Homebrew installer file."
     setup_fetch_homebrew_installer "$installer_url" "$installer_file" || {
-        fatal_error "Failed to read pinned Homebrew installer content from '$installer_url'."
+        base_std_fatal_error "Failed to read pinned Homebrew installer content from '$installer_url'."
     }
 
     command -v shasum >/dev/null 2>&1 || {
-        fatal_error "shasum is required to verify pinned Homebrew installer content."
+        base_std_fatal_error "shasum is required to verify pinned Homebrew installer content."
     }
     checksum="$(shasum -a 256 "$installer_file")" || {
-        fatal_error "Failed to compute Homebrew installer checksum."
+        base_std_fatal_error "Failed to compute Homebrew installer checksum."
     }
     actual_sha256="${checksum%% *}"
     if [[ "$actual_sha256" != "$expected_sha256" ]]; then
-        fatal_error "Homebrew installer checksum mismatch (expected $expected_sha256, got $actual_sha256)."
+        base_std_fatal_error "Homebrew installer checksum mismatch (expected $expected_sha256, got $actual_sha256)."
     fi
 
     /bin/bash "$installer_file"
     exit_code=$?
     if ((exit_code)); then
-        log_error "$(setup_recovery_homebrew)"
+        base_std_log_error "$(setup_recovery_homebrew)"
     fi
-    exit_if_error "$exit_code" "Homebrew installer failed."
+    base_std_exit_if_error "$exit_code" "Homebrew installer failed."
 }
 
 setup_install_homebrew() {
@@ -256,8 +256,8 @@ setup_install_homebrew() {
     installer_sha256="$(setup_homebrew_installer_sha256)"
 
     if setup_find_brew_bin >/dev/null 2>&1; then
-        setup_refresh_brew_path || fatal_error "Homebrew is installed, but its bin directory could not be added to PATH. $(setup_recovery_brew_path)"
-        log_info "Homebrew is already installed."
+        setup_refresh_brew_path || base_std_fatal_error "Homebrew is installed, but its bin directory could not be added to PATH. $(setup_recovery_brew_path)"
+        base_std_log_info "Homebrew is already installed."
         return 0
     fi
 
@@ -265,50 +265,50 @@ setup_install_homebrew() {
         setup_homebrew_pinned_url_selected &&
             setup_homebrew_pinned_sha256_selected &&
             [[ -n "$installer_url" && -n "$installer_sha256" ]] ||
-            fatal_error "Pinned Homebrew installer URL and SHA-256 are both required."
-        log_info "Installing Homebrew."
-        log_info "Using pinned Homebrew installer from $installer_url."
+            base_std_fatal_error "Pinned Homebrew installer URL and SHA-256 are both required."
+        base_std_log_info "Installing Homebrew."
+        base_std_log_info "Using pinned Homebrew installer from $installer_url."
         if setup_is_dry_run; then
-            log_info "[DRY-RUN] Would verify Homebrew installer SHA-256 $installer_sha256"
-            log_info "[DRY-RUN] Would run: /bin/bash <verified Homebrew installer from $installer_url>"
+            base_std_log_info "[DRY-RUN] Would verify Homebrew installer SHA-256 $installer_sha256"
+            base_std_log_info "[DRY-RUN] Would run: /bin/bash <verified Homebrew installer from $installer_url>"
             return 0
         fi
         setup_run_verified_homebrew_installer "$installer_url" "$installer_sha256"
-        setup_refresh_brew_path || fatal_error "Homebrew installation finished, but 'brew' was not found on PATH. $(setup_recovery_brew_path)"
+        setup_refresh_brew_path || base_std_fatal_error "Homebrew installation finished, but 'brew' was not found on PATH. $(setup_recovery_brew_path)"
         return 0
     fi
 
     setup_log_homebrew_mutable_policy
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would run: /bin/bash -c <Homebrew installer from $installer_url>"
+        base_std_log_info "[DRY-RUN] Would run: /bin/bash -c <Homebrew installer from $installer_url>"
         return 0
     fi
 
-    log_info "Installing Homebrew."
+    base_std_log_info "Installing Homebrew."
 
     if [[ -n "${BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT:-}" ]]; then
         setup_reject_test_hook_if_disallowed BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT
         "$BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT"
         exit_code=$?
         if ((exit_code)); then
-            log_error "$(setup_recovery_homebrew)"
+            base_std_log_error "$(setup_recovery_homebrew)"
         fi
-        exit_if_error "$exit_code" "Homebrew installation failed."
+        base_std_exit_if_error "$exit_code" "Homebrew installation failed."
     else
-        command -v curl >/dev/null 2>&1 || fatal_error "curl is required to install Homebrew. Install curl or install Homebrew manually from https://brew.sh/, then rerun 'basectl setup'."
+        command -v curl >/dev/null 2>&1 || base_std_fatal_error "curl is required to install Homebrew. Install curl or install Homebrew manually from https://brew.sh/, then rerun 'basectl setup'."
         /bin/bash -c "$(curl -fsSL "$installer_url")"
         exit_code=$?
         if ((exit_code)); then
-            log_error "$(setup_recovery_homebrew)"
+            base_std_log_error "$(setup_recovery_homebrew)"
         fi
-        exit_if_error "$exit_code" "Homebrew installation failed."
+        base_std_exit_if_error "$exit_code" "Homebrew installation failed."
     fi
 
-    setup_refresh_brew_path || fatal_error "Homebrew installation finished, but 'brew' was not found on PATH. $(setup_recovery_brew_path)"
+    setup_refresh_brew_path || base_std_fatal_error "Homebrew installation finished, but 'brew' was not found on PATH. $(setup_recovery_brew_path)"
 }
 
 setup_require_macos() {
-    [[ "$OSTYPE" == darwin* ]] || fatal_error "The setup command currently supports macOS only (OSTYPE='$OSTYPE')."
+    [[ "$OSTYPE" == darwin* ]] || base_std_fatal_error "The setup command currently supports macOS only (OSTYPE='$OSTYPE')."
 }
 
 setup_xcode_tools_installed() {
@@ -324,35 +324,35 @@ setup_install_xcode_tools() {
     local timeout interval start_time current_time
 
     if setup_xcode_tools_installed; then
-        log_info "Xcode Command Line Tools are already installed."
+        base_std_log_info "Xcode Command Line Tools are already installed."
         return 0
     fi
 
-    if ! is_interactive && ! setup_allow_noninteractive_xcode_install && ! setup_is_dry_run; then
-        fatal_error "Xcode Command Line Tools installation requires an interactive terminal. $(setup_recovery_xcode_tools)"
+    if ! base_std_is_interactive && ! setup_allow_noninteractive_xcode_install && ! setup_is_dry_run; then
+        base_std_fatal_error "Xcode Command Line Tools installation requires an interactive terminal. $(setup_recovery_xcode_tools)"
     fi
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would install Xcode Command Line Tools and wait for installation to complete."
+        base_std_log_info "[DRY-RUN] Would install Xcode Command Line Tools and wait for installation to complete."
         return 0
     fi
 
-    log_info "Installing Xcode Command Line Tools."
+    base_std_log_info "Installing Xcode Command Line Tools."
     xcode-select --install || true
 
     timeout="$(setup_xcode_wait_timeout_seconds)"
     interval="$(setup_xcode_wait_interval_seconds)"
-    start_time="$(setup_epoch_seconds)" || fatal_error "Unable to read current time while waiting for Xcode Command Line Tools."
+    start_time="$(setup_epoch_seconds)" || base_std_fatal_error "Unable to read current time while waiting for Xcode Command Line Tools."
 
     until setup_xcode_tools_installed; do
-        current_time="$(setup_epoch_seconds)" || fatal_error "Unable to read current time while waiting for Xcode Command Line Tools."
+        current_time="$(setup_epoch_seconds)" || base_std_fatal_error "Unable to read current time while waiting for Xcode Command Line Tools."
         if ((current_time - start_time >= timeout)); then
-            fatal_error "Timed out waiting for Xcode Command Line Tools installation to complete. If the installer is still open, finish it. Otherwise $(setup_recovery_xcode_tools)"
+            base_std_fatal_error "Timed out waiting for Xcode Command Line Tools installation to complete. If the installer is still open, finish it. Otherwise $(setup_recovery_xcode_tools)"
         fi
         sleep "$interval"
     done
 
-    log_info "Xcode Command Line Tools installation detected."
+    base_std_log_info "Xcode Command Line Tools installation detected."
 }
 
 setup_python_installed() {
@@ -369,19 +369,19 @@ setup_install_python() {
     formula="$(setup_python_formula)"
 
     if setup_python_installed; then
-        log_info "Python formula '$formula' is already installed via Homebrew."
+        base_std_log_info "Python formula '$formula' is already installed via Homebrew."
         return 0
     fi
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would install Python formula '$formula' via Homebrew."
+        base_std_log_info "[DRY-RUN] Would install Python formula '$formula' via Homebrew."
         return 0
     fi
 
-    brew_bin="$(setup_find_brew_bin)" || fatal_error "Homebrew is required to install Python formula '$formula'. $(setup_recovery_homebrew)"
+    brew_bin="$(setup_find_brew_bin)" || base_std_fatal_error "Homebrew is required to install Python formula '$formula'. $(setup_recovery_homebrew)"
 
-    log_info "Installing Python formula '$formula' via Homebrew."
-    "$brew_bin" install "$formula" || fatal_error "Homebrew failed to install Python formula '$formula'."
+    base_std_log_info "Installing Python formula '$formula' via Homebrew."
+    "$brew_bin" install "$formula" || base_std_fatal_error "Homebrew failed to install Python formula '$formula'."
 }
 
 setup_find_python_bin() {
@@ -439,7 +439,7 @@ setup_read_homebrew_check_result_file() {
 
     setup_parse_check_result_file "$path"
     [[ "$_BASE_SETUP_PARSED_CHECK_NAME" == homebrew ]] ||
-        fatal_error "Base check probe result '$path' contains unexpected name '$_BASE_SETUP_PARSED_CHECK_NAME'."
+        base_std_fatal_error "Base check probe result '$path' contains unexpected name '$_BASE_SETUP_PARSED_CHECK_NAME'."
 
     if [[ "$_BASE_SETUP_PARSED_CHECK_OK" == true ]]; then
         if setup_refresh_brew_path; then
@@ -447,7 +447,7 @@ setup_read_homebrew_check_result_file() {
             return 0
         fi
         if [[ "$refresh_brew_failure_mode" == fatal ]]; then
-            fatal_error "Homebrew is installed, but its bin directory could not be added to PATH. $(setup_recovery_brew_path)"
+            base_std_fatal_error "Homebrew is installed, but its bin directory could not be added to PATH. $(setup_recovery_brew_path)"
         fi
         setup_add_check_result \
             "homebrew" \
@@ -544,8 +544,8 @@ setup_collect_macos_base_check_results() {
     pyyaml_package="$(setup_pyyaml_package)"
     setup_ensure_cached_paths
 
-    std_make_temp_dir tmpdir base-check ||
-        fatal_error "Unable to create temporary directory for Base check probes."
+    base_std_make_temp_dir tmpdir base-check ||
+        base_std_fatal_error "Unable to create temporary directory for Base check probes."
 
     setup_write_homebrew_check_probe "$tmpdir/homebrew" &
     probe_pids+=("$!")
@@ -561,7 +561,7 @@ setup_collect_macos_base_check_results() {
     probe_pids+=("$!")
 
     setup_wait_for_base_check_probes "${probe_pids[@]}" ||
-        fatal_error "One or more Base check probes failed before writing results."
+        base_std_fatal_error "One or more Base check probes failed before writing results."
 
     setup_read_homebrew_check_result_file "$tmpdir/homebrew" "$refresh_brew_failure_mode" || missing=1
     setup_add_base_bash_libraries_check_result
@@ -587,17 +587,17 @@ setup_run_macos_install() {
     setup_install_base_cli
     if setup_profiles_enabled; then
         if setup_is_dry_run; then
-            setup_run_base_dev_layer setup --dry-run || fatal_error "Python prerequisite profile layer failed."
+            setup_run_base_dev_layer setup --dry-run || base_std_fatal_error "Python prerequisite profile layer failed."
         else
-            setup_run_base_dev_layer setup || fatal_error "Python prerequisite profile layer failed."
+            setup_run_base_dev_layer setup || base_std_fatal_error "Python prerequisite profile layer failed."
         fi
     fi
     setup_run_project_artifact_setup || return $?
     setup_seed_user_config
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Base CLI setup check is complete."
+        base_std_log_info "[DRY-RUN] Base CLI setup check is complete."
     else
-        log_info "Base CLI setup is complete."
+        base_std_log_info "Base CLI setup is complete."
     fi
 }

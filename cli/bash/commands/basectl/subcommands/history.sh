@@ -58,7 +58,7 @@ base_history_subcommand_main() {
             --project|--command|--status|--limit|--format|--last|--since|--until)
                 [[ -n "${2:-}" ]] || {
                     base_history_subcommand_usage >&2
-                    print_error "Option '$1' requires an argument."
+                    base_std_print_error "Option '$1' requires an argument."
                     return 2
                 }
                 args+=("$1" "$2")
@@ -75,6 +75,6 @@ base_history_subcommand_main() {
         esac
     done
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     BASE_CLI_DISPLAY_COMMAND="basectl history" "$wrapper" --project base base_history "${args[@]}"
 }

@@ -274,13 +274,13 @@ basectl_runtime_base_home() {
 }
 
 basectl_enable_debug_logging() {
-    set_log_level DEBUG
-    export LOG_DEBUG=1
+    base_std_set_log_level DEBUG
+    export BASE_BASH_LIBS_LOG_DEBUG=1
 }
 
 basectl_source_subcommand_module() {
     local module_name="$1"
-    local subcommand_script="$__SCRIPT_DIR__/subcommands/${module_name}.sh"
+    local subcommand_script="$BASE_BASH_COMMANDS_DIR/basectl/subcommands/${module_name}.sh"
 
     [[ -f "$subcommand_script" ]] || {
         basectl_error "Subcommand module '$subcommand_script' was not found."
@@ -614,7 +614,7 @@ basectl_initialize_run_bundle() {
             BASE_CLI_RUN_ID="${BASE_CLI_RUN_ID%%__*}"
             export BASE_CLI_RUN_ID
         fi
-        export BASE_CLI_PRIMARY_LOG="${BASE_CLI_PRIMARY_LOG:-$BASE_CLI_RUN_ROOT/logs/primary.log}"
+        export BASE_BASH_LIBS_PRIMARY_LOG="${BASE_BASH_LIBS_PRIMARY_LOG:-$BASE_CLI_RUN_ROOT/logs/primary.log}"
         export BASE_CLI_HISTORY_PARENT_RUN_ID="${BASE_CLI_HISTORY_PARENT_RUN_ID:-$BASE_CLI_RUN_ID}"
         return 0
     fi
@@ -631,12 +631,12 @@ basectl_initialize_run_bundle() {
     export BASE_CLI_RUNTIME_OWNER=base
     export BASE_CLI_RUN_ID="$run_id"
     export BASE_CLI_RUN_ROOT="$run_root"
-    export BASE_CLI_PRIMARY_LOG="$run_root/logs/primary.log"
+    export BASE_BASH_LIBS_PRIMARY_LOG="$run_root/logs/primary.log"
     export BASE_CLI_HISTORY_PARENT_RUN_ID="$run_id"
     printf '{"run_id":"%s","owner":"base","status":"running","started_at":"%s"}\n' \
         "$run_id" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)" >"$run_root/run.json"
-    : >"$BASE_CLI_PRIMARY_LOG"
-    chmod 600 "$run_root/run.json" "$BASE_CLI_PRIMARY_LOG" || {
+    : >"$BASE_BASH_LIBS_PRIMARY_LOG"
+    chmod 600 "$run_root/run.json" "$BASE_BASH_LIBS_PRIMARY_LOG" || {
         basectl_error "Unable to secure Base run bundle '$run_root'. Check file permissions."
         return 1
     }
@@ -653,7 +653,7 @@ basectl_finalize_run_bundle() {
         "$([[ "$exit_code" == 0 ]] && printf ok || printf error)" "$exit_code" \
         "${BASE_CLI_HISTORY_STARTED_AT:-}" \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)" >"$tmp_file" && mv -f "$tmp_file" "$run_root/run.json"
-    chmod 600 "$run_root/run.json" "${BASE_CLI_PRIMARY_LOG:-$run_root/logs/primary.log}" || return 1
+    chmod 600 "$run_root/run.json" "${BASE_BASH_LIBS_PRIMARY_LOG:-$run_root/logs/primary.log}" || return 1
     if [[ "${BASE_CLI_KEEP_TEMP:-}" != true ]]; then
         rm -rf -- "$run_root/tmp"
     fi
@@ -797,7 +797,7 @@ basectl_main() {
     BASE_CLI_HISTORY_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)"
     export BASE_CLI_HISTORY_STARTED_AT
     ((base_debug)) && basectl_enable_debug_logging
-    log_debug "Running basectl command '${command:-<none>}' with args: $*"
+    base_std_log_debug "Running basectl command '${command:-<none>}' with args: $*"
 
     case "$command" in
         activate)         basectl_do_activate "$@"; command_status=$? ;;

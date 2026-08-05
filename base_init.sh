@@ -18,18 +18,18 @@
 #     - export the BASE_* paths that downstream scripts may rely on
 #     - export BASE_OS, BASE_PLATFORM, BASE_HOST_ENV, and BASE_HOST runtime metadata
 #     - resolve and source the reusable Bash standard library
-#     - require a compatible 1.x base-bash-libs release line
+#     - require a base-bash-libs release with the v2 `base_` API surface
 #     - add BASE_BIN_DIR to PATH
 #     - provide import_base_lib for convention-based Base Bash library imports
 #
 # Downstream scripts should not rediscover Base's directory layout on their own.
-# They should use the exported BASE_* variables and import libraries with:
+# They should use the exported BASE_* variables and import Base Bash libraries with:
 #
 #     import_base_lib file/lib_file.sh
 #
-# import_base_lib loads reusable libraries from base-bash-libs. It reports
-# missing or invalid libraries through Base stdlib error handling and fails
-# immediately, so callers do not need duplicate checks.
+# import_base_lib delegates to the v2 package importer. It reports missing or
+# invalid libraries through Base stdlib error handling and fails immediately,
+# so callers do not need duplicate checks.
 #
 
 [[ -n "${_base_init_sourced:-}" ]] && return 0
@@ -277,6 +277,8 @@ base_init_export_contract() {
 
 base_init_source_stdlib() {
     local stdlib_path="$BASE_BASH_LIBS_DIR/std/lib_std.sh"
+    local runtime_source
+    local -a runtime_args=()
 
     [[ -f "$stdlib_path" ]] || {
         base_init_error "Base Bash stdlib '$stdlib_path' was not found."
@@ -285,17 +287,29 @@ base_init_source_stdlib() {
 
     # shellcheck source=/dev/null
     source "$stdlib_path"
+
+    runtime_source="${BASE_BASH_LIBS_BOOTSTRAP_SOURCE:-${BASE_BASH_COMMAND_SCRIPT:-$BASE_HOME/base_init.sh}}"
+    base_init runtime_args --source "$runtime_source" -- "$@" || {
+        base_init_error "Unable to initialize the base-bash-libs runtime state."
+        return 1
+    }
 }
 
 base_init_require_bash_libs_version() {
     local loaded_version="${BASE_BASH_LIBS_VERSION:-}"
 
     case "$loaded_version" in
-        1.*)
-            base_bash_libs_require_version 1.3.0
+        1.*|2.*)
+            # The v2 namespace landed before the coordinated v2 release. Keep
+            # the source checkout usable while the release train is completed;
+            # the final cutover will raise this floor to 2.0.0.
+            if ! base_require_version 1.4.0; then
+                base_init_error "Base requires base-bash-libs 1.4.0 or newer; loaded version is '$loaded_version'."
+                return 1
+            fi
             ;;
         *)
-            base_init_error "Base requires base-bash-libs 1.3.0 or a compatible later 1.x release; loaded version is '$loaded_version'."
+            base_init_error "Base requires base-bash-libs 1.4.0 or a compatible release with the v2 API; loaded version is '$loaded_version'."
             return 1
             ;;
     esac
@@ -316,21 +330,25 @@ base_init_source_command_protocol() {
 import_base_lib() {
     local relative_path="${1:-}"
     local lib_path
+    local lib_path
 
-    [[ -n "$relative_path" ]] || fatal_error "import_base_lib: no library path provided."
-    [[ "$relative_path" != /* ]] || fatal_error "import_base_lib: expected a path relative to '$BASE_BASH_LIBS_DIR', got '$relative_path'."
+    [[ -n "$relative_path" ]] || base_std_fatal_error "import_base_lib: no library path provided."
+    [[ "$relative_path" != /* ]] || base_std_fatal_error "import_base_lib: expected a path relative to '$BASE_BASH_LIBS_DIR', got '$relative_path'."
 
     case "$relative_path" in
         ..|../*|*/..|*/../*)
-            fatal_error "import_base_lib: refusing path outside Base Bash library root: '$relative_path'."
+            base_std_fatal_error "import_base_lib: refusing path outside Base Bash library root: '$relative_path'."
             ;;
-    esac
+        esac
 
     lib_path="$BASE_BASH_LIBS_DIR/$relative_path"
-    [[ -f "$lib_path" ]] || fatal_error "Base reusable library '$relative_path' was not found at '$lib_path'."
+    [[ -f "$lib_path" ]] || {
+        base_init_error "Base reusable library '$relative_path' was not found at '$lib_path'."
+        return 1
+    }
 
-    # shellcheck source=/dev/null
-    source "$lib_path" || fatal_error "Failed to import Base library '$lib_path'."
+    base_std_import "$relative_path" ||
+        base_std_fatal_error "Failed to import Base library '$relative_path'."
 }
 
 base_init_main() {
@@ -340,7 +358,7 @@ base_init_main() {
     base_init_require_bash_libs_version || return 1
     base_init_source_command_protocol || return 1
 
-    add_to_path -p "$BASE_BIN_DIR"
+    base_std_add_to_path -p "$BASE_BIN_DIR"
     export PATH
 }
 

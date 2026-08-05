@@ -155,20 +155,20 @@ base_gh_format_unix_date() {
 base_gh_worktree_path_for_branch() {
     local branch="$1"
 
-    git_worktree_path_for_branch "$branch"
+    base_git_worktree_path_for_branch "$branch"
 }
 
 base_gh_branch_upstream() {
     local branch="$1"
 
-    git_branch_upstream . "$branch"
+    base_git_branch_upstream . "$branch"
 }
 
 base_gh_branch_merged_to_ref() {
     local branch="$1"
     local ref="$2"
 
-    git_branch_merged_to_ref . "$branch" "$ref"
+    base_git_branch_merged_to_ref . "$branch" "$ref"
 }
 
 base_gh_prune_github_ready() {
@@ -234,7 +234,7 @@ base_gh_branch_delete() {
 }
 
 base_gh_list_remote_branches() {
-    git_list_remote_branches .
+    base_git_list_remote_branches .
 }
 
 base_gh_branch_delete_remote() {
@@ -501,7 +501,7 @@ base_gh_resolve_physical_path() {
 }
 
 base_gh_list_worktree_branches() {
-    git_list_worktree_branches .
+    base_git_list_worktree_branches .
 }
 
 base_gh_worktree_dirty() {

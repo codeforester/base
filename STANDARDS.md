@@ -204,9 +204,9 @@ source-fragment graph.
    into Base-owned executable shell files.
 2. Do not rely on implicit shell exit behavior for control flow.
 3. Prefer explicit error handling using helper functions such as:
-   - `run`
-   - `exit_if_error`
-   - `fatal_error`
+   - `base_std_run`
+   - `base_std_exit_if_error`
+   - `base_std_fatal_error`
 4. When a command may fail as part of normal flow, handle that failure with
    `if`, `case`, `||`, or an explicit return-code check.
 5. A script should make its error-handling strategy obvious to the reader.

@@ -193,7 +193,7 @@ EOF
 #!/usr/bin/env bash
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "activation-sources" && "${4:-}" == "demo" ]]; then
     printf 'startup-run-root=%s\n' "${BASE_CLI_RUN_ROOT:-unset}" >&2
-    printf 'startup-primary-log=%s\n' "${BASE_CLI_PRIMARY_LOG:-unset}" >&2
+    printf 'startup-primary-log=%s\n' "${BASE_BASH_LIBS_PRIMARY_LOG:-unset}" >&2
     printf 'startup-history-scope=%s\n' "${BASE_CLI_HISTORY_SCOPE:-unset}" >&2
     base_test_protocol_begin activation-source 0
     base_test_protocol_end
@@ -226,7 +226,7 @@ EOF
         BASE_CLI_RUNTIME_OWNER=base \
         BASE_CLI_RUN_ID=activation-run-id \
         BASE_CLI_RUN_ROOT="$activation_run_root" \
-        BASE_CLI_PRIMARY_LOG="$activation_log" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$activation_log" \
         BASE_CLI_KEEP_TEMP=true \
         BASE_CLI_HISTORY_PARENT_RUN_ID=activation-run-id \
         BASE_CLI_HISTORY_STARTED_AT=2026-07-20T00:00:00Z \
@@ -243,7 +243,7 @@ EOF
                 BASE_CLI_RUNTIME_OWNER \
                 BASE_CLI_RUN_ID \
                 BASE_CLI_RUN_ROOT \
-                BASE_CLI_PRIMARY_LOG \
+                BASE_BASH_LIBS_PRIMARY_LOG \
                 BASE_CLI_HISTORY_PARENT_RUN_ID \
                 BASE_CLI_HISTORY_STARTED_AT \
                 BASE_CLI_HISTORY_SCOPE \
@@ -277,7 +277,7 @@ EOF
         BASE_CLI_RUNTIME_OWNER \
         BASE_CLI_RUN_ID \
         BASE_CLI_RUN_ROOT \
-        BASE_CLI_PRIMARY_LOG \
+        BASE_BASH_LIBS_PRIMARY_LOG \
         BASE_CLI_HISTORY_PARENT_RUN_ID \
         BASE_CLI_HISTORY_STARTED_AT \
         BASE_CLI_HISTORY_SCOPE \
@@ -347,7 +347,7 @@ EOF
         BASE_CLI_RUNTIME_OWNER=base \
         BASE_CLI_RUN_ID=failed-activation-run-id \
         BASE_CLI_RUN_ROOT="$activation_run_root" \
-        BASE_CLI_PRIMARY_LOG="$activation_log" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$activation_log" \
         BASE_CLI_HISTORY_PARENT_RUN_ID=failed-activation-run-id \
         BASE_CLI_HISTORY_STARTED_AT=2026-07-20T00:00:00Z \
         BASE_CLI_HISTORY_SCOPE=internal \

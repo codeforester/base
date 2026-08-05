@@ -47,7 +47,7 @@ EOF
 }
 
 base_update_usage_error() {
-    print_error "$*"
+    base_std_print_error "$*"
     base_update_subcommand_usage >&2
     return 2
 }
@@ -302,9 +302,9 @@ base_update_report_homebrew_trust_required() {
     tap="$(base_update_homebrew_tap)"
     bash_libs_package="$(base_update_homebrew_bash_libs_package)"
 
-    log_error "Homebrew requires trust for '$tap' before upgrading Base's tap-owned Bash library dependency."
-    log_error "Run 'brew trust $tap', then rerun 'basectl update'."
-    log_error "To trust only the dependency formula instead, run 'brew trust --formula $bash_libs_package'."
+    base_std_log_error "Homebrew requires trust for '$tap' before upgrading Base's tap-owned Bash library dependency."
+    base_std_log_error "Run 'brew trust $tap', then rerun 'basectl update'."
+    base_std_log_error "To trust only the dependency formula instead, run 'brew trust --formula $bash_libs_package'."
 }
 
 base_update_run_homebrew_setup() {
@@ -313,7 +313,7 @@ base_update_run_homebrew_setup() {
     local basectl
 
     basectl="$(base_update_homebrew_basectl "$base_home" "$package")" || {
-        log_error "Unable to locate Homebrew-managed basectl after upgrade."
+        base_std_log_error "Unable to locate Homebrew-managed basectl after upgrade."
         return 1
     }
 
@@ -347,16 +347,16 @@ base_update_homebrew_install() {
     local package
 
     package="$(base_update_homebrew_package)"
-    log_info "Detected Homebrew-managed Base install at '$base_home'."
+    base_std_log_info "Detected Homebrew-managed Base install at '$base_home'."
 
     if ((dry_run)); then
-        log_info "[DRY-RUN] Would run: brew upgrade $package"
-        log_info "[DRY-RUN] Would run 'basectl setup' if the Homebrew upgrade changes Base's installed version, with inherited Base environment cleared."
+        base_std_log_info "[DRY-RUN] Would run: brew upgrade $package"
+        base_std_log_info "[DRY-RUN] Would run 'basectl setup' if the Homebrew upgrade changes Base's installed version, with inherited Base environment cleared."
         return 0
     fi
 
     if ! command -v brew >/dev/null 2>&1; then
-        log_error "Homebrew-managed Base install detected, but 'brew' is not available in PATH."
+        base_std_log_error "Homebrew-managed Base install detected, but 'brew' is not available in PATH."
         return 1
     fi
 
@@ -366,33 +366,33 @@ base_update_homebrew_install() {
     fi
 
     before_version="$(base_update_homebrew_installed_version "$package")" || {
-        log_error "Unable to determine installed Homebrew version for $package before upgrade."
+        base_std_log_error "Unable to determine installed Homebrew version for $package before upgrade."
         return 1
     }
 
-    log_info "Running Homebrew upgrade for $package."
+    base_std_log_info "Running Homebrew upgrade for $package."
     base_update_run_homebrew_upgrade "$package"
     exit_code=$?
     if ((exit_code != 0)); then
-        log_error "Homebrew upgrade failed. If Homebrew refused to load '$package' or '$(base_update_homebrew_bash_libs_package)' from an untrusted tap, run 'brew trust $(base_update_homebrew_tap)' and retry."
+        base_std_log_error "Homebrew upgrade failed. If Homebrew refused to load '$package' or '$(base_update_homebrew_bash_libs_package)' from an untrusted tap, run 'brew trust $(base_update_homebrew_tap)' and retry."
         return "$exit_code"
     fi
 
     after_version="$(base_update_homebrew_installed_version "$package")" || {
-        log_error "Unable to determine installed Homebrew version for $package after upgrade."
+        base_std_log_error "Unable to determine installed Homebrew version for $package after upgrade."
         return 1
     }
 
     if [[ "$before_version" == "$after_version" ]]; then
-        log_info "Homebrew Base version is unchanged at '$after_version' after upgrade."
-        log_info "Skipping basectl setup because the Homebrew Base version did not change."
+        base_std_log_info "Homebrew Base version is unchanged at '$after_version' after upgrade."
+        base_std_log_info "Skipping basectl setup because the Homebrew Base version did not change."
     else
-        log_info "Homebrew Base version changed from '$before_version' to '$after_version'."
-        log_info "Running basectl setup after Homebrew upgrade."
+        base_std_log_info "Homebrew Base version changed from '$before_version' to '$after_version'."
+        base_std_log_info "Running basectl setup after Homebrew upgrade."
         base_update_run_homebrew_setup "$base_home" "$package" || return $?
     fi
 
-    log_info "Base update is complete."
+    base_std_log_info "Base update is complete."
 }
 
 base_update_current_branch() {
@@ -461,7 +461,7 @@ base_update_resolve_project() {
         resolved_manifest="$base_home/base_manifest.yaml"
     else
         [[ -x "$wrapper" ]] || {
-            log_error "Base Python wrapper '$wrapper' is missing or is not executable."
+            base_std_log_error "Base Python wrapper '$wrapper' is missing or is not executable."
             return 1
         }
 
@@ -471,7 +471,7 @@ base_update_resolve_project() {
         resolved_root="${BASE_COMMAND_PROTOCOL_FIELDS[project_root]}"
         resolved_manifest="${BASE_COMMAND_PROTOCOL_FIELDS[manifest_path]}"
         [[ "$resolved_name" == "$project" && -n "$resolved_root" && -n "$resolved_manifest" ]] || {
-            log_error "Unable to resolve Base project '$project'."
+            base_std_log_error "Unable to resolve Base project '$project'."
             return 1
         }
     fi
@@ -529,64 +529,64 @@ base_update_subcommand_main() {
 
     base_update_resolve_project "$base_home" "$project" resolved_project repo manifest_path || return $?
     [[ -n "$resolved_project" && -n "$repo" && -n "$manifest_path" ]] || {
-        log_error "Unable to resolve Base project '$project'."
+        base_std_log_error "Unable to resolve Base project '$project'."
         return 1
     }
 
-    log_debug "Running 'basectl update' for project '$resolved_project'."
+    base_std_log_debug "Running 'basectl update' for project '$resolved_project'."
 
     branch="$(base_update_current_branch "$repo")" || {
         if [[ "$resolved_project" == base ]] && base_update_is_homebrew_install "$base_home"; then
             base_update_homebrew_install "$base_home" "$dry_run"
             return $?
         fi
-        log_error "Project '$resolved_project' repository '$repo' is not a Git repository."
+        base_std_log_error "Project '$resolved_project' repository '$repo' is not a Git repository."
         return 1
     }
     update_branch="$(base_update_default_branch "$repo")" || {
-        log_error "Unable to determine the default branch for project '$resolved_project'."
+        base_std_log_error "Unable to determine the default branch for project '$resolved_project'."
         return 1
     }
     if [[ "$branch" != "$update_branch" ]]; then
-        log_error "Project '$resolved_project' update only runs on default branch '$update_branch'; current branch is '$branch'."
+        base_std_log_error "Project '$resolved_project' update only runs on default branch '$update_branch'; current branch is '$branch'."
         return 1
     fi
 
     if ! base_update_worktree_clean "$repo"; then
-        log_error "Project '$resolved_project' repository has tracked local changes. Commit, stash, or remove them before running basectl update."
+        base_std_log_error "Project '$resolved_project' repository has tracked local changes. Commit, stash, or remove them before running basectl update."
         return 1
     fi
     if base_update_has_untracked_files "$repo"; then
-        log_warn "Project '$resolved_project' repository has untracked files. Continuing because tracked files are clean."
+        base_std_log_warn "Project '$resolved_project' repository has untracked files. Continuing because tracked files are clean."
     fi
 
     if ((dry_run)); then
-        log_info "[DRY-RUN] Would update project '$resolved_project' repository at '$repo'."
-        log_info "[DRY-RUN] Would run 'basectl setup $resolved_project' if the Git update changes the repository."
+        base_std_log_info "[DRY-RUN] Would update project '$resolved_project' repository at '$repo'."
+        base_std_log_info "[DRY-RUN] Would run 'basectl setup $resolved_project' if the Git update changes the repository."
         return 0
     fi
 
     base_update_source_git_library || return 1
     before_revision="$(base_update_head_revision "$repo")" || {
-        log_error "Unable to read current revision for project '$resolved_project'."
+        base_std_log_error "Unable to read current revision for project '$resolved_project'."
         return 1
     }
 
-    log_info "Updating project '$resolved_project' repository at '$repo'."
-    git_update_repo "$repo" "" "$update_branch" || return 1
+    base_std_log_info "Updating project '$resolved_project' repository at '$repo'."
+    base_git_update_repo "$repo" "" "$update_branch" || return 1
     after_revision="$(base_update_head_revision "$repo")" || {
-        log_error "Unable to read updated revision for project '$resolved_project'."
+        base_std_log_error "Unable to read updated revision for project '$resolved_project'."
         return 1
     }
 
     if [[ "$before_revision" == "$after_revision" ]]; then
-        log_info "Project '$resolved_project' repository is already up to date on '$update_branch' at '$after_revision'."
-        log_info "Skipping basectl setup $resolved_project because the repository did not change."
+        base_std_log_info "Project '$resolved_project' repository is already up to date on '$update_branch' at '$after_revision'."
+        base_std_log_info "Skipping basectl setup $resolved_project because the repository did not change."
     else
-        log_info "Project '$resolved_project' repository updated from '$before_revision' to '$after_revision' on '$update_branch'."
-        log_info "Running basectl setup $resolved_project after update."
+        base_std_log_info "Project '$resolved_project' repository updated from '$before_revision' to '$after_revision' on '$update_branch'."
+        base_std_log_info "Running basectl setup $resolved_project after update."
         base_update_run_setup "$base_home" "$resolved_project" || return $?
     fi
 
-    log_info "Project '$resolved_project' update is complete."
+    base_std_log_info "Project '$resolved_project' update is complete."
 }

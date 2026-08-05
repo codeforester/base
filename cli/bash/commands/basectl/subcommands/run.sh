@@ -32,7 +32,7 @@ EOF
 
 base_run_usage_error() {
     base_run_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -66,7 +66,7 @@ base_run_list_commands() {
     local list_output
     local printed_header=0
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     if [[ -n "$explicit_project" ]]; then
         command_args+=(--project "$explicit_project")
     elif [[ -n "$project" ]]; then
@@ -203,7 +203,7 @@ base_run_subcommand_main() {
     fi
 
     wrapper="$BASE_HOME/bin/base-wrapper"
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     local command_args=(run-command)
     if [[ -n "$explicit_project" ]]; then
@@ -214,7 +214,7 @@ base_run_subcommand_main() {
     fi
     resolve_output="$("$wrapper" --project base base_projects "${command_args[@]}" "${args[@]}" --format command-protocol)" || return $?
     base_command_protocol_decode_one project-command "$resolve_output" || {
-        fatal_error "Unable to resolve command '$command_name' for project '${explicit_project:-current project}'."
+        base_std_fatal_error "Unable to resolve command '$command_name' for project '${explicit_project:-current project}'."
     }
     resolved_name="${BASE_COMMAND_PROTOCOL_FIELDS[project_name]}"
     project_root="${BASE_COMMAND_PROTOCOL_FIELDS[project_root]}"
@@ -227,7 +227,7 @@ base_run_subcommand_main() {
     command_runner="${BASE_COMMAND_PROTOCOL_FIELDS[runner]}"
 
     [[ -n "$resolved_name" && -n "$project_root" && -n "$manifest_path" && -n "$run_command" ]] || {
-        fatal_error "Unable to resolve command '$command_name' for project '${explicit_project:-current project}'."
+        base_std_fatal_error "Unable to resolve command '$command_name' for project '${explicit_project:-current project}'."
     }
 
     command_runner="${command_runner:-}"
@@ -244,7 +244,7 @@ base_run_subcommand_main() {
     base_project_activate_environment \
         "$resolved_name" "$project_root" "$manifest_path" "$dry_run" "$route_venv_dir" "$uses_uv_manager" >/dev/null
 
-    log_info "Running command '$command_name' for project '$resolved_name': $display_command"
+    base_std_log_info "Running command '$command_name' for project '$resolved_name': $display_command"
     base_validate_command_runner "$command_runner"
     base_project_run_shell_command "$project_root" "$command_to_run" basectl-run "${extra_args[@]}"
 }

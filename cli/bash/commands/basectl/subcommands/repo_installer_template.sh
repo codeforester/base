@@ -29,7 +29,7 @@ EOF
 
 base_repo_installer_template_path() {
     [[ -n "${BASE_HOME:-}" ]] || {
-        log_error "BASE_HOME is required to locate the project installer template."
+        base_std_log_error "BASE_HOME is required to locate the project installer template."
         return 1
     }
 
@@ -41,7 +41,7 @@ base_repo_print_installer_template() {
 
     template="$(base_repo_installer_template_path)" || return 1
     [[ -f "$template" ]] || {
-        log_error "Project installer template was not found at '$template'."
+        base_std_log_error "Project installer template was not found at '$template'."
         return 1
     }
 
@@ -55,7 +55,7 @@ base_repo_write_installer_template() {
 
     template="$(base_repo_installer_template_path)" || return 1
     [[ -f "$template" ]] || {
-        log_error "Project installer template was not found at '$template'."
+        base_std_log_error "Project installer template was not found at '$template'."
         return 1
     }
 
@@ -116,8 +116,8 @@ base_repo_finish_installer_template_pr() {
         return $?
     fi
 
-    std_make_temp_file body_file base-repo-installer-template-pr || {
-        log_error "Failed to create a temporary pull request body file."
+    base_std_make_temp_file body_file base-repo-installer-template-pr || {
+        base_std_log_error "Failed to create a temporary pull request body file."
         return 1
     }
     base_repo_create_installer_template_pr_body "$target_path" "$repo" "$issue" "$category" > "$body_file"
@@ -220,8 +220,8 @@ base_repo_installer_template() {
                 shift
                 ;;
             -v)
-                set_log_level DEBUG
-                export LOG_DEBUG=1
+                base_std_set_log_level DEBUG
+                export BASE_BASH_LIBS_LOG_DEBUG=1
                 shift
                 ;;
             -*)
@@ -290,7 +290,7 @@ base_repo_installer_template() {
         else
             base_repo_require_pr_worktree "$root" "repo installer-template --pr" || return 1
             rel_path="$(base_repo_relative_path_under_root "$root" "$path")" || {
-                log_error "repo installer-template --pr expects path to be inside '$root'."
+                base_std_log_error "repo installer-template --pr expects path to be inside '$root'."
                 return 1
             }
             issue_category="$(base_repo_pr_issue_category "$github_repo" "$issue")" || return 1
@@ -301,7 +301,7 @@ base_repo_installer_template() {
             pr_category="$issue_category"
         fi
         pr_branch="$(base_repo_pr_branch_name "$pr_category" "$issue" "installer-template" "$repo_name")" || {
-            log_error "Unable to generate the canonical issue branch for repo installer-template --pr."
+            base_std_log_error "Unable to generate the canonical issue branch for repo installer-template --pr."
             return 1
         }
         if [[ "$dry_run" == "1" ]]; then

@@ -131,11 +131,11 @@ assert_status() {
         BASE_HOME="$fake_base" \
         BASE_REPO_ROOT="$BASE_REPO_ROOT" \
         bash -c '
-            log_debug() { :; }
-            log_error() { printf "ERROR: %s\n" "$*"; }
-            log_info() { printf "INFO: %s\n" "$*"; }
-            log_warn() { printf "WARN: %s\n" "$*"; }
-            print_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_debug() { :; }
+            base_std_log_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_info() { printf "INFO: %s\n" "$*"; }
+            base_std_log_warn() { printf "WARN: %s\n" "$*"; }
+            base_std_print_error() { printf "ERROR: %s\n" "$*"; }
             source "$BASE_REPO_ROOT/cli/bash/commands/basectl/subcommands/update.sh"
             base_update_run_homebrew_upgrade() { printf "brew should not run\n"; return 99; }
             base_update_run_homebrew_setup() { printf "setup should not run\n"; return 99; }
@@ -183,11 +183,11 @@ EOF
         BASE_REPO_ROOT="$BASE_REPO_ROOT" \
         PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
         bash -c '
-            log_debug() { :; }
-            log_error() { printf "ERROR: %s\n" "$*"; }
-            log_info() { printf "INFO: %s\n" "$*"; }
-            log_warn() { printf "WARN: %s\n" "$*"; }
-            print_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_debug() { :; }
+            base_std_log_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_info() { printf "INFO: %s\n" "$*"; }
+            base_std_log_warn() { printf "WARN: %s\n" "$*"; }
+            base_std_print_error() { printf "ERROR: %s\n" "$*"; }
             source "$BASE_REPO_ROOT/cli/bash/commands/basectl/subcommands/update.sh"
             base_update_subcommand_main
         '
@@ -258,11 +258,11 @@ EOF
         BASE_HOME="$BASE_REPO_ROOT" \
         PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
         bash -c '
-            log_debug() { :; }
-            log_error() { printf "ERROR: %s\n" "$*"; }
-            log_info() { printf "INFO: %s\n" "$*"; }
-            log_warn() { printf "WARN: %s\n" "$*"; }
-            print_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_debug() { :; }
+            base_std_log_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_info() { printf "INFO: %s\n" "$*"; }
+            base_std_log_warn() { printf "WARN: %s\n" "$*"; }
+            base_std_print_error() { printf "ERROR: %s\n" "$*"; }
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/update.sh"
             base_update_homebrew_prefix base
@@ -316,11 +316,11 @@ EOF
         BASE_REPO_ROOT="$BASE_REPO_ROOT" \
         PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
         bash -c '
-            log_debug() { :; }
-            log_error() { printf "ERROR: %s\n" "$*"; }
-            log_info() { printf "INFO: %s\n" "$*"; }
-            log_warn() { printf "WARN: %s\n" "$*"; }
-            print_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_debug() { :; }
+            base_std_log_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_info() { printf "INFO: %s\n" "$*"; }
+            base_std_log_warn() { printf "WARN: %s\n" "$*"; }
+            base_std_print_error() { printf "ERROR: %s\n" "$*"; }
             source "$BASE_REPO_ROOT/cli/bash/commands/basectl/subcommands/update.sh"
             base_update_subcommand_main
         '
@@ -366,11 +366,11 @@ EOF
         BASE_REPO_ROOT="$BASE_REPO_ROOT" \
         PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
         bash -c '
-            log_debug() { :; }
-            log_error() { printf "ERROR: %s\n" "$*"; }
-            log_info() { printf "INFO: %s\n" "$*"; }
-            log_warn() { printf "WARN: %s\n" "$*"; }
-            print_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_debug() { :; }
+            base_std_log_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_info() { printf "INFO: %s\n" "$*"; }
+            base_std_log_warn() { printf "WARN: %s\n" "$*"; }
+            base_std_print_error() { printf "ERROR: %s\n" "$*"; }
             source "$BASE_REPO_ROOT/cli/bash/commands/basectl/subcommands/update.sh"
             base_update_run_homebrew_setup() { printf "setup should not run\n"; return 99; }
             base_update_subcommand_main
@@ -433,11 +433,11 @@ EOF
         BASE_REPO_ROOT="$BASE_REPO_ROOT" \
         PATH="$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
         bash -c '
-            log_debug() { :; }
-            log_error() { printf "ERROR: %s\n" "$*"; }
-            log_info() { printf "INFO: %s\n" "$*"; }
-            log_warn() { printf "WARN: %s\n" "$*"; }
-            print_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_debug() { :; }
+            base_std_log_error() { printf "ERROR: %s\n" "$*"; }
+            base_std_log_info() { printf "INFO: %s\n" "$*"; }
+            base_std_log_warn() { printf "WARN: %s\n" "$*"; }
+            base_std_print_error() { printf "ERROR: %s\n" "$*"; }
             source "$BASE_REPO_ROOT/cli/bash/commands/basectl/subcommands/update.sh"
             base_update_subcommand_main
         '
@@ -458,7 +458,7 @@ EOF
             base_update_default_branch() { printf "%s\n" master; }
             base_update_worktree_clean() { return 1; }
             base_update_source_git_library() { printf "git library should not load\n"; return 99; }
-            git_update_repo() { printf "git update should not run\n"; return 99; }
+            base_git_update_repo() { printf "git update should not run\n"; return 99; }
             base_update_run_setup() { printf "setup should not run\n"; return 99; }
             base_update_subcommand_main
         '
@@ -492,7 +492,7 @@ EOF
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/update.sh"
             base_update_source_git_library() { :; }
-            git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
+            base_git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
             base_update_head_revision() {
                 if [[ -f "$BASE_TEST_AFTER_UPDATE" ]]; then
                     printf "%s\n" new5678
@@ -544,7 +544,7 @@ EOF
             base_update_worktree_clean() { return 0; }
             base_update_has_untracked_files() { return 1; }
             base_update_source_git_library() { :; }
-            git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
+            base_git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
             base_update_head_revision() { printf "%s\n" abc1234; }
             base_update_run_setup() { printf "setup should not run\n"; return 99; }
             base_update_subcommand_main
@@ -571,7 +571,7 @@ EOF
             base_update_worktree_clean() { return 0; }
             base_update_has_untracked_files() { return 1; }
             base_update_source_git_library() { :; }
-            git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
+            base_git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
             base_update_head_revision() {
                 if [[ -f "$BASE_TEST_AFTER_UPDATE" ]]; then
                     printf "%s\n" new5678
@@ -614,7 +614,7 @@ EOF
             base_update_worktree_clean() { return 0; }
             base_update_has_untracked_files() { return 1; }
             base_update_source_git_library() { :; }
-            git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
+            base_git_update_repo() { printf "git update repo=%s branch=%s\n" "$1" "$3"; }
             base_update_head_revision() {
                 if [[ -f "$BASE_TEST_AFTER_UPDATE" ]]; then
                     printf "%s\n" new5678

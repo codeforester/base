@@ -60,7 +60,7 @@ EOF
 }
 
 base_setup_usage_error() {
-    print_error "$*"
+    base_std_print_error "$*"
     printf "Run 'basectl setup --help' for usage.\n" >&2
     return 2
 }
@@ -72,7 +72,7 @@ base_setup_print_ci_json() {
     local python_bin
 
     python_bin="$(setup_diagnostics_python_bin)" ||
-        fatal_error "Python is required to render Base CI setup JSON."
+        base_std_fatal_error "Python is required to render Base CI setup JSON."
     setup_ensure_cached_paths
     env BASE_HOME="$BASE_HOME" PYTHONPATH="$_BASE_SETUP_PYTHONPATH_CACHE" \
         "$python_bin" -m base_setup.ci_json setup-json \
@@ -87,7 +87,7 @@ base_setup_run_text() {
 
     BASE_SETUP_START_TIME="$(setup_epoch_seconds)" || BASE_SETUP_START_TIME=0
     export BASE_SETUP_START_TIME
-    log_debug "Running 'basectl setup' (DRY_RUN=$(setup_is_dry_run && printf true || printf false))."
+    base_std_log_debug "Running 'basectl setup' (BASE_BASH_LIBS_DRY_RUN=$(setup_is_dry_run && printf true || printf false))."
     if setup_notifications_enabled; then
         trap 'setup_notify_completion "$?"' EXIT
     fi
@@ -107,8 +107,8 @@ base_setup_run_ci_json() {
     local exit_code
     local render_status
 
-    std_make_temp_file stdout_file base-ci-setup-stdout || return 1
-    std_make_temp_file stderr_file base-ci-setup-stderr || return 1
+    base_std_make_temp_file stdout_file base-ci-setup-stdout || return 1
+    base_std_make_temp_file stderr_file base-ci-setup-stderr || return 1
 
     base_setup_run_text > "$stdout_file" 2> "$stderr_file"
     exit_code=$?

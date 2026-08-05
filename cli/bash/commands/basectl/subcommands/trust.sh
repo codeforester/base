@@ -82,7 +82,7 @@ EOF
 
 base_trust_usage_error() {
     base_trust_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -130,7 +130,7 @@ base_trust_subcommand_main() {
         export BASE_CLI_HISTORY_PROJECT="$project_name"
     fi
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     BASE_TRUST_ACTIVE_PROJECT="${BASE_PROJECT:-}" \
         BASE_TRUST_ACTIVE_PROJECT_MANIFEST="${BASE_PROJECT_MANIFEST:-}" \
         BASE_CLI_DISPLAY_COMMAND="basectl trust" \

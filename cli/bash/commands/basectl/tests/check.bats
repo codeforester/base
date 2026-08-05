@@ -248,7 +248,7 @@ EOF
     create_base_venv_stub "$venv_dir"
 
     run_base_command \
-        DRY_RUN=true \
+        BASE_BASH_LIBS_DRY_RUN=true \
         BASE_SETUP_RECREATE_VENV=true \
         check
 

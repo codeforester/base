@@ -27,7 +27,7 @@ EOF
 
 base_export_context_usage_error() {
     base_export_context_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -57,7 +57,7 @@ base_export_context_subcommand_main() {
         esac
     done
 
-    if ! arg_parse parsed_options positionals option_specs -- "$@"; then
+    if ! base_arg_parse parsed_options positionals option_specs -- "$@"; then
         base_export_context_subcommand_usage >&2
         return 2
     fi
@@ -110,17 +110,17 @@ base_export_context_subcommand_main() {
     }
 
     wrapper="$BASE_HOME/bin/base-wrapper"
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     if [[ -n "$project" ]]; then
         resolve_output="$("$wrapper" --project base base_projects resolve "$project" "${resolve_args[@]}" --format command-protocol)" || return $?
         base_command_protocol_decode_one project-route "$resolve_output" || {
-            fatal_error "Unable to resolve project for export-context."
+            base_std_fatal_error "Unable to resolve project for export-context."
         }
     else
         resolve_output="$("$wrapper" --project base base_projects current --format command-protocol)" || return $?
         base_command_protocol_decode_one project-reference "$resolve_output" || {
-            fatal_error "Unable to resolve project for export-context."
+            base_std_fatal_error "Unable to resolve project for export-context."
         }
     fi
     resolved_name="${BASE_COMMAND_PROTOCOL_FIELDS[project_name]}"
@@ -129,7 +129,7 @@ base_export_context_subcommand_main() {
     base_project_set_history_context "$resolved_name" "$project_root" "$manifest_path"
 
     [[ -n "$resolved_name" && -n "$project_root" && -n "$manifest_path" ]] || {
-        fatal_error "Unable to resolve project for export-context."
+        base_std_fatal_error "Unable to resolve project for export-context."
     }
 
     exporter_args+=(

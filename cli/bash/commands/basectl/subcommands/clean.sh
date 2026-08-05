@@ -48,7 +48,7 @@ base_clean_subcommand_main() {
                     fi
                     [[ -n "${2:-}" ]] || {
                         base_clean_subcommand_usage >&2
-                        print_error "Option '$1' requires an argument."
+                        base_std_print_error "Option '$1' requires an argument."
                         return 2
                     }
                     args+=("$2")
@@ -76,10 +76,10 @@ base_clean_subcommand_main() {
 
     if (( ! has_older_than && ! has_keep_last )); then
         base_clean_subcommand_usage >&2
-        print_error "One of '--older-than' or '--keep-last' is required."
+        base_std_print_error "One of '--older-than' or '--keep-last' is required."
         return 2
     fi
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     "$wrapper" --project base base_clean "${args[@]}"
 }

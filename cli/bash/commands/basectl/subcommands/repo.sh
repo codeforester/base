@@ -222,7 +222,7 @@ base_repo_print_usage_error() {
     local help_command="$1"
     shift
 
-    print_error "$*"
+    base_std_print_error "$*"
     printf "Run '%s --help' for usage.\n" "$help_command" >&2
     return 2
 }
@@ -260,7 +260,7 @@ base_repo_load_installer_template() {
 
     module_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/repo_installer_template.sh" || return 1
     [[ -f "$module_path" ]] || {
-        log_error "repo installer-template helper was not found at '$module_path'."
+        base_std_log_error "repo installer-template helper was not found at '$module_path'."
         return 1
     }
     # shellcheck source=cli/bash/commands/basectl/subcommands/repo_installer_template.sh
@@ -276,7 +276,7 @@ base_repo_load_agent_guidance() {
 
     module_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/repo_agent_guidance.sh" || return 1
     [[ -f "$module_path" ]] || {
-        log_error "repo agent-guidance helper was not found at '$module_path'."
+        base_std_log_error "repo agent-guidance helper was not found at '$module_path'."
         return 1
     }
     # shellcheck source=cli/bash/commands/basectl/subcommands/repo_agent_guidance.sh
@@ -292,7 +292,7 @@ base_repo_load_github_settings() {
 
     module_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/repo_github_settings.sh" || return 1
     [[ -f "$module_path" ]] || {
-        log_error "repo GitHub settings helper was not found at '$module_path'."
+        base_std_log_error "repo GitHub settings helper was not found at '$module_path'."
         return 1
     }
     # shellcheck source=cli/bash/commands/basectl/subcommands/repo_github_settings.sh
@@ -367,7 +367,7 @@ base_repo_strip_config_value() {
     local value="$1"
 
     value="${value%%#*}"
-    str_trim value
+    base_str_trim value
 
     case "$value" in
         \"*\")
@@ -420,12 +420,12 @@ base_repo_configured_workspace_root() {
         if ((in_workspace)) && [[ "$line" =~ ^[[:space:]]+root:[[:space:]]*(.*)$ ]]; then
             value="$(base_repo_strip_config_value "${BASH_REMATCH[1]}")"
             [[ -n "$value" ]] || {
-                log_error "$config_path: workspace.root must be a non-empty path."
+                base_std_log_error "$config_path: workspace.root must be a non-empty path."
                 return 2
             }
             value="$(base_repo_expand_path "$value")"
             [[ "$value" = /* ]] || {
-                log_error "$config_path: workspace.root must be an absolute path or start with '~'."
+                base_std_log_error "$config_path: workspace.root must be an absolute path or start with '~'."
                 return 2
             }
             printf '%s\n' "$value"
@@ -459,7 +459,7 @@ base_repo_configured_github_value() {
         if ((in_github)) && [[ "$line" =~ ^[[:space:]]+${key}:[[:space:]]*(.*)$ ]]; then
             value="$(base_repo_strip_config_value "${BASH_REMATCH[1]}")"
             [[ -n "$value" ]] || {
-                log_error "$config_path: github.$key must be a non-empty value."
+                base_std_log_error "$config_path: github.$key must be a non-empty value."
                 return 2
             }
             printf '%s\n' "$value"
@@ -488,7 +488,7 @@ base_repo_default_workspace_root() {
     esac
 
     [[ -n "${BASE_HOME:-}" ]] || {
-        log_error "BASE_HOME is required to resolve the default repository path."
+        base_std_log_error "BASE_HOME is required to resolve the default repository path."
         return 1
     }
     cd -- "$BASE_HOME/.." && pwd -P
@@ -542,7 +542,7 @@ base_repo_clone_protocol() {
             printf '%s\n' "$protocol"
             ;;
         *)
-            log_error "$HOME/.base.d/config.yaml: github.clone_protocol must be 'ssh' or 'https'."
+            base_std_log_error "$HOME/.base.d/config.yaml: github.clone_protocol must be 'ssh' or 'https'."
             return 2
             ;;
     esac
@@ -581,7 +581,7 @@ base_repo_create_directory() {
         return 0
     fi
 
-    log_error "Failed to create parent directory '$target_dir'."
+    base_std_log_error "Failed to create parent directory '$target_dir'."
     return 1
 }
 
@@ -591,7 +591,7 @@ base_repo_write_stream() {
     local target_dir
 
     if [[ -e "$target" ]]; then
-        log_info "File already exists at '$target'; leaving it unchanged."
+        base_std_log_info "File already exists at '$target'; leaving it unchanged."
         return 0
     fi
 
@@ -603,7 +603,7 @@ base_repo_write_stream() {
     target_dir="$(dirname -- "$target")"
     base_repo_create_directory "$target_dir" || return 1
     if ! cat 2>/dev/null > "$target"; then
-        log_error "Failed to write '$target'."
+        base_std_log_error "Failed to write '$target'."
         return 1
     fi
     printf "Created '%s'.\n" "$target"
@@ -615,7 +615,7 @@ base_repo_write_executable_stream() {
     local target_dir
 
     if [[ -e "$target" ]]; then
-        log_info "File already exists at '$target'; leaving it unchanged."
+        base_std_log_info "File already exists at '$target'; leaving it unchanged."
         return 0
     fi
 
@@ -627,11 +627,11 @@ base_repo_write_executable_stream() {
     target_dir="$(dirname -- "$target")"
     base_repo_create_directory "$target_dir" || return 1
     if ! cat 2>/dev/null > "$target"; then
-        log_error "Failed to write '$target'."
+        base_std_log_error "Failed to write '$target'."
         return 1
     fi
     if ! chmod +x "$target" 2>/dev/null; then
-        log_error "Failed to make '$target' executable."
+        base_std_log_error "Failed to make '$target' executable."
         return 1
     fi
     printf "Created executable '%s'.\n" "$target"
@@ -828,12 +828,12 @@ base_repo_write_license() {
     case "$license_id" in
         AGPL-3.0-or-later)
             [[ -f "$source_license" ]] || {
-                log_error "Base AGPL license text '$source_license' was not found."
+                base_std_log_error "Base AGPL license text '$source_license' was not found."
                 return 1
             }
 
             canonical_license="$(base_repo_agpl_license_text "$source_license")" || {
-                log_error "Base AGPL license text '$source_license' did not contain the canonical AGPL terms."
+                base_std_log_error "Base AGPL license text '$source_license' did not contain the canonical AGPL terms."
                 return 1
             }
 
@@ -860,13 +860,13 @@ EOF
             ;;
         Apache-2.0)
             [[ -f "$license_template" ]] || {
-                log_error "Apache-2.0 license template '$license_template' was not found."
+                base_std_log_error "Apache-2.0 license template '$license_template' was not found."
                 return 1
             }
             base_repo_write_stream "$dry_run" "$root/LICENSE" < "$license_template"
             ;;
         *)
-            log_error "Unsupported repository license '$license_id'. Expected: $(base_repo_license_display)"
+            base_std_log_error "Unsupported repository license '$license_id'. Expected: $(base_repo_license_display)"
             return 1
             ;;
     esac
@@ -942,7 +942,7 @@ base_repo_write_release_manifest() {
     fi
 
     [[ -f "$manifest_path" ]] || {
-        log_error "Release standardization requires '$manifest_path'."
+        base_std_log_error "Release standardization requires '$manifest_path'."
         printf "       Run 'basectl repo init' first to create the Base repository baseline.\n" >&2
         return 1
     }
@@ -966,7 +966,7 @@ base_repo_write_release_manifest() {
         printf '    repository: %s\n' "$github_repo"
         printf '    release_title: "{repository} v{version}"\n'
     } >> "$manifest_path" || {
-        log_error "Unable to append release metadata to '$manifest_path'."
+        base_std_log_error "Unable to append release metadata to '$manifest_path'."
         return 1
     }
     printf "Created release metadata in '%s'.\n" "$manifest_path"
@@ -1042,7 +1042,7 @@ base_repo_configure_release() {
     local root="$3"
 
     [[ -n "$github_repo" ]] || {
-        log_error "Release standardization requires a GitHub repository."
+        base_std_log_error "Release standardization requires a GitHub repository."
         return 1
     }
     base_repo_write_release_manifest "$dry_run" "$github_repo" "$root" || return 1
@@ -1131,7 +1131,7 @@ EOF
 
 base_repo_project_intake_workflow_template_path() {
     [[ -n "${BASE_HOME:-}" ]] || {
-        log_error "BASE_HOME is required to locate the Project Intake workflow template."
+        base_std_log_error "BASE_HOME is required to locate the Project Intake workflow template."
         return 1
     }
 
@@ -1140,7 +1140,7 @@ base_repo_project_intake_workflow_template_path() {
 
 base_repo_issue_branch_policy_workflow_template_path() {
     [[ -n "${BASE_HOME:-}" ]] || {
-        log_error "BASE_HOME is required to locate the Issue Branch Policy workflow template."
+        base_std_log_error "BASE_HOME is required to locate the Issue Branch Policy workflow template."
         return 1
     }
 
@@ -1154,7 +1154,7 @@ base_repo_write_issue_branch_policy_workflow() {
 
     template="$(base_repo_issue_branch_policy_workflow_template_path)" || return 1
     [[ -f "$template" ]] || {
-        log_error "Issue Branch Policy workflow template was not found at '$template'."
+        base_std_log_error "Issue Branch Policy workflow template was not found at '$template'."
         return 1
     }
 
@@ -1168,7 +1168,7 @@ base_repo_write_project_intake_workflow() {
 
     template="$(base_repo_project_intake_workflow_template_path)" || return 1
     [[ -f "$template" ]] || {
-        log_error "Project Intake workflow template was not found at '$template'."
+        base_std_log_error "Project Intake workflow template was not found at '$template'."
         return 1
     }
 
@@ -1238,7 +1238,7 @@ base_repo_infer_github_repo() {
     local path="$1"
     local github_repo
 
-    gh_infer_repo_from_origin "$path" github_repo || return 1
+    base_gh_infer_repo_from_origin "$path" github_repo || return 1
 
     printf '%s\n' "$github_repo"
 }
@@ -1268,7 +1268,7 @@ base_repo_bootstrap_github_checkout() {
 
     if [[ ! -d "$root/.git" ]]; then
         git init -b main "$root" >/dev/null 2>&1 || {
-            log_error "Failed to initialize Git repository at '$root'."
+            base_std_log_error "Failed to initialize Git repository at '$root'."
             return 1
         }
     fi
@@ -1276,12 +1276,12 @@ base_repo_bootstrap_github_checkout() {
     if origin_url="$(git -C "$root" remote get-url origin 2>/dev/null)"; then
         origin_repo="$(base_repo_infer_github_repo "$root" 2>/dev/null || true)"
         if [[ "$origin_repo" != "$repo" ]]; then
-            log_error "New GitHub repository '$repo' cannot be bootstrapped because '$root' already has origin '$origin_url'. Remove or correct that origin, then retry."
+            base_std_log_error "New GitHub repository '$repo' cannot be bootstrapped because '$root' already has origin '$origin_url'. Remove or correct that origin, then retry."
             return 1
         fi
     else
         git -C "$root" remote add origin "$remote_url" || {
-            log_error "Failed to attach GitHub origin '$remote_url' to '$root'."
+            base_std_log_error "Failed to attach GitHub origin '$remote_url' to '$root'."
             return 1
         }
     fi
@@ -1290,7 +1290,7 @@ base_repo_bootstrap_github_checkout() {
     # intent-driven path can publish an extracted project as one coherent
     # initial commit. Existing remotes never reach this function.
     git -C "$root" add -A || {
-        log_error "Failed to stage the initial repository contents in '$root'."
+        base_std_log_error "Failed to stage the initial repository contents in '$root'."
         return 1
     }
 
@@ -1299,7 +1299,7 @@ base_repo_bootstrap_github_checkout() {
             branch="$(git -C "$root" branch --show-current)"
         else
             git -C "$root" checkout -b main >/dev/null 2>&1 || {
-                log_error "Failed to select the initial 'main' branch in '$root'."
+                base_std_log_error "Failed to select the initial 'main' branch in '$root'."
                 return 1
             }
             branch="main"
@@ -1307,16 +1307,16 @@ base_repo_bootstrap_github_checkout() {
     else
         if ! git -C "$root" rev-parse --verify HEAD >/dev/null 2>&1; then
             git -C "$root" checkout -b main >/dev/null 2>&1 || {
-                log_error "Failed to select the initial 'main' branch in '$root'."
+                base_std_log_error "Failed to select the initial 'main' branch in '$root'."
                 return 1
             }
             git -C "$root" commit -m "Initial repository commit" || {
-                log_error "Failed to create the initial repository commit."
+                base_std_log_error "Failed to create the initial repository commit."
                 return 1
             }
         else
             git -C "$root" commit -m "Add Base repository baseline" || {
-                log_error "Failed to commit the Base repository baseline."
+                base_std_log_error "Failed to commit the Base repository baseline."
                 return 1
             }
         fi
@@ -1324,19 +1324,19 @@ base_repo_bootstrap_github_checkout() {
     fi
 
     [[ -n "$branch" ]] || {
-        log_error "Unable to determine the branch to publish from '$root'."
+        base_std_log_error "Unable to determine the branch to publish from '$root'."
         return 1
     }
     git -C "$root" push -u origin "$branch" || {
-        log_error "Failed to push the initial repository branch '$branch' to origin."
+        base_std_log_error "Failed to push the initial repository branch '$branch' to origin."
         return 1
     }
-    log_info "Bootstrapped '$repo' from '$root' on branch '$branch'."
+    base_std_log_info "Bootstrapped '$repo' from '$root' on branch '$branch'."
 }
 
 base_repo_require_gh() {
-    gh_require_cli "GitHub CLI 'gh' is required for repository configuration." || return 1
-    gh_auth_status_diagnostics "Run 'gh auth login -h github.com' and retry."
+    base_gh_require_cli "GitHub CLI 'gh' is required for repository configuration." || return 1
+    base_gh_auth_status_diagnostics "Run 'gh auth login -h github.com' and retry."
 }
 
 base_repo_pretty_quote() {
@@ -1426,10 +1426,10 @@ base_repo_languages_csv() {
 
 base_repo_join_csv() {
     local joined=""
-    # shellcheck disable=SC2034 # Passed by name to str_join.
+    # shellcheck disable=SC2034 # Passed by name to base_str_join.
     local values=("$@")
 
-    str_join joined ", " values
+    base_str_join joined ", " values
     printf '%s' "$joined"
 }
 
@@ -1474,11 +1474,11 @@ base_repo_pr_issue_category() {
             printf '%s\n' "$category"
             ;;
         2)
-            log_error "GitHub issue #$issue in '$repo' must have exactly one category label: bug, enhancement, documentation, ci, or security."
+            base_std_log_error "GitHub issue #$issue in '$repo' must have exactly one category label: bug, enhancement, documentation, ci, or security."
             return 1
             ;;
         *)
-            log_error "Unable to determine the category label for GitHub issue #$issue in '$repo'."
+            base_std_log_error "Unable to determine the category label for GitHub issue #$issue in '$repo'."
             return 1
             ;;
     esac
@@ -1490,9 +1490,9 @@ base_repo_print_pr_worktree_root_hint() {
     local repository_root="$3"
 
     if [[ "$command_label" == "repo init --pr" ]]; then
-        log_error "repo init --pr expects --path to point at the repository root."
+        base_std_log_error "repo init --pr expects --path to point at the repository root."
     else
-        log_error "$command_label expects the target path to point at the repository root."
+        base_std_log_error "$command_label expects the target path to point at the repository root."
     fi
     printf "  Provided path: %s\n" "$provided_path" >&2
     printf "  Repository root: %s\n" "$repository_root" >&2
@@ -1545,12 +1545,12 @@ base_repo_require_pr_worktree() {
     local root="$1"
 
     [[ -d "$root" ]] || {
-        log_error "$command_label requires '$root' to be an existing Git worktree."
+        base_std_log_error "$command_label requires '$root' to be an existing Git worktree."
         return 1
     }
 
     git_root="$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)" || {
-        log_error "$command_label requires '$root' to be an existing Git worktree."
+        base_std_log_error "$command_label requires '$root' to be an existing Git worktree."
         return 1
     }
     git_root="$(cd -- "$git_root" && pwd -P)" || return 1
@@ -1563,7 +1563,7 @@ base_repo_require_pr_worktree() {
 
     dirty_status="$(git -C "$root" status --porcelain)"
     [[ -z "$dirty_status" ]] || {
-        log_error "$command_label requires a clean Git worktree at '$root'."
+        base_std_log_error "$command_label requires a clean Git worktree at '$root'."
         base_repo_print_pr_worktree_dirty_hint "$root" "$dirty_status"
         return 1
     }
@@ -1574,8 +1574,8 @@ base_repo_default_branch_for_pr() {
     local repo="$1"
 
     base_repo_require_gh || return 1
-    if ! gh_repo_default_branch "$repo" base_remote_default_branch; then
-        log_error "Unable to determine the default branch for GitHub repository '$repo'."
+    if ! base_gh_repo_default_branch "$repo" base_remote_default_branch; then
+        base_std_log_error "Unable to determine the default branch for GitHub repository '$repo'."
         return 1
     fi
 
@@ -1586,7 +1586,7 @@ base_repo_detect_default_branch() {
     local base_default_branch
     local root="$1"
 
-    if git_detect_default_branch "$root" base_default_branch; then
+    if base_git_detect_default_branch "$root" base_default_branch; then
         printf '%s\n' "$base_default_branch"
         return 0
     fi
@@ -1609,7 +1609,7 @@ base_repo_prepare_pr_branch() {
 
     if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
         git -C "$root" switch "$branch" || {
-            log_error "Failed to switch to branch '$branch'."
+            base_std_log_error "Failed to switch to branch '$branch'."
             return 1
         }
     else
@@ -1618,18 +1618,18 @@ base_repo_prepare_pr_branch() {
         elif git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$default_branch"; then
             start_point="origin/$default_branch"
         else
-            log_error "Unable to find default branch '$default_branch' in '$root'."
+            base_std_log_error "Unable to find default branch '$default_branch' in '$root'."
             return 1
         fi
 
         git -C "$root" switch -c "$branch" "$start_point" || {
-            log_error "Failed to create branch '$branch'."
+            base_std_log_error "Failed to create branch '$branch'."
             return 1
         }
     fi
 
     [[ -z "$(git -C "$root" status --porcelain)" ]] || {
-        log_error "$command_label requires branch '$branch' to have a clean Git worktree."
+        base_std_log_error "$command_label requires branch '$branch' to have a clean Git worktree."
         return 1
     }
 }
@@ -1646,12 +1646,12 @@ base_repo_stage_pr_files() {
     done
 
     ((${#files[@]})) || {
-        log_error "No $description exist to stage."
+        base_std_log_error "No $description exist to stage."
         return 1
     }
 
     git -C "$root" add -- "${files[@]}" || {
-        log_error "Failed to stage $description."
+        base_std_log_error "Failed to stage $description."
         return 1
     }
 }
@@ -1716,16 +1716,16 @@ base_repo_finish_generated_pr() {
 
     base_repo_stage_pr_files "$root" "$file_description" "$@" || return 1
     if git -C "$root" diff --cached --quiet --; then
-        log_info "No $file_description changes to commit; skipping pull request creation."
+        base_std_log_info "No $file_description changes to commit; skipping pull request creation."
         return 0
     fi
 
     git -C "$root" commit -m "$commit_message" || {
-        log_error "Failed to commit $file_description."
+        base_std_log_error "Failed to commit $file_description."
         return 1
     }
     git -C "$root" push -u origin "$branch" || {
-        log_error "Failed to push branch '$branch' to origin."
+        base_std_log_error "Failed to push branch '$branch' to origin."
         return 1
     }
 
@@ -1878,25 +1878,25 @@ base_repo_finish_pr_baseline() {
 
     base_repo_stage_pr_baseline_files "$root" "$agent_ready" "$release_contract" || return 1
     if git -C "$root" diff --cached --quiet --; then
-        log_info "No repository baseline changes to commit; skipping pull request creation."
+        base_std_log_info "No repository baseline changes to commit; skipping pull request creation."
         return 0
     fi
 
     git -C "$root" commit -m "Add Base repository baseline" || {
-        log_error "Failed to commit repository baseline files."
+        base_std_log_error "Failed to commit repository baseline files."
         return 1
     }
     git -C "$root" push -u origin "$branch" || {
-        log_error "Failed to push branch '$branch' to origin."
+        base_std_log_error "Failed to push branch '$branch' to origin."
         return 1
     }
 
-    std_make_temp_file body_file base-repo-init-pr || {
-        log_error "Failed to create a temporary pull request body file."
+    base_std_make_temp_file body_file base-repo-init-pr || {
+        base_std_log_error "Failed to create a temporary pull request body file."
         return 1
     }
-    std_make_temp_file output_file base-repo-init-pr-output || {
-        log_error "Failed to create a temporary pull request output file."
+    base_std_make_temp_file output_file base-repo-init-pr-output || {
+        base_std_log_error "Failed to create a temporary pull request output file."
         return 1
     }
     base_repo_create_baseline_pr_body "$name" "$root" "$repo" "$issue" "$command_hint" > "$body_file"
@@ -2223,7 +2223,7 @@ base_repo_init() {
                     base_repo_init_usage_error "Option '--language' must not contain empty entries."
                     return $?
                 fi
-                str_split language_fields "$language_option" ","
+                base_str_split language_fields "$language_option" ","
                 for language_field in "${language_fields[@]}"; do
                     normalized_language="$(base_repo_normalize_language "$language_field" || true)"
                     if [[ -z "$normalized_language" ]]; then
@@ -2252,7 +2252,7 @@ base_repo_init() {
                     base_repo_init_usage_error "Option '--language' must not contain empty entries."
                     return $?
                 fi
-                str_split language_fields "$language_option" ","
+                base_str_split language_fields "$language_option" ","
                 for language_field in "${language_fields[@]}"; do
                     normalized_language="$(base_repo_normalize_language "$language_field" || true)"
                     if [[ -z "$normalized_language" ]]; then
@@ -2389,8 +2389,8 @@ base_repo_init() {
                 shift
                 ;;
             -v)
-                set_log_level DEBUG
-                export LOG_DEBUG=1
+                base_std_set_log_level DEBUG
+                export BASE_BASH_LIBS_LOG_DEBUG=1
                 shift
                 ;;
             -*)
@@ -2463,7 +2463,7 @@ base_repo_init() {
             pr_category="$issue_category"
         fi
         pr_branch="$(base_repo_pr_branch_name "$pr_category" "$issue" "repo-baseline" "$name")" || {
-            log_error "Unable to generate the canonical issue branch for repo init --pr."
+            base_std_log_error "Unable to generate the canonical issue branch for repo init --pr."
             return 1
         }
         if [[ "$dry_run" == "1" ]]; then
@@ -2528,9 +2528,9 @@ base_repo_init() {
             case "$baseline_change_status" in
                 1)
                     if ((configure)); then
-                        log_info "No repository baseline changes to commit; continuing with GitHub repository configuration."
+                        base_std_log_info "No repository baseline changes to commit; continuing with GitHub repository configuration."
                     else
-                        log_info "No repository baseline changes to commit; GitHub repository configuration skipped by --no-configure."
+                        base_std_log_info "No repository baseline changes to commit; GitHub repository configuration skipped by --no-configure."
                     fi
                     ;;
                 *)
@@ -2579,7 +2579,7 @@ base_repo_clone_check_destination() {
     [[ -e "$target" ]] || return 0
 
     if [[ ! -d "$target" ]]; then
-        log_error "Destination '$target' already exists but is not a matching Git checkout."
+        base_std_log_error "Destination '$target' already exists but is not a matching Git checkout."
         return 1
     fi
 
@@ -2591,12 +2591,12 @@ base_repo_clone_check_destination() {
     fi
 
     if [[ -n "$actual_repo" ]]; then
-        log_error "Destination '$target' already points at GitHub repository '$actual_repo'."
-        log_error "Expected '$expected_repo'."
+        base_std_log_error "Destination '$target' already points at GitHub repository '$actual_repo'."
+        base_std_log_error "Expected '$expected_repo'."
         return 1
     fi
 
-    log_error "Destination '$target' already exists but is not a matching Git checkout."
+    base_std_log_error "Destination '$target' already exists but is not a matching Git checkout."
     return 1
 }
 
@@ -2633,7 +2633,7 @@ base_repo_clone_with_gh() {
     fi
 
     command -v gh >/dev/null 2>&1 || {
-        log_error "GitHub CLI 'gh' is required for repository clone."
+        base_std_log_error "GitHub CLI 'gh' is required for repository clone."
         return 1
     }
 
@@ -2641,7 +2641,7 @@ base_repo_clone_with_gh() {
     base_repo_create_directory "$parent" || return 1
     printf "Cloning GitHub repository '%s' into '%s'.\n" "$repo" "$target"
     gh repo clone "$repo" "$target" || {
-        log_error "Failed to clone GitHub repository '$repo' into '$target'."
+        base_std_log_error "Failed to clone GitHub repository '$repo' into '$target'."
         return 1
     }
     printf "Cloned '%s' to '%s'.\n" "$repo" "$target"
@@ -2698,8 +2698,8 @@ base_repo_clone() {
                 shift
                 ;;
             -v)
-                set_log_level DEBUG
-                export LOG_DEBUG=1
+                base_std_set_log_level DEBUG
+                export BASE_BASH_LIBS_LOG_DEBUG=1
                 shift
                 ;;
             -*)
@@ -2923,8 +2923,8 @@ base_repo_check() {
                 shift 2
                 ;;
             -v)
-                set_log_level DEBUG
-                export LOG_DEBUG=1
+                base_std_set_log_level DEBUG
+                export BASE_BASH_LIBS_LOG_DEBUG=1
                 shift
                 ;;
             -*)
@@ -3073,8 +3073,8 @@ base_repo_configure() {
                 shift
                 ;;
             -v)
-                set_log_level DEBUG
-                export LOG_DEBUG=1
+                base_std_set_log_level DEBUG
+                export BASE_BASH_LIBS_LOG_DEBUG=1
                 shift
                 ;;
             -*)
@@ -3098,7 +3098,7 @@ base_repo_configure() {
         github_repo="$(base_repo_infer_github_repo "$path" || true)"
     fi
     [[ -n "$github_repo" ]] || {
-        log_error "Unable to infer GitHub repository from '$path'."
+        base_std_log_error "Unable to infer GitHub repository from '$path'."
         printf "       Inference requires a git remote named 'origin' that points to github.com.\n" >&2
         printf "       Pass --repo <owner/name> to configure explicitly, or run:\n" >&2
         printf "         git -C %s remote -v\n" "$(base_repo_pretty_arg "$path")" >&2

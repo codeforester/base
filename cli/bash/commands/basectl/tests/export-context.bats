@@ -24,7 +24,7 @@ load ./basectl_helpers.bash
         bash -c '
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/export_context.sh"
-            arg_parse() {
+            base_arg_parse() {
                 printf "%s\n" "$*" > "${BASE_TEST_ARG_PARSE_STATE:?}"
                 return 2
             }

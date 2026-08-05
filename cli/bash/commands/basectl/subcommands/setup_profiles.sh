@@ -73,7 +73,7 @@ setup_enable_profile_argument() {
         return 1
     fi
 
-    str_split profiles "$compact" ","
+    base_str_split profiles "$compact" ","
     for profile in "${profiles[@]}"; do
         profile="$(setup_normalize_profile_name "$profile")"
         if ! setup_profile_supported "$profile"; then
@@ -118,15 +118,15 @@ setup_run_base_dev_layer() {
     if setup_is_dry_run &&
         { ! setup_base_python_package_installed "$(setup_pyyaml_package)" ||
             ! setup_base_python_package_installed "$(setup_click_package)"; }; then
-        log_info "[DRY-RUN] Would run Python prerequisite profile layer after Base Python bootstrap dependencies are installed."
+        base_std_log_info "[DRY-RUN] Would run Python prerequisite profile layer after Base Python bootstrap dependencies are installed."
         return 0
     fi
 
     setup_ensure_cached_paths
     venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
     if ! setup_base_venv_python_bin "$venv_dir" >/dev/null 2>&1; then
-        log_warn "Python prerequisite profile layer cannot run because Base virtual environment Python was not found at '$venv_dir/bin/python'."
-        log_warn "$(setup_recovery_venv)"
+        base_std_log_warn "Python prerequisite profile layer cannot run because Base virtual environment Python was not found at '$venv_dir/bin/python'."
+        base_std_log_warn "$(setup_recovery_venv)"
         return 1
     fi
 

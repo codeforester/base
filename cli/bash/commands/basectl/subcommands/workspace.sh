@@ -199,7 +199,7 @@ EOF
 
 base_workspace_usage_error() {
     base_workspace_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -239,6 +239,6 @@ base_workspace_subcommand_main() {
         esac
     done
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     "$wrapper" --project base base_projects "$workspace_command" "${args[@]}"
 }

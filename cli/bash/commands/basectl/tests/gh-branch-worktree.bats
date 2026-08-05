@@ -9,19 +9,19 @@ load ./basectl_helpers.bash
         bash -c '
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
-            git_worktree_path_for_branch() {
+            base_git_worktree_path_for_branch() {
                 printf "%s\n" "/tmp/shared-worktree"
             }
-            git_branch_upstream() {
+            base_git_branch_upstream() {
                 printf "%s\n" "origin/feature"
             }
-            git_branch_merged_to_ref() {
+            base_git_branch_merged_to_ref() {
                 [[ "$2" == "feature" && "$3" == "main" ]]
             }
-            git_list_remote_branches() {
+            base_git_list_remote_branches() {
                 printf "%s\n" "main" "feature"
             }
-            git_list_worktree_branches() {
+            base_git_list_worktree_branches() {
                 printf "%s\t%s\n" "/tmp/shared-worktree" "feature"
             }
             remote_branches="$(base_gh_list_remote_branches)"

@@ -1403,7 +1403,7 @@ EOF
     [[ "$output" == *"[DRY-RUN] Would run Python prerequisite profile layer after Base Python bootstrap dependencies are installed."* ]]
 }
 
-@test "basectl setup ignores inherited DRY_RUN without --dry-run" {
+@test "basectl setup ignores inherited BASE_BASH_LIBS_DRY_RUN without --dry-run" {
     local installer
     local venv_dir="$TEST_HOME/.base.d/base/.venv"
 
@@ -1411,7 +1411,7 @@ EOF
     installer="$(create_homebrew_installer_stub)"
 
     run_base_command \
-        DRY_RUN=true \
+        BASE_BASH_LIBS_DRY_RUN=true \
         BASE_SETUP_ALLOW_NONINTERACTIVE_XCODE_INSTALL=true \
         BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT="$installer" \
         setup

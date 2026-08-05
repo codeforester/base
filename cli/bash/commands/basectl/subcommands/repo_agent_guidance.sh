@@ -325,8 +325,8 @@ base_repo_finish_agent_guidance_pr() {
         return $?
     fi
 
-    std_make_temp_file body_file base-repo-agent-guidance-pr || {
-        log_error "Failed to create a temporary pull request body file."
+    base_std_make_temp_file body_file base-repo-agent-guidance-pr || {
+        base_std_log_error "Failed to create a temporary pull request body file."
         return 1
     }
     base_repo_create_agent_guidance_pr_body "$repo_name" "$root" "$default_branch" "$validation_command" "$repo" "$issue" "$category" > "$body_file"
@@ -460,8 +460,8 @@ base_repo_agent_guidance() {
                 shift
                 ;;
             -v)
-                set_log_level DEBUG
-                export LOG_DEBUG=1
+                base_std_set_log_level DEBUG
+                export BASE_BASH_LIBS_LOG_DEBUG=1
                 shift
                 ;;
             -*)
@@ -536,7 +536,7 @@ base_repo_agent_guidance() {
             pr_category="$issue_category"
         fi
         pr_branch="$(base_repo_pr_branch_name "$pr_category" "$issue" "agent-guidance" "$repo_name")" || {
-            log_error "Unable to generate the canonical issue branch for repo agent-guidance --pr."
+            base_std_log_error "Unable to generate the canonical issue branch for repo agent-guidance --pr."
             return 1
         }
         if [[ "$dry_run" == "1" ]]; then
