@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: fc3ac1826b62de9c84d40c77b131ea3c5e660f14
+          ref: 9f3ed25fc0991e3aa9de8411878805c122f90a11
           path: .dependencies/base-cli
 
       - name: Set up Python
@@ -42,6 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install --no-deps .dependencies/base-cli
           python -m pip install -r requirements-dev.txt
 
       - name: Run Python tests
@@ -72,7 +73,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: fc3ac1826b62de9c84d40c77b131ea3c5e660f14
+          ref: 9f3ed25fc0991e3aa9de8411878805c122f90a11
           path: .dependencies/base-cli
 
       - name: Expose standalone Python package checkout as sibling
@@ -124,7 +125,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: fc3ac1826b62de9c84d40c77b131ea3c5e660f14
+          ref: 9f3ed25fc0991e3aa9de8411878805c122f90a11
           path: .dependencies/base-cli
 
       - name: Expose standalone Python package checkout as sibling
@@ -216,7 +217,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: fc3ac1826b62de9c84d40c77b131ea3c5e660f14
+          ref: 9f3ed25fc0991e3aa9de8411878805c122f90a11
           path: .dependencies/base-cli
 
       - name: Expose standalone Python package checkout as sibling
@@ -240,10 +241,12 @@ jobs:
         run: |
           python -m venv .integration-venv
           .integration-venv/bin/python -m pip install --upgrade pip
+          .integration-venv/bin/python -m pip install --no-deps .dependencies/base-cli
           .integration-venv/bin/python -m pip install -r requirements-dev.txt
           mkdir -p "$HOME/.base.d/base"
           python -m venv "$HOME/.base.d/base/.venv"
           "$HOME/.base.d/base/.venv/bin/python" -m pip install --upgrade pip
+          "$HOME/.base.d/base/.venv/bin/python" -m pip install --no-deps .dependencies/base-cli
           "$HOME/.base.d/base/.venv/bin/python" -m pip install -r requirements-dev.txt
           sudo apt-get update
           sudo apt-get install -y bats
@@ -278,7 +281,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           repository: basefoundry/base-cli
-          ref: fc3ac1826b62de9c84d40c77b131ea3c5e660f14
+          ref: 9f3ed25fc0991e3aa9de8411878805c122f90a11
           path: .dependencies/base-cli
 
       - name: Expose reusable Bash library checkout as sibling
@@ -317,6 +320,7 @@ jobs:
           mkdir -p "$HOME/.base.d/base"
           python3 -m venv "$HOME/.base.d/base/.venv"
           "$HOME/.base.d/base/.venv/bin/python" -m pip install --upgrade pip
+          "$HOME/.base.d/base/.venv/bin/python" -m pip install --no-deps .dependencies/base-cli
           "$HOME/.base.d/base/.venv/bin/python" -m pip install -r requirements-dev.txt
 
       - name: Run Ubuntu source-checkout validation
@@ -336,6 +340,12 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: basefoundry/base-cli
+          ref: 9f3ed25fc0991e3aa9de8411878805c122f90a11
+          path: .dependencies/base-cli
+
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -352,6 +362,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install --no-deps .dependencies/base-cli
           python -m pip install -r requirements-dev.txt
           sudo apt-get update
           sudo apt-get install -y shellcheck
@@ -362,7 +373,12 @@ jobs:
 
       - name: Run pip-audit
         run: |
-          python -m pip_audit --cache-dir "$RUNNER_TEMP/pip-audit" -r requirements-dev.txt
+          # Start from -r requirements-dev.txt, but omit base-cli because it
+          # is checked out locally and may not be published during review.
+          grep -Eiv '^base-cli[[:space:]]*=' requirements-dev.txt \
+            > "$RUNNER_TEMP/base-audit-requirements.txt"
+          python -m pip_audit --cache-dir "$RUNNER_TEMP/pip-audit" \
+            -r "$RUNNER_TEMP/base-audit-requirements.txt"
 
       - name: Run ShellCheck
         run: |

@@ -383,7 +383,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             user_config="workspace: [not-a-mapping]\n",
         )
 
-        self.assertEqual(status, 1)
+        self.assertEqual(status, 2)
         self.assertIn("workspace must be a mapping", stderr)
         self.assertNotIn("Traceback", stderr)
 

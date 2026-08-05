@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from base_cli._runtime import RuntimeLayout
+from base_cli.runtime import RuntimeLayout
 
 from .paths import runtime_owner_root
 from .paths import runtime_run_directory_name

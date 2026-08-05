@@ -42,12 +42,15 @@ def test_explicit_manifest_populates_history_project_metadata(tmp_path) -> None:
     assert record["manifest"] == str(manifest_path.resolve())
 
 
-def test_main_rejects_equals_form_options(capsys) -> None:
+def test_main_accepts_equals_form_options(capsys, monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("BASE_CACHE_DIR", str(tmp_path / ".cache" / "base"))
+
     status = engine.main(["body", "--issue=403"])
 
     captured = capsys.readouterr()
-    assert status == 2
-    assert "Option '--issue' uses unsupported equals syntax." in captured.err
+    assert status == 0
+    assert "Fixes #403" in captured.out
 
 
 def test_render_pr_body_uses_default_label_and_path_sections() -> None:

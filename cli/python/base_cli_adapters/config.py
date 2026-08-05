@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from base_cli import ConfigurationError
 from base_cli.config import load_yaml_file as load_cli_yaml_file
 from base_setup.ide_schema import parse_ide_extensions
 from base_setup.ide_schema import parse_ide_settings
@@ -67,14 +68,17 @@ def read_user_config(
     *,
     supported_ides: frozenset[str] | None = SUPPORTED_IDES,
 ) -> UserConfig:
-    raw = load_user_config(home)
-    path = user_config_path(home)
-    return UserConfig(
-        raw=raw,
-        workspace=_read_user_workspace_config(path, raw.get("workspace")),
-        github=_read_user_github_config(path, raw.get("github")),
-        ide=_read_user_ide_config(path, raw.get("ide"), supported_ides=supported_ides),
-    )
+    try:
+        raw = load_user_config(home)
+        path = user_config_path(home)
+        return UserConfig(
+            raw=raw,
+            workspace=_read_user_workspace_config(path, raw.get("workspace")),
+            github=_read_user_github_config(path, raw.get("github")),
+            ide=_read_user_ide_config(path, raw.get("ide"), supported_ides=supported_ides),
+        )
+    except ValueError as exc:
+        raise ConfigurationError(str(exc)) from exc
 
 
 def _read_user_workspace_config(path: Path, workspace_data: Any) -> UserWorkspaceConfig:

@@ -109,6 +109,7 @@ class BaseHistoryTests(unittest.TestCase):
             )
 
             status, stdout, stderr = invoke([], cache_root)
+            records = engine.recent_history(cache_root)
 
         self.assertEqual(status, 0)
         self.assertEqual(stderr, "")
@@ -117,7 +118,8 @@ class BaseHistoryTests(unittest.TestCase):
         self.assertIn("PROJECT", stdout)
         self.assertIn("check", stdout)
         self.assertIn("error", stdout)
-        self.assertIn("missing", stdout)
+        self.assertEqual(len(records), 1)
+        self.assertTrue(engine.display_log_path(records[0]).endswith(" (missing)"))
 
     def test_text_table_expands_columns_for_long_command_and_project(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

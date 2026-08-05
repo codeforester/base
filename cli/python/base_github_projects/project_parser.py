@@ -154,6 +154,9 @@ def parse_project_options(
             state.allow_cross_repo = True
             index += 1
             continue
+        if apply_inline_option(state, arg, allow_fields=allow_fields):
+            index += 1
+            continue
         consumed = apply_spaced_option(state, remaining, index, allow_fields=allow_fields)
         if consumed:
             index += consumed
@@ -181,6 +184,21 @@ def apply_spaced_option(state: OptionState, remaining: list[str], index: int, *,
         state.field_values[option[2:]] = option_value(remaining, index)
         return SPACED_OPTION_TOKEN_COUNT
     return OPTION_NOT_CONSUMED
+
+
+def apply_inline_option(state: OptionState, argument: str, *, allow_fields: bool) -> bool:
+    """Apply Click-compatible ``--option=value`` syntax to delegated options."""
+    if not argument.startswith("--") or "=" not in argument:
+        return False
+
+    option, value = argument.split("=", 1)
+    if option in PROJECT_VALUE_OPTIONS:
+        apply_project_option(state, option, value)
+        return True
+    if allow_fields and option in ISSUE_FIELD_OPTIONS:
+        state.field_values[option[2:]] = value
+        return True
+    return False
 
 
 def option_value(remaining: list[str], index: int) -> str:

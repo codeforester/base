@@ -26,19 +26,13 @@ def test_delegated_usage_uses_basectl_gh_project_prefix(
     assert "base_github_projects" not in captured.err
 
 
-def test_main_rejects_equals_form_project_options(
-    capsys: pytest.CaptureFixture[str],
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("BASE_CACHE_DIR", str(tmp_path / ".cache" / "base"))
+def test_parse_project_configure_accepts_equals_form_options() -> None:
+    args = engine.parse_args(
+        ("project", "configure", "--project=Base Roadmap", "--dry-run"),
+    )
 
-    status = engine.main(["project", "configure", "--project=Base Roadmap", "--dry-run"])
-
-    captured = capsys.readouterr()
-    assert status == 2
-    assert "Option '--project' uses unsupported equals syntax." in captured.err
+    assert args.project_title == "Base Roadmap"
+    assert args.dry_run is True
 
 
 def test_parse_project_configure_arguments() -> None:

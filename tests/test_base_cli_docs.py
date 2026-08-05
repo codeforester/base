@@ -7,7 +7,13 @@ from base_cli.context import Context
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BASE_CLI_DOC = REPO_ROOT / "docs" / "base-cli.md"
-INTERNAL_CONTEXT_FIELDS = {"cleanup_hooks"}
+INTERNAL_CONTEXT_FIELDS = {
+    "cleanup_hooks",
+    "_run_metadata_path",
+    "_owns_temp_dir",
+    "_owned_temp_identity",
+    "_owned_temp_descriptor",
+}
 
 
 def context_section() -> str:
