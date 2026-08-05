@@ -120,7 +120,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
                     env={"BASE_HOME": str(root / "base")},
                 )
 
-            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 1)
             self.assertIn("Manifest-declared commands are not allowed", result.stderr)
             self.assertEqual(len(captured), 1)
             record = build_finished_record(*captured[0])

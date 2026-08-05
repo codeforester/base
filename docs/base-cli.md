@@ -99,9 +99,9 @@ if __name__ == "__main__":
 
 The command function receives `ctx` as its first argument. Infrastructure is
 created immediately before command execution and cleaned up afterward.
-`base_cli.run_app()` applies Base's command syntax guard before Click parses
-arguments: long options with values must use space-separated syntax, such as
-`--name Ada`; equals-form values such as `--name=Ada` are rejected.
+`base_cli.run_app()` preserves Click's native option syntax, including both
+space-separated values such as `--name Ada` and equals-form values such as
+`--name=Ada`.
 
 ## Package Layout
 
@@ -141,7 +141,6 @@ registration.
 ```python
 ctx.cli_name       # str
 ctx.run_id         # str
-ctx.base_home      # Path | None
 ctx.application_home  # Path | None; neutral application-home alias
 ctx.project_name   # selected project name, or None
 ctx.project_root   # Path | None
@@ -157,14 +156,20 @@ ctx.log_dir        # run_root/logs
 ctx.cache_dir      # owner_root/cache/components/<cli-name>
 ctx.temp_dir       # run_root/tmp/<cli-name>/<run-id>
 ctx.log_file       # run_root/logs/primary.log, or None when disabled
-ctx.config         # dict
+ctx.config         # consumer-owned configuration payload
+ctx.framework_config # validated framework lifecycle settings, or None
+ctx.config_provenance # configuration source mapping, when provided
 ctx.user_config    # typed user config from ~/.base.d/config.yaml
+ctx.application_context # optional consumer application state
+ctx.services        # optional consumer services
 ctx.history_display_command  # consumer policy for persisted command labels
 ctx.environment    # str
 ctx.debug          # bool
 ctx.dry_run        # bool
 ctx.keep_temp      # bool
 ctx.quiet          # bool
+ctx.json_output    # bool
+ctx.rich           # bool; optional Rich integration enabled
 ctx.log            # logging.Logger
 ```
 
@@ -368,9 +373,8 @@ Direct `base_cli.App` command packages get:
 | `--version` | show the CLI version when configured |
 | `--help` | Click help |
 
-Long option values must use the space-separated form, for example
-`--environment prod`. Base rejects `--option=value` before Click parses
-arguments.
+Long option values accept either Click form, for example `--environment prod`
+or `--environment=prod`.
 
 These are direct Python package options. Public `basectl` launchers expose
 `-v` for command-level debug logs and command-specific flags from
