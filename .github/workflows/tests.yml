@@ -373,8 +373,8 @@ jobs:
 
       - name: Run pip-audit
         run: |
-          # base-cli is checked out as a source fixture in the other jobs and
-          # may not be published to PyPI while this release train is reviewed.
+          # Start from -r requirements-dev.txt, but omit base-cli because it
+          # is checked out locally and may not be published during review.
           grep -Eiv '^base-cli[[:space:]]*=' requirements-dev.txt \
             > "$RUNNER_TEMP/base-audit-requirements.txt"
           python -m pip_audit --cache-dir "$RUNNER_TEMP/pip-audit" \
