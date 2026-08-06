@@ -295,22 +295,31 @@ base_init_source_stdlib() {
     }
 }
 
+base_init_bash_libs_version_is_supported() {
+    local version="${1:-}"
+
+    [[ "$version" =~ ^1[.][0-9]+[.][0-9]+$ ||
+        "$version" =~ ^2[.][0-9]+[.][0-9]+(-(alpha|beta|rc)[.](0|[1-9][0-9]*))?$ ]]
+}
+
 base_init_require_bash_libs_version() {
     local loaded_version="${BASE_BASH_LIBS_VERSION:-}"
 
+    if ! base_init_bash_libs_version_is_supported "$loaded_version"; then
+        base_init_error "Base requires base-bash-libs 1.4.0 or a compatible release with the v2 API; loaded version is '$loaded_version'."
+        return 1
+    fi
+
     case "$loaded_version" in
-        1.*|2.*)
-            # The v2 namespace landed before the coordinated v2 release. Keep
-            # the source checkout usable while the release train is completed;
-            # the final cutover will raise this floor to 2.0.0.
+        1.*)
             if ! base_require_version 1.4.0; then
                 base_init_error "Base requires base-bash-libs 1.4.0 or newer; loaded version is '$loaded_version'."
                 return 1
             fi
             ;;
-        *)
-            base_init_error "Base requires base-bash-libs 1.4.0 or a compatible release with the v2 API; loaded version is '$loaded_version'."
-            return 1
+        2.*)
+            # The v2 API is valid during the coordinated prerelease and GA
+            # window. Do not pass its prerelease form to the v1 numeric helper.
             ;;
     esac
 }
