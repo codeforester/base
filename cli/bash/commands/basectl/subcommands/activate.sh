@@ -127,9 +127,10 @@ base_activate_subcommand_main() {
 
     venv_dir="$(base_activate_project_venv_dir "$resolved_name" "$project_root" "$route_venv_dir")"
     venv_fix="$(base_project_venv_fix "$resolved_name" "$project_root" "$venv_dir" "$uses_uv_manager")"
-    [[ -x "$venv_dir/bin/python" ]] || {
-        base_std_fatal_error "Project virtual environment Python was not found at '$venv_dir/bin/python'. $venv_fix"
-    }
+    if [[ ! -x "$venv_dir/bin/python" ]]; then
+        base_std_log_error "Project virtual environment Python was not found at '$venv_dir/bin/python'. $venv_fix"
+        return 1
+    fi
 
     shell_rc="$BASE_HOME/lib/bash/runtime/bashrc"
     [[ -f "$shell_rc" ]] || base_std_fatal_error "Base runtime shell rcfile '$shell_rc' was not found."

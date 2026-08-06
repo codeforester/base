@@ -388,6 +388,8 @@ EOF
     [[ "$output" == *"Project virtual environment Python was not found at '$workspace/demo/.venv/bin/python'."* ]]
     [[ "$output" == *"Run 'uv sync' in '$workspace/demo' first."* ]]
     [[ "$output" != *"Run 'basectl setup demo' first."* ]]
+    [[ "$output" != *"FATAL"* ]]
+    [[ "$output" != *"Encountered a fatal error"* ]]
 }
 
 @test "basectl default runtime shell preserves caller working directory" {
