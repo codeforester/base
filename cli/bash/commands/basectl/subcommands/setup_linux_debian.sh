@@ -158,7 +158,7 @@ setup_add_linux_command_check_result() {
         warn|error)
             ;;
         *)
-            fatal_error "Invalid Linux command check missing status '$missing_status'."
+            base_std_fatal_error "Invalid Linux command check missing status '$missing_status'."
             ;;
     esac
 
@@ -319,20 +319,20 @@ setup_run_linux_debian_apt_prerequisites() {
     IFS=' ' read -r -a package_args <<<"$packages"
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would run: $(setup_linux_debian_apt_update_command)"
-        log_info "[DRY-RUN] Would run: $(setup_linux_debian_apt_prerequisite_command)"
+        base_std_log_info "[DRY-RUN] Would run: $(setup_linux_debian_apt_update_command)"
+        base_std_log_info "[DRY-RUN] Would run: $(setup_linux_debian_apt_prerequisite_command)"
         return 0
     fi
 
     if setup_linux_debian_apt_prerequisites_installed "${package_args[@]}"; then
-        log_info "Ubuntu/Debian apt prerequisites are already installed."
+        base_std_log_info "Ubuntu/Debian apt prerequisites are already installed."
         return 0
     fi
 
     setup_require_linux_debian_system_consent \
         "Ubuntu/Debian setup can install apt packages, configure package repositories, and run platform bootstraps." || return $?
 
-    log_info "Installing Ubuntu/Debian apt prerequisites."
+    base_std_log_info "Installing Ubuntu/Debian apt prerequisites."
     sudo apt-get update || return $?
     sudo apt-get install -y "${package_args[@]}" || return $?
 }
@@ -343,43 +343,43 @@ setup_run_linux_debian_github_cli_prerequisite() {
     local source_tmp
 
     if setup_linux_command_path gh >/dev/null 2>&1; then
-        log_info "GitHub CLI 'gh' is already installed; authentication remains user-owned."
+        base_std_log_info "GitHub CLI 'gh' is already installed; authentication remains user-owned."
         return 0
     fi
 
     if setup_is_dry_run; then
-        log_info "$(setup_linux_debian_github_cli_install_guidance)"
-        log_info "[DRY-RUN] Would run: sudo install -d -m 0755 /etc/apt/keyrings"
-        log_info "[DRY-RUN] Would fetch: $(setup_linux_debian_github_cli_keyring_url)"
-        log_info "[DRY-RUN] Would run: sudo install -m 0644 <downloaded GitHub CLI keyring> $(setup_linux_debian_github_cli_keyring_path)"
-        log_info "[DRY-RUN] Would run: sudo install -d -m 0755 /etc/apt/sources.list.d"
-        log_info "[DRY-RUN] Would write apt source: $(setup_linux_debian_github_cli_source_line)"
-        log_info "[DRY-RUN] Would run: sudo apt-get update"
-        log_info "[DRY-RUN] Would run: sudo apt-get install -y gh"
+        base_std_log_info "$(setup_linux_debian_github_cli_install_guidance)"
+        base_std_log_info "[DRY-RUN] Would run: sudo install -d -m 0755 /etc/apt/keyrings"
+        base_std_log_info "[DRY-RUN] Would fetch: $(setup_linux_debian_github_cli_keyring_url)"
+        base_std_log_info "[DRY-RUN] Would run: sudo install -m 0644 <downloaded GitHub CLI keyring> $(setup_linux_debian_github_cli_keyring_path)"
+        base_std_log_info "[DRY-RUN] Would run: sudo install -d -m 0755 /etc/apt/sources.list.d"
+        base_std_log_info "[DRY-RUN] Would write apt source: $(setup_linux_debian_github_cli_source_line)"
+        base_std_log_info "[DRY-RUN] Would run: sudo apt-get update"
+        base_std_log_info "[DRY-RUN] Would run: sudo apt-get install -y gh"
         return 0
     fi
 
     setup_require_linux_debian_system_consent \
         "Ubuntu/Debian setup can install apt packages, configure package repositories, and run platform bootstraps." || return $?
 
-    command -v curl >/dev/null 2>&1 || fatal_error "curl is required to install GitHub CLI 'gh' from its official Debian/Ubuntu apt repository."
-    command -v dpkg >/dev/null 2>&1 || fatal_error "dpkg is required to configure GitHub CLI's official Debian/Ubuntu apt repository."
-    arch="$(dpkg --print-architecture)" || fatal_error "Unable to read Debian architecture for GitHub CLI apt repository setup."
-    [[ -n "$arch" ]] || fatal_error "Unable to read Debian architecture for GitHub CLI apt repository setup."
+    command -v curl >/dev/null 2>&1 || base_std_fatal_error "curl is required to install GitHub CLI 'gh' from its official Debian/Ubuntu apt repository."
+    command -v dpkg >/dev/null 2>&1 || base_std_fatal_error "dpkg is required to configure GitHub CLI's official Debian/Ubuntu apt repository."
+    arch="$(dpkg --print-architecture)" || base_std_fatal_error "Unable to read Debian architecture for GitHub CLI apt repository setup."
+    [[ -n "$arch" ]] || base_std_fatal_error "Unable to read Debian architecture for GitHub CLI apt repository setup."
 
-    std_make_temp_file keyring_tmp base-github-cli-keyring || fatal_error "Failed to create a temporary GitHub CLI keyring file."
-    std_make_temp_file source_tmp base-github-cli-source || {
-        fatal_error "Failed to create a temporary GitHub CLI apt source file."
+    base_std_make_temp_file keyring_tmp base-github-cli-keyring || base_std_fatal_error "Failed to create a temporary GitHub CLI keyring file."
+    base_std_make_temp_file source_tmp base-github-cli-source || {
+        base_std_fatal_error "Failed to create a temporary GitHub CLI apt source file."
     }
 
     if ! curl -fsSL -o "$keyring_tmp" "$(setup_linux_debian_github_cli_keyring_url)"; then
-        fatal_error "Failed to download GitHub CLI's official Debian/Ubuntu apt keyring."
+        base_std_fatal_error "Failed to download GitHub CLI's official Debian/Ubuntu apt keyring."
     fi
     setup_linux_debian_github_cli_source_line "$arch" >"$source_tmp" || {
-        fatal_error "Failed to prepare GitHub CLI apt source configuration."
+        base_std_fatal_error "Failed to prepare GitHub CLI apt source configuration."
     }
 
-    log_info "Installing GitHub CLI 'gh' from GitHub CLI's official Debian/Ubuntu apt repository."
+    base_std_log_info "Installing GitHub CLI 'gh' from GitHub CLI's official Debian/Ubuntu apt repository."
     sudo install -d -m 0755 /etc/apt/keyrings || {
         return 1
     }
@@ -408,17 +408,17 @@ setup_run_linux_debian_install() {
     setup_install_base_cli
     if setup_profiles_enabled; then
         if setup_is_dry_run; then
-            setup_run_base_dev_layer setup --dry-run || fatal_error "Python prerequisite profile layer failed."
+            setup_run_base_dev_layer setup --dry-run || base_std_fatal_error "Python prerequisite profile layer failed."
         else
-            setup_run_base_dev_layer setup || fatal_error "Python prerequisite profile layer failed."
+            setup_run_base_dev_layer setup || base_std_fatal_error "Python prerequisite profile layer failed."
         fi
     fi
     setup_run_project_artifact_setup || return $?
     setup_seed_user_config
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Base CLI setup check is complete."
+        base_std_log_info "[DRY-RUN] Base CLI setup check is complete."
     else
-        log_info "Base CLI setup is complete."
+        base_std_log_info "Base CLI setup is complete."
     fi
 }

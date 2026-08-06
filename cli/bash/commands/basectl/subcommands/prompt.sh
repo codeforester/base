@@ -57,7 +57,7 @@ EOF
 
 base_prompt_usage_error() {
     base_prompt_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -115,7 +115,7 @@ base_prompt_subcommand_main() {
     ((debug)) && renderer_args+=(--debug)
     [[ -z "$output_path" ]] || output_args+=(--output "$output_path")
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     BASE_CLI_DISPLAY_COMMAND="basectl prompt" \
         "$wrapper" --project base base_prompt \
         "${renderer_args[@]}" "${prompt_args[@]}" "${output_args[@]}"

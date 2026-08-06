@@ -42,7 +42,7 @@ EOF
 }
 
 base_doctor_usage_error() {
-    print_error "$*"
+    base_std_print_error "$*"
     printf "Run 'basectl doctor --help' for usage.\n" >&2
     return 2
 }
@@ -62,7 +62,7 @@ EOF
 }
 
 base_doctor_explain_usage_error() {
-    print_error "$*"
+    base_std_print_error "$*"
     printf "Run 'basectl doctor explain --help' for usage.\n" >&2
     return 2
 }
@@ -73,7 +73,7 @@ base_doctor_explain_finding() {
     local python_bin
 
     python_bin="$(setup_diagnostics_python_bin)" ||
-        fatal_error "Python is required to render Base finding explanations."
+        base_std_fatal_error "Python is required to render Base finding explanations."
     setup_ensure_cached_paths
     env BASE_HOME="$BASE_HOME" PYTHONPATH="$_BASE_SETUP_PYTHONPATH_CACHE" \
         "$python_bin" -m base_setup.finding_explanations "$finding_id" --format "$output_format"
@@ -169,12 +169,12 @@ base_doctor_print_collected_check_results() {
     count="${#_BASE_SETUP_CHECK_NAMES[@]}"
     if ((count > 0)); then
         metadata_output="$(setup_base_check_metadata "${_BASE_SETUP_CHECK_NAMES[@]}")" ||
-            fatal_error "Base diagnostic metadata renderer failed."
+            base_std_fatal_error "Base diagnostic metadata renderer failed."
         while IFS= read -r metadata_line; do
             metadata_lines+=("$metadata_line")
         done <<<"$metadata_output"
         if ((${#metadata_lines[@]} != count)); then
-            fatal_error "Base diagnostic metadata renderer returned ${#metadata_lines[@]} rows for $count checks."
+            base_std_fatal_error "Base diagnostic metadata renderer returned ${#metadata_lines[@]} rows for $count checks."
         fi
     fi
 
@@ -183,10 +183,10 @@ base_doctor_print_collected_check_results() {
         fix="$(setup_check_result_recovery "$i")"
         IFS=$'\t' read -r metadata_name finding_id display_name <<<"${metadata_lines[$i]}"
         if [[ "$metadata_name" != "${_BASE_SETUP_CHECK_NAMES[$i]}" || -z "$finding_id" || -z "$display_name" ]]; then
-            fatal_error "Base diagnostic metadata renderer returned invalid metadata for '${_BASE_SETUP_CHECK_NAMES[$i]}'."
+            base_std_fatal_error "Base diagnostic metadata renderer returned invalid metadata for '${_BASE_SETUP_CHECK_NAMES[$i]}'."
         fi
         if [[ "$status" == ok && -n "${_BASE_SETUP_CHECK_DEBUG_MESSAGES[$i]}" ]]; then
-            log_debug "${_BASE_SETUP_CHECK_DEBUG_MESSAGES[$i]}"
+            base_std_log_debug "${_BASE_SETUP_CHECK_DEBUG_MESSAGES[$i]}"
         fi
         if [[ "$status" == ok ]]; then
             fix=""
@@ -229,17 +229,17 @@ base_doctor_run_ci_runtime_text() {
 
     if ((errors == 0)); then
         if [[ -n "$project" ]]; then
-            log_info "Base CI doctor found no blocking issues for project '$project'."
+            base_std_log_info "Base CI doctor found no blocking issues for project '$project'."
         else
-            log_info 'Base CI doctor found no blocking issues.'
+            base_std_log_info 'Base CI doctor found no blocking issues.'
         fi
         return 0
     fi
 
     if [[ -n "$project" ]]; then
-        log_info "Base CI doctor found $errors blocking issue(s) for project '$project'."
+        base_std_log_info "Base CI doctor found $errors blocking issue(s) for project '$project'."
     else
-        log_info "Base CI doctor found $errors blocking issue(s)."
+        base_std_log_info "Base CI doctor found $errors blocking issue(s)."
     fi
     return 1
 }
@@ -254,8 +254,8 @@ base_doctor_run_json() {
     local remote_network="${2:-${BASE_SETUP_REMOTE_NETWORK:-}}"
 
     BASE_SETUP_XCODE_HOMEBREW_DIAGNOSTICS=true setup_collect_base_check_results warn || true
-    std_make_temp_dir check_result_dir base-doctor-json ||
-        fatal_error "Unable to create temporary Base doctor JSON result directory."
+    base_std_make_temp_dir check_result_dir base-doctor-json ||
+        base_std_fatal_error "Unable to create temporary Base doctor JSON result directory."
 
     if setup_profiles_enabled; then
         if ! profile_json="$(setup_run_base_dev_layer doctor --format json)"; then
@@ -386,7 +386,7 @@ base_doctor_subcommand_main() {
     BASE_SETUP_REMOTE_NETWORK="$remote_network"
     export BASE_SETUP_PROJECT_NAME
     export BASE_SETUP_REMOTE_NETWORK
-    log_debug "Running 'basectl doctor'."
+    base_std_log_debug "Running 'basectl doctor'."
     if setup_ci_runtime_only; then
         if [[ "$output_format" == json ]]; then
             base_doctor_run_json "$project" "$remote_network"
@@ -419,17 +419,17 @@ base_doctor_subcommand_main() {
 
     if ((errors == 0)); then
         if [[ -n "$project" ]]; then
-            log_info "Base doctor found no blocking issues for project '$project'."
+            base_std_log_info "Base doctor found no blocking issues for project '$project'."
         else
-            log_info 'Base doctor found no blocking issues.'
+            base_std_log_info 'Base doctor found no blocking issues.'
         fi
         return 0
     fi
 
     if [[ -n "$project" ]]; then
-        log_info "Base doctor found $errors blocking issue(s) for project '$project'."
+        base_std_log_info "Base doctor found $errors blocking issue(s) for project '$project'."
     else
-        log_info "Base doctor found $errors blocking issue(s)."
+        base_std_log_info "Base doctor found $errors blocking issue(s)."
     fi
     return 1
 }

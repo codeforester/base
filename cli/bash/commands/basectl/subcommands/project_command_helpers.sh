@@ -72,7 +72,7 @@ base_project_require_manifest_command_trust() {
     local wrapper="$BASE_HOME/bin/base-wrapper"
 
     [[ "$trust_required" == true ]] || return 0
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     "$wrapper" --project base base_trust require "$project" --manifest "$manifest_path"
 }
@@ -100,7 +100,7 @@ base_project_activate_environment() {
         PATH="$venv_dir/bin:$PATH"
         export PATH
     elif [[ "$dry_run" != "1" ]]; then
-        log_warn "Project virtual environment was not found at '$venv_dir'. $venv_fix"
+        base_std_log_warn "Project virtual environment was not found at '$venv_dir'. $venv_fix"
     fi
 
     printf '%s\n' "$venv_dir"
@@ -166,7 +166,7 @@ base_project_run_shell_command() {
         export BASE_CLI_PROJECT_MANIFEST="${BASE_PROJECT_MANIFEST:-}"
         # A project command gets its own owner-scoped bundle. Keep the parent
         # history ID, but do not let it write raw logs into Base's bundle.
-        unset BASE_CLI_RUN_ROOT BASE_CLI_RUN_ID BASE_CLI_PRIMARY_LOG
+        unset BASE_CLI_RUN_ROOT BASE_CLI_RUN_ID BASE_BASH_LIBS_PRIMARY_LOG
         # setup and diagnostics also recognize user-local tool installs. Keep
         # the project environment first, then make $HOME/.local/bin available
         # for runners such as uv and mise.
@@ -189,10 +189,10 @@ base_validate_command_runner() {
             if command -v uv >/dev/null 2>&1 || [[ -n "${HOME:-}" && -x "$HOME/.local/bin/uv" ]]; then
                 return 0
             fi
-            fatal_error "Command runner 'uv' is not available. Install uv or remove runner: uv from the project manifest."
+            base_std_fatal_error "Command runner 'uv' is not available. Install uv or remove runner: uv from the project manifest."
             ;;
         *)
-            fatal_error "Unsupported command runner '$runner'."
+            base_std_fatal_error "Unsupported command runner '$runner'."
             ;;
     esac
 }

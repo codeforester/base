@@ -27,7 +27,7 @@ EOF
 
 base_test_usage_error() {
     base_test_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -102,7 +102,7 @@ base_test_subcommand_main() {
     }
 
     wrapper="$BASE_HOME/bin/base-wrapper"
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     local command_args=(test-command)
     if [[ -n "$explicit_project" ]]; then
@@ -112,7 +112,7 @@ base_test_subcommand_main() {
     fi
     resolve_output="$("$wrapper" --project base base_projects "${command_args[@]}" "${args[@]}" --format command-protocol)" || return $?
     base_command_protocol_decode_one project-command "$resolve_output" || {
-        fatal_error "Unable to resolve test command for project '$project'."
+        base_std_fatal_error "Unable to resolve test command for project '$project'."
     }
     resolved_name="${BASE_COMMAND_PROTOCOL_FIELDS[project_name]}"
     project_root="${BASE_COMMAND_PROTOCOL_FIELDS[project_root]}"
@@ -125,7 +125,7 @@ base_test_subcommand_main() {
     command_runner="${BASE_COMMAND_PROTOCOL_FIELDS[runner]}"
 
     [[ -n "$resolved_name" && -n "$project_root" && -n "$manifest_path" && -n "$test_command" ]] || {
-        fatal_error "Unable to resolve test command for project '$project'."
+        base_std_fatal_error "Unable to resolve test command for project '$project'."
     }
 
     command_runner="${command_runner:-}"
@@ -141,7 +141,7 @@ base_test_subcommand_main() {
     base_project_activate_environment \
         "$resolved_name" "$project_root" "$manifest_path" "$dry_run" "$route_venv_dir" "$uses_uv_manager" >/dev/null
 
-    log_info "Running tests for project '$resolved_name': $display_command"
+    base_std_log_info "Running tests for project '$resolved_name': $display_command"
     base_validate_command_runner "$command_runner"
     base_project_run_shell_command "$project_root" "$command_to_run" basectl-test "${extra_args[@]}"
 }

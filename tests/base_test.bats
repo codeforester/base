@@ -60,7 +60,7 @@ for name in \
     BASE_CLI_RUNTIME_OWNER \
     BASE_CLI_RUN_ID \
     BASE_CLI_RUN_ROOT \
-    BASE_CLI_PRIMARY_LOG \
+    BASE_BASH_LIBS_PRIMARY_LOG \
     BASE_CLI_HISTORY_PARENT_RUN_ID \
     BASE_CLI_HISTORY_SCOPE \
     BASE_CLI_PROJECT_NAME \
@@ -195,7 +195,7 @@ EOF
         BASE_CLI_RUNTIME_OWNER=project \
         BASE_CLI_RUN_ID=parent-run \
         BASE_CLI_RUN_ROOT="$TEST_TMPDIR/parent-run" \
-        BASE_CLI_PRIMARY_LOG="$TEST_TMPDIR/parent-run/logs/primary.log" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$TEST_TMPDIR/parent-run/logs/primary.log" \
         BASE_CLI_HISTORY_PARENT_RUN_ID=parent-run \
         BASE_CLI_HISTORY_SCOPE=internal \
         BASE_CLI_PROJECT_NAME=base \
@@ -214,7 +214,7 @@ EOF
         BASE_CLI_RUNTIME_OWNER \
         BASE_CLI_RUN_ID \
         BASE_CLI_RUN_ROOT \
-        BASE_CLI_PRIMARY_LOG \
+        BASE_BASH_LIBS_PRIMARY_LOG \
         BASE_CLI_HISTORY_PARENT_RUN_ID \
         BASE_CLI_HISTORY_SCOPE \
         BASE_CLI_PROJECT_NAME \

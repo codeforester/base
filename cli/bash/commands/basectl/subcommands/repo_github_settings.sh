@@ -25,7 +25,7 @@ base_repo_homebrew_gh_outdated() {
 
 base_repo_warn_if_gh_outdated() {
     if base_repo_homebrew_gh_outdated; then
-        log_warn "GitHub CLI 'gh' is outdated; run 'basectl setup --profile dev' to upgrade Base-managed developer prerequisites."
+        base_std_log_warn "GitHub CLI 'gh' is outdated; run 'basectl setup --profile dev' to upgrade Base-managed developer prerequisites."
     fi
 }
 
@@ -63,11 +63,11 @@ base_repo_ensure_github_repo() {
 
     base_repo_require_gh || return 1
     if gh repo view "$repo" >/dev/null 2>&1; then
-        log_info "GitHub repository '$repo' already exists."
+        base_std_log_info "GitHub repository '$repo' already exists."
         return 0
     fi
 
-    log_info "Creating $visibility GitHub repository '$repo'."
+    base_std_log_info "Creating $visibility GitHub repository '$repo'."
     gh repo create "$repo" "--$visibility" --description "$description" || return 1
     BASE_REPO_GITHUB_REPO_CREATED=1
 }
@@ -132,12 +132,12 @@ base_repo_configure_default_branch_protection() {
     ruleset_lookup_output="$(gh api "repos/$repo/rulesets" \
         --jq 'map(select(.name == "Base default branch protection" and .source_type == "Repository")) | .[0].id // ""' 2>&1)" || {
         if base_repo_rulesets_plan_gated_error "$ruleset_lookup_output"; then
-            log_warn "Default branch protection skipped for '$repo'."
-            log_warn "$ruleset_lookup_output"
+            base_std_log_warn "Default branch protection skipped for '$repo'."
+            base_std_log_warn "$ruleset_lookup_output"
             return 0
         fi
-        [[ -z "$ruleset_lookup_output" ]] || log_error "$ruleset_lookup_output"
-        log_error "Unable to inspect GitHub rulesets for '$repo'."
+        [[ -z "$ruleset_lookup_output" ]] || base_std_log_error "$ruleset_lookup_output"
+        base_std_log_error "Unable to inspect GitHub rulesets for '$repo'."
         return 1
     }
     ruleset_id="$ruleset_lookup_output"
@@ -145,24 +145,24 @@ base_repo_configure_default_branch_protection() {
     if [[ -n "$ruleset_id" ]]; then
         ruleset_write_output="$(printf '%s\n' "$payload" | gh api "repos/$repo/rulesets/$ruleset_id" --method PUT --input - 2>&1)" || {
             if base_repo_rulesets_plan_gated_error "$ruleset_write_output"; then
-                log_warn "Default branch protection skipped for '$repo'."
-                log_warn "$ruleset_write_output"
+                base_std_log_warn "Default branch protection skipped for '$repo'."
+                base_std_log_warn "$ruleset_write_output"
                 return 0
             fi
-            [[ -z "$ruleset_write_output" ]] || log_error "$ruleset_write_output"
-            log_error "Unable to update Base default branch protection ruleset for '$repo'."
+            [[ -z "$ruleset_write_output" ]] || base_std_log_error "$ruleset_write_output"
+            base_std_log_error "Unable to update Base default branch protection ruleset for '$repo'."
             return 1
         }
         printf "  Branch protection: updated 'Base default branch protection'.\n"
     else
         ruleset_write_output="$(printf '%s\n' "$payload" | gh api "repos/$repo/rulesets" --method POST --input - 2>&1)" || {
             if base_repo_rulesets_plan_gated_error "$ruleset_write_output"; then
-                log_warn "Default branch protection skipped for '$repo'."
-                log_warn "$ruleset_write_output"
+                base_std_log_warn "Default branch protection skipped for '$repo'."
+                base_std_log_warn "$ruleset_write_output"
                 return 0
             fi
-            [[ -z "$ruleset_write_output" ]] || log_error "$ruleset_write_output"
-            log_error "Unable to create Base default branch protection ruleset for '$repo'."
+            [[ -z "$ruleset_write_output" ]] || base_std_log_error "$ruleset_write_output"
+            base_std_log_error "Unable to create Base default branch protection ruleset for '$repo'."
             return 1
         }
         printf "  Branch protection: created 'Base default branch protection'.\n"
@@ -192,8 +192,8 @@ base_repo_remote_issue_branch_policy_ready() {
         if [[ "$output" == *"(HTTP 404)"* ]]; then
             return 1
         fi
-        [[ -z "$output" ]] || log_error "$output"
-        log_error "Unable to verify the Issue Branch Policy workflow on '$repo'."
+        [[ -z "$output" ]] || base_std_log_error "$output"
+        base_std_log_error "Unable to verify the Issue Branch Policy workflow on '$repo'."
         return 2
     }
     workflow_state="$output"
@@ -202,16 +202,16 @@ base_repo_remote_issue_branch_policy_ready() {
     fi
 
     output="$(gh api "repos/$repo" --jq '.default_branch' 2>&1)" || {
-        [[ -z "$output" ]] || log_error "$output"
-        log_error "Unable to determine the default branch for '$repo'."
+        [[ -z "$output" ]] || base_std_log_error "$output"
+        base_std_log_error "Unable to determine the default branch for '$repo'."
         return 2
     }
     default_branch="$output"
     [[ -n "$default_branch" ]] || return 1
 
     run_json="$(gh api "repos/$repo/actions/workflows/issue-branch-policy.yml/runs?status=success&per_page=100" 2>&1)" || {
-        [[ -z "$run_json" ]] || log_error "$run_json"
-        log_error "Unable to inspect successful Issue Branch Policy runs on '$repo'."
+        [[ -z "$run_json" ]] || base_std_log_error "$run_json"
+        base_std_log_error "Unable to inspect successful Issue Branch Policy runs on '$repo'."
         return 2
     }
     output="$(jq -r \
@@ -224,8 +224,8 @@ base_repo_remote_issue_branch_policy_ready() {
             .path == ".github/workflows/issue-branch-policy.yml"
         ) | [.id, .head_sha, .updated_at, .html_url] | @tsv' \
         <<< "$run_json" 2>&1)" || {
-        [[ -z "$output" ]] || log_error "$output"
-        log_error "Unable to parse successful Issue Branch Policy runs on '$repo'."
+        [[ -z "$output" ]] || base_std_log_error "$output"
+        base_std_log_error "Unable to parse successful Issue Branch Policy runs on '$repo'."
         return 2
     }
     eligible_runs="$output"
@@ -241,15 +241,15 @@ base_repo_remote_issue_branch_policy_ready() {
             ! "$run_sha" =~ ^[0-9a-f]{40}$ ||
             ! "$run_timestamp" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ||
             "$run_target_url" != "https://github.com/$repo/actions/runs/$run_id" ]]; then
-            log_error "GitHub returned malformed Issue Branch Policy run metadata for '$repo'."
+            base_std_log_error "GitHub returned malformed Issue Branch Policy run metadata for '$repo'."
             return 2
         fi
         [[ "$run_timestamp" > "$cutoff_timestamp" ]] || continue
 
         output="$(gh api --paginate --slurp \
             "repos/$repo/commits/$run_sha/statuses?per_page=100" 2>&1)" || {
-            [[ -z "$output" ]] || log_error "$output"
-            log_error "Unable to verify the Issue Branch Policy status source on '$repo'."
+            [[ -z "$output" ]] || base_std_log_error "$output"
+            base_std_log_error "Unable to verify the Issue Branch Policy status source on '$repo'."
             return 2
         }
         status_creator="$(jq -r \
@@ -269,8 +269,8 @@ base_repo_remote_issue_branch_policy_ready() {
     ((ready_run_found == 1)) || return 1
 
     output="$(gh api /apps/github-actions --jq '.id' 2>&1)" || {
-        [[ -z "$output" ]] || log_error "$output"
-        log_error "Unable to verify the GitHub Actions integration id."
+        [[ -z "$output" ]] || base_std_log_error "$output"
+        base_std_log_error "Unable to verify the GitHub Actions integration id."
         return 2
     }
     actions_app_id="$output"
@@ -287,8 +287,8 @@ base_repo_current_issue_branch_policy_integration_id() {
         if base_repo_rulesets_plan_gated_error "$output"; then
             return 1
         fi
-        [[ -z "$output" ]] || log_error "$output"
-        log_error "Unable to inspect current default branch protection for '$repo'."
+        [[ -z "$output" ]] || base_std_log_error "$output"
+        base_std_log_error "Unable to inspect current default branch protection for '$repo'."
         return 2
     }
     ruleset_id="$output"
@@ -296,8 +296,8 @@ base_repo_current_issue_branch_policy_integration_id() {
 
     output="$(gh api "repos/$repo/rulesets/$ruleset_id" \
         --jq '[.rules[]? | select(.type == "required_status_checks") | .parameters.required_status_checks[]? | select(.context == "base/issue-branch-policy") | (.integration_id // 0)] | first // ""' 2>&1)" || {
-        [[ -z "$output" ]] || log_error "$output"
-        log_error "Unable to inspect the current Issue Branch Policy requirement on '$repo'."
+        [[ -z "$output" ]] || base_std_log_error "$output"
+        base_std_log_error "Unable to inspect the current Issue Branch Policy requirement on '$repo'."
         return 2
     }
     [[ -n "$output" ]] || return 1
@@ -328,12 +328,12 @@ base_repo_configure_branch_naming() {
     ruleset_lookup_output="$(gh api "repos/$repo/rulesets" \
         --jq 'map(select(.name == "Base branch naming" and .source_type == "Repository")) | .[0].id // ""' 2>&1)" || {
         if base_repo_rulesets_plan_gated_error "$ruleset_lookup_output"; then
-            log_warn "Branch naming enforcement skipped for '$repo'."
-            log_warn "$ruleset_lookup_output"
+            base_std_log_warn "Branch naming enforcement skipped for '$repo'."
+            base_std_log_warn "$ruleset_lookup_output"
             return 0
         fi
-        [[ -z "$ruleset_lookup_output" ]] || log_error "$ruleset_lookup_output"
-        log_error "Unable to inspect GitHub rulesets for '$repo'."
+        [[ -z "$ruleset_lookup_output" ]] || base_std_log_error "$ruleset_lookup_output"
+        base_std_log_error "Unable to inspect GitHub rulesets for '$repo'."
         return 1
     }
     ruleset_id="$ruleset_lookup_output"
@@ -341,34 +341,34 @@ base_repo_configure_branch_naming() {
     if [[ -n "$ruleset_id" ]]; then
         ruleset_write_output="$(printf '%s\n' "$payload" | gh api "repos/$repo/rulesets/$ruleset_id" --method PUT --input - 2>&1)" || {
             if base_repo_rulesets_plan_gated_error "$ruleset_write_output"; then
-                log_warn "Branch naming enforcement skipped for '$repo'."
-                log_warn "$ruleset_write_output"
+                base_std_log_warn "Branch naming enforcement skipped for '$repo'."
+                base_std_log_warn "$ruleset_write_output"
                 return 0
             fi
             if base_repo_branch_name_rule_unavailable_error "$ruleset_write_output"; then
-                log_warn "Branch naming ruleset unavailable for '$repo'; issue branch policy workflow remains the fallback."
-                log_warn "$ruleset_write_output"
+                base_std_log_warn "Branch naming ruleset unavailable for '$repo'; issue branch policy workflow remains the fallback."
+                base_std_log_warn "$ruleset_write_output"
                 return 0
             fi
-            [[ -z "$ruleset_write_output" ]] || log_error "$ruleset_write_output"
-            log_error "Unable to update Base branch naming ruleset for '$repo'."
+            [[ -z "$ruleset_write_output" ]] || base_std_log_error "$ruleset_write_output"
+            base_std_log_error "Unable to update Base branch naming ruleset for '$repo'."
             return 1
         }
         printf "  Branch naming: updated 'Base branch naming'.\n"
     else
         ruleset_write_output="$(printf '%s\n' "$payload" | gh api "repos/$repo/rulesets" --method POST --input - 2>&1)" || {
             if base_repo_rulesets_plan_gated_error "$ruleset_write_output"; then
-                log_warn "Branch naming enforcement skipped for '$repo'."
-                log_warn "$ruleset_write_output"
+                base_std_log_warn "Branch naming enforcement skipped for '$repo'."
+                base_std_log_warn "$ruleset_write_output"
                 return 0
             fi
             if base_repo_branch_name_rule_unavailable_error "$ruleset_write_output"; then
-                log_warn "Branch naming ruleset unavailable for '$repo'; issue branch policy workflow remains the fallback."
-                log_warn "$ruleset_write_output"
+                base_std_log_warn "Branch naming ruleset unavailable for '$repo'; issue branch policy workflow remains the fallback."
+                base_std_log_warn "$ruleset_write_output"
                 return 0
             fi
-            [[ -z "$ruleset_write_output" ]] || log_error "$ruleset_write_output"
-            log_error "Unable to create Base branch naming ruleset for '$repo'."
+            [[ -z "$ruleset_write_output" ]] || base_std_log_error "$ruleset_write_output"
+            base_std_log_error "Unable to create Base branch naming ruleset for '$repo'."
             return 1
         }
         printf "  Branch naming: created 'Base branch naming'.\n"
@@ -421,10 +421,10 @@ base_repo_check_project_intake_secret() {
 
     base_repo_require_gh || return 1
     output="$(gh secret list --repo "$repo" 2>&1)" || {
-        log_warn "Unable to inspect GitHub Actions secrets for '$repo'."
-        [[ -z "$output" ]] || log_warn "$output"
-        log_warn "Project Intake may fail unless BASE_PROJECT_TOKEN is configured with user Project access."
-        log_warn "Fix: $(base_repo_project_intake_secret_fix_command "$repo")"
+        base_std_log_warn "Unable to inspect GitHub Actions secrets for '$repo'."
+        [[ -z "$output" ]] || base_std_log_warn "$output"
+        base_std_log_warn "Project Intake may fail unless BASE_PROJECT_TOKEN is configured with user Project access."
+        base_std_log_warn "Fix: $(base_repo_project_intake_secret_fix_command "$repo")"
         return 0
     }
 
@@ -432,9 +432,9 @@ base_repo_check_project_intake_secret() {
         return 0
     fi
 
-    log_warn "Project Intake secret 'BASE_PROJECT_TOKEN' is not configured for '$repo'."
-    log_warn "GitHub Actions default token cannot access user-level Projects."
-    log_warn "Fix: $(base_repo_project_intake_secret_fix_command "$repo")"
+    base_std_log_warn "Project Intake secret 'BASE_PROJECT_TOKEN' is not configured for '$repo'."
+    base_std_log_warn "GitHub Actions default token cannot access user-level Projects."
+    base_std_log_warn "Fix: $(base_repo_project_intake_secret_fix_command "$repo")"
 }
 
 base_repo_configure_project_metadata() {
@@ -495,7 +495,7 @@ base_repo_configure_project_metadata() {
     fi
 
     [[ -x "$wrapper" ]] || {
-        log_error "Base Python wrapper '$wrapper' is missing or is not executable."
+        base_std_log_error "Base Python wrapper '$wrapper' is missing or is not executable."
         return 1
     }
     base_repo_check_project_intake_secret "$dry_run" "$repo" || return 1
@@ -524,8 +524,8 @@ base_repo_configure_project_metadata() {
         command+=(--initiative-option "$option")
     done
 
-    log_info "Configuring GitHub Project '$project_title' for '$repo'."
-    log_info "Running: $(base_repo_pretty_command "${command[@]}")"
+    base_std_log_info "Configuring GitHub Project '$project_title' for '$repo'."
+    base_std_log_info "Running: $(base_repo_pretty_command "${command[@]}")"
     output="$(BASE_CLI_DISPLAY_COMMAND="basectl gh" "${command[@]}" 2>&1)" || status=$?
     if [[ "$status" -eq 0 ]]; then
         [[ -z "$output" ]] || printf '%s\n' "$output"
@@ -533,13 +533,13 @@ base_repo_configure_project_metadata() {
         return 0
     fi
     if [[ "$status" -eq 3 ]]; then
-        log_warn "GitHub Project metadata skipped for '$repo'."
-        [[ -z "$output" ]] || log_warn "$output"
+        base_std_log_warn "GitHub Project metadata skipped for '$repo'."
+        [[ -z "$output" ]] || base_std_log_warn "$output"
         return 0
     fi
 
-    [[ -z "$output" ]] || log_error "$output"
-    log_error "Unable to configure GitHub Project metadata for '$repo'."
+    [[ -z "$output" ]] || base_std_log_error "$output"
+    base_std_log_error "Unable to configure GitHub Project metadata for '$repo'."
     return 1
 }
 
@@ -602,13 +602,13 @@ base_repo_configure_github() {
                     1)
                         if [[ "$current_issue_branch_policy_required" == "1" && "$current_issue_branch_policy_integration_id" == "$BASE_GITHUB_ACTIONS_INTEGRATION_ID" ]]; then
                             issue_branch_policy_available=1
-                            log_warn "Preserving the existing Issue Branch Policy requirement on '$repo' without recent bootstrap evidence."
+                            base_std_log_warn "Preserving the existing Issue Branch Policy requirement on '$repo' without recent bootstrap evidence."
                         elif [[ "$current_issue_branch_policy_required" == "1" ]]; then
-                            log_error "Refusing to replace the existing unbound Issue Branch Policy requirement on '$repo' without a recent trusted success."
+                            base_std_log_error "Refusing to replace the existing unbound Issue Branch Policy requirement on '$repo' without a recent trusted success."
                             return 1
                         else
-                            log_warn "Issue branch policy is not required for '$repo' yet."
-                            log_warn "Enable '.github/workflows/issue-branch-policy.yml', complete one recent successful run, and rerun 'basectl repo configure'."
+                            base_std_log_warn "Issue branch policy is not required for '$repo' yet."
+                            base_std_log_warn "Enable '.github/workflows/issue-branch-policy.yml', complete one recent successful run, and rerun 'basectl repo configure'."
                         fi
                         ;;
                     *) return 1 ;;

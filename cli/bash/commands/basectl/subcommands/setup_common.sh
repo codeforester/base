@@ -57,17 +57,17 @@ setup_ensure_cached_paths() {
 setup_clear_run_state() {
     # Clear legacy lowercase state too so inherited environments cannot trigger
     # lib_std.sh dry-run behavior unless this command explicitly enables it.
-    unset dry_run DRY_RUN BASE_SETUP_CHECK_STATUS_FILE BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_UPGRADE_PIP BASE_SETUP_YES
+    unset BASE_BASH_LIBS_DRY_RUN BASE_SETUP_CHECK_STATUS_FILE BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_UPGRADE_PIP BASE_SETUP_YES
     setup_refresh_cached_paths
 }
 
 setup_enable_dry_run() {
-    export DRY_RUN=true
+    export BASE_BASH_LIBS_DRY_RUN=true
 }
 
 setup_enable_debug_logging() {
-    set_log_level DEBUG
-    export LOG_DEBUG=1
+    base_std_set_log_level DEBUG
+    export BASE_BASH_LIBS_LOG_DEBUG=1
 }
 
 setup_epoch_seconds() {
@@ -79,7 +79,7 @@ setup_backup_timestamp() {
 }
 
 setup_is_dry_run() {
-    [[ "${DRY_RUN-}" == true ]]
+    [[ "${BASE_BASH_LIBS_DRY_RUN-}" == true ]]
 }
 
 setup_enable_yes() {
@@ -104,7 +104,7 @@ setup_test_confirm_response() {
 
 setup_interactive_consent_available() {
     setup_test_assume_interactive && return 0
-    is_interactive
+    base_std_is_interactive
 }
 
 setup_read_confirmation_response() {
@@ -130,22 +130,22 @@ setup_require_linux_debian_system_consent() {
     setup_yes_enabled && return 0
 
     if ! setup_interactive_consent_available; then
-        fatal_error "$reason Run 'basectl setup --dry-run' to review the apt commands, then rerun with '--yes' to apply them."
+        base_std_fatal_error "$reason Run 'basectl setup --dry-run' to review the apt commands, then rerun with '--yes' to apply them."
     fi
 
-    log_info "$reason"
+    base_std_log_info "$reason"
     if [[ -n "${BASE_SETUP_TEST_STATE_DIR:-}" ]]; then
         setup_allow_test_hooks && touch "$BASE_SETUP_TEST_STATE_DIR/linux-consent-prompted"
     fi
     printf "Proceed with Ubuntu/Debian setup changes? [y/N] " >&2
-    response="$(setup_read_confirmation_response)" || fatal_error "Ubuntu/Debian setup was not approved."
+    response="$(setup_read_confirmation_response)" || base_std_fatal_error "Ubuntu/Debian setup was not approved."
     case "${response,,}" in
         y|yes)
             setup_enable_yes
             return 0
             ;;
         *)
-            fatal_error "Ubuntu/Debian setup was not approved."
+            base_std_fatal_error "Ubuntu/Debian setup was not approved."
             ;;
     esac
 }
@@ -273,7 +273,7 @@ setup_reject_test_hook_if_disallowed() {
     local variable_name="$1"
 
     setup_allow_test_hooks && return 0
-    fatal_error "$variable_name is a test-only setup override. Set BASE_TEST_MODE=true or CI=true to use it."
+    base_std_fatal_error "$variable_name is a test-only setup override. Set BASE_TEST_MODE=true or CI=true to use it."
 }
 
 setup_recovery_base_bash_libraries() {
@@ -296,7 +296,7 @@ setup_notify_completion() {
     [[ "$OSTYPE" == darwin* ]] || return 0
     if ! command -v osascript >/dev/null 2>&1; then
         if setup_notifications_forced; then
-            log_warn "Setup notification was requested, but 'osascript' is not available on this Mac."
+            base_std_log_warn "Setup notification was requested, but 'osascript' is not available on this Mac."
         fi
         return 0
     fi
@@ -398,31 +398,31 @@ setup_print_runtime_chain_summary() {
     venv_dir="$(setup_venv_dir)"
     python_bin="$venv_dir/bin/python"
 
-    log_info "Runtime chain: BASE_OS=${BASE_OS:-unknown} BASE_PLATFORM=$platform BASE_HOST_ENV=$host_env BASE_HOST=${BASE_HOST:-unknown}"
-    log_info "Shell: path=${shell_path:-unknown} version=${BASH_VERSION:-unknown} machine=${shell_machine:-unknown} translated=${translated:-unknown}"
+    base_std_log_info "Runtime chain: BASE_OS=${BASE_OS:-unknown} BASE_PLATFORM=$platform BASE_HOST_ENV=$host_env BASE_HOST=${BASE_HOST:-unknown}"
+    base_std_log_info "Shell: path=${shell_path:-unknown} version=${BASH_VERSION:-unknown} machine=${shell_machine:-unknown} translated=${translated:-unknown}"
 
     if [[ -x "$python_bin" ]]; then
         pyvenv_cfg="$venv_dir/pyvenv.cfg"
         python_arch="$(setup_python_machine "$python_bin" 2>/dev/null || setup_executable_architecture "$python_bin" 2>/dev/null || true)"
         home_path="$(setup_pyvenv_cfg_value home "$pyvenv_cfg" 2>/dev/null || true)"
-        log_info "Python: path=$python_bin machine=${python_arch:-unknown} home=${home_path:-unknown}"
+        base_std_log_info "Python: path=$python_bin machine=${python_arch:-unknown} home=${home_path:-unknown}"
     else
-        log_info "Python: path=$python_bin status=missing"
+        base_std_log_info "Python: path=$python_bin status=missing"
     fi
 
     if [[ "$platform" == macos ]]; then
         if brew_bin="$(setup_find_brew_bin 2>/dev/null)"; then
             brew_prefix="$(setup_homebrew_prefix 2>/dev/null || true)"
-            log_info "Homebrew: path=$brew_bin prefix=${brew_prefix:-unknown}"
+            base_std_log_info "Homebrew: path=$brew_bin prefix=${brew_prefix:-unknown}"
         else
-            log_info "Homebrew: status=missing"
+            base_std_log_info "Homebrew: status=missing"
         fi
     fi
 
     if gh_bin="$(setup_command_path gh 2>/dev/null)"; then
         gh_version="$(setup_gh_version_line 2>/dev/null || true)"
         gh_arch="$(setup_executable_architecture "$gh_bin" 2>/dev/null || true)"
-        log_info "GitHub CLI: path=$gh_bin version=${gh_version:-unknown} arch=${gh_arch:-unknown}"
+        base_std_log_info "GitHub CLI: path=$gh_bin version=${gh_version:-unknown} arch=${gh_arch:-unknown}"
     fi
 }
 
@@ -768,34 +768,34 @@ setup_seed_user_config() {
     fi
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would create Base user config at '$config_path'."
+        base_std_log_info "[DRY-RUN] Would create Base user config at '$config_path'."
         return 0
     fi
 
     config_dir="$(dirname "$config_path")"
-    safe_mkdir -p "$config_dir"
+    base_std_safe_mkdir -p "$config_dir"
     if [[ -e "$config_path" || -L "$config_path" ]]; then
         return 0
     fi
 
     temp_file="$(mktemp "$config_path.XXXXXX")" ||
-        fatal_error "Unable to create temporary Base user config for '$config_path'."
+        base_std_fatal_error "Unable to create temporary Base user config for '$config_path'."
     {
         printf 'workspace:\n'
         printf '  root: ~/work\n'
     } > "$temp_file" || {
         rm -f -- "$temp_file"
-        fatal_error "Unable to write Base user config '$config_path'."
+        base_std_fatal_error "Unable to write Base user config '$config_path'."
     }
     mv -n -- "$temp_file" "$config_path" || {
         rm -f -- "$temp_file"
-        fatal_error "Unable to create Base user config '$config_path'."
+        base_std_fatal_error "Unable to create Base user config '$config_path'."
     }
     if [[ -e "$temp_file" ]]; then
         rm -f -- "$temp_file"
         return 0
     fi
-    log_info "Created Base user config at '$config_path'."
+    base_std_log_info "Created Base user config at '$config_path'."
 }
 
 setup_project_venv_python_bin() {
@@ -938,7 +938,7 @@ setup_run_project_pre_venv_layer() {
 
     setup_ensure_cached_paths
     venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
-    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
+    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || base_std_fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
 
     args+=(--manifest "$manifest_path")
     args+=(--action "$action")
@@ -973,13 +973,13 @@ setup_run_project_bootstrap_layer() {
     local project_env_args=()
 
     if setup_is_dry_run && ! setup_base_python_package_installed "$(setup_pyyaml_package)"; then
-        log_info "[DRY-RUN] Would bootstrap project Python runtime after PyYAML is installed."
+        base_std_log_info "[DRY-RUN] Would bootstrap project Python runtime after PyYAML is installed."
         return 0
     fi
 
     setup_ensure_cached_paths
     venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
-    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
+    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || base_std_fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
 
     if setup_is_dry_run; then
         args+=(--dry-run)
@@ -987,7 +987,7 @@ setup_run_project_bootstrap_layer() {
     args+=(--manifest "$manifest_path" --action bootstrap "$project")
 
     if [[ "$output_format" != json ]]; then
-        log_info "Bootstrapping Python runtime for project '$project'."
+        base_std_log_info "Bootstrapping Python runtime for project '$project'."
     fi
 
     setup_ensure_cached_paths
@@ -1029,7 +1029,7 @@ setup_run_project_artifact_layer() {
     local project_env_args=()
 
     if setup_is_dry_run && ! setup_base_python_package_installed "$(setup_pyyaml_package)"; then
-        log_info "[DRY-RUN] Would run Python project setup layer after PyYAML is installed."
+        base_std_log_info "[DRY-RUN] Would run Python project setup layer after PyYAML is installed."
         return 0
     fi
 
@@ -1037,31 +1037,31 @@ setup_run_project_artifact_layer() {
     requested_project="$project"
     setup_ensure_cached_paths
     venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
-    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
+    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || base_std_fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
     setup_resolve_project_manifest "$project" "$python_bin" project resolved_root manifest_path || {
         if [[ -z "$requested_project" && -n "${BASE_SETUP_MANIFEST:-}" ]]; then
-            log_error "Unable to resolve a project from manifest '$BASE_SETUP_MANIFEST'."
+            base_std_log_error "Unable to resolve a project from manifest '$BASE_SETUP_MANIFEST'."
         else
-            log_error "Unable to resolve Base project '$project'."
-            log_error "Run 'basectl projects list' to see projects Base can discover."
+            base_std_log_error "Unable to resolve Base project '$project'."
+            base_std_log_error "Run 'basectl projects list' to see projects Base can discover."
         fi
         return 1
     }
     if [[ "$project" != base ]]; then
         if [[ "$output_format" != json ]]; then
             if [[ "$action" == setup ]]; then
-                log_info "Resolved project '$project' at '$resolved_root'."
+                base_std_log_info "Resolved project '$project' at '$resolved_root'."
             else
-                log_debug "Resolved project '$project' at '$resolved_root'."
+                base_std_log_debug "Resolved project '$project' at '$resolved_root'."
             fi
         fi
     fi
     route_output="$(setup_resolve_project_route "$project" "$manifest_path" "$python_bin")" || {
-        log_error "Unable to resolve Base project environment for '$project'."
+        base_std_log_error "Unable to resolve Base project environment for '$project'."
         return 1
     }
     base_command_protocol_decode_one project-setup-route "$route_output" || {
-        log_error "Python project routing returned invalid metadata for '$project'."
+        base_std_log_error "Python project routing returned invalid metadata for '$project'."
         return 1
     }
     project="${BASE_COMMAND_PROTOCOL_FIELDS[project_name]}"
@@ -1074,17 +1074,17 @@ setup_run_project_artifact_layer() {
     project_uses_uv_manager="${BASE_COMMAND_PROTOCOL_FIELDS[uses_uv_manager]}"
     project_requires_python="${BASE_COMMAND_PROTOCOL_FIELDS[requires_project_python]}"
     if [[ -z "$project" || -z "$resolved_root" || -z "$manifest_path" || -z "$project_venv_dir" ]]; then
-        log_error "Python project routing returned incomplete metadata for '$project'."
+        base_std_log_error "Python project routing returned incomplete metadata for '$project'."
         return 1
     fi
     BASE_SETUP_PROJECT_NAME="$project"
     export BASE_SETUP_PROJECT_NAME
     if [[ "$project_uses_uv_manager" != true && "$project_uses_uv_manager" != false ]]; then
-        log_error "Python project routing returned invalid uv-manager metadata for '$project'."
+        base_std_log_error "Python project routing returned invalid uv-manager metadata for '$project'."
         return 1
     fi
     if [[ "$project_requires_python" != true && "$project_requires_python" != false ]]; then
-        log_error "Python project routing returned invalid project-Python metadata for '$project'."
+        base_std_log_error "Python project routing returned invalid project-Python metadata for '$project'."
         return 1
     fi
     if [[ "$project" == base ]]; then
@@ -1114,9 +1114,9 @@ setup_run_project_artifact_layer() {
 
     if [[ "$output_format" != json ]]; then
         if [[ "$action" == setup ]]; then
-            log_info "Running Python project $action layer."
+            base_std_log_info "Running Python project $action layer."
         else
-            log_debug "Running Python project $action layer."
+            base_std_log_debug "Running Python project $action layer."
         fi
     fi
 
@@ -1124,25 +1124,25 @@ setup_run_project_artifact_layer() {
         setup_run_project_bootstrap_layer "$manifest_path" "$project" "$output_format" "$resolved_root" "$project_venv_dir"
         exit_code=$?
         if ((exit_code)); then
-            log_error "$(setup_recovery_project_layer)"
-            log_error "Python project $action layer failed."
+            base_std_log_error "$(setup_recovery_project_layer)"
+            base_std_log_error "Python project $action layer failed."
             return "$exit_code"
         fi
     fi
 
     if [[ "$action" == setup ]] && setup_upgrade_pip_enabled && [[ "$project" != base ]]; then
         if [[ "$project_uses_uv_manager" == true ]]; then
-            log_warn "Skipping pip upgrade for project '$project': its virtual environment is managed by uv. Run 'uv sync' to reconcile the project environment."
+            base_std_log_warn "Skipping pip upgrade for project '$project': its virtual environment is managed by uv. Run 'uv sync' to reconcile the project environment."
         elif [[ "$project_requires_python" == true ]]; then
             setup_upgrade_project_pip "$project" "$project_venv_dir" || return $?
         else
-            log_warn "Skipping pip upgrade for project '$project': it does not declare a Python runtime."
+            base_std_log_warn "Skipping pip upgrade for project '$project': it does not declare a Python runtime."
         fi
     fi
 
     if [[ "$project_requires_python" == true && "$project_uses_uv_manager" != true ]] && ! setup_virtualenv_healthy_path "$project_venv_dir"; then
         if setup_is_dry_run && [[ "$action" == setup ]]; then
-            log_info "[DRY-RUN] Would run Python project setup layer through base-wrapper for project '$project'."
+            base_std_log_info "[DRY-RUN] Would run Python project setup layer through base-wrapper for project '$project'."
             return 0
         fi
         if [[ "$output_format" == json ]]; then
@@ -1174,11 +1174,11 @@ setup_run_project_artifact_layer() {
                 "$(setup_recovery_project_venv "$project" "$resolved_root" "$project_venv_dir")"
         elif [[ "$action" == check ]]; then
             setup_run_project_pre_venv_layer precheck text "$manifest_path" "$project" "$resolved_root" "$project_venv_dir" "$remote_network" || true
-            log_error "$_BASE_SETUP_VENV_HEALTH_MESSAGE"
-            log_error "$(setup_recovery_project_venv "$project" "$resolved_root" "$project_venv_dir")"
+            base_std_log_error "$_BASE_SETUP_VENV_HEALTH_MESSAGE"
+            base_std_log_error "$(setup_recovery_project_venv "$project" "$resolved_root" "$project_venv_dir")"
         else
-            log_warn "$_BASE_SETUP_VENV_HEALTH_MESSAGE"
-            log_warn "$(setup_recovery_project_venv "$project" "$resolved_root" "$project_venv_dir")"
+            base_std_log_warn "$_BASE_SETUP_VENV_HEALTH_MESSAGE"
+            base_std_log_warn "$(setup_recovery_project_venv "$project" "$resolved_root" "$project_venv_dir")"
         fi
         return 1
     fi
@@ -1205,12 +1205,12 @@ setup_run_project_artifact_layer() {
     exit_code=$?
 
     if ((exit_code)) && [[ "$action" == setup ]]; then
-        log_error "$(setup_recovery_project_layer)"
-        log_error "Python project $action layer failed."
+        base_std_log_error "$(setup_recovery_project_layer)"
+        base_std_log_error "Python project $action layer failed."
         return "$exit_code"
     fi
     if ((exit_code)) && [[ "$action" == check ]]; then
-        log_error "Python project check layer found missing requirements."
+        base_std_log_error "Python project check layer found missing requirements."
         return "$exit_code"
     fi
     if ((exit_code)); then
@@ -1265,7 +1265,7 @@ setup_collect_platform_base_check_results() {
             setup_collect_linux_debian_base_check_results "$@"
             ;;
         *)
-            fatal_error "$(setup_unsupported_platform_message "$platform")"
+            base_std_fatal_error "$(setup_unsupported_platform_message "$platform")"
             ;;
     esac
 }
@@ -1288,25 +1288,25 @@ setup_print_check_text_results() {
         status="${_BASE_SETUP_CHECK_STATUSES[$i]:-$(setup_diagnostic_status_from_ok "${_BASE_SETUP_CHECK_OK[$i]}")}"
         case "$status" in
             ok)
-                log_info "${_BASE_SETUP_CHECK_MESSAGES[$i]}"
+                base_std_log_info "${_BASE_SETUP_CHECK_MESSAGES[$i]}"
                 if [[ -n "${_BASE_SETUP_CHECK_DEBUG_MESSAGES[$i]}" ]]; then
-                    log_debug "${_BASE_SETUP_CHECK_DEBUG_MESSAGES[$i]}"
+                    base_std_log_debug "${_BASE_SETUP_CHECK_DEBUG_MESSAGES[$i]}"
                 fi
                 ;;
             warn)
-                log_warn "${_BASE_SETUP_CHECK_MESSAGES[$i]}"
+                base_std_log_warn "${_BASE_SETUP_CHECK_MESSAGES[$i]}"
                 if [[ -n "${_BASE_SETUP_CHECK_RECOVERIES[$i]}" ]]; then
-                    log_warn "${_BASE_SETUP_CHECK_RECOVERIES[$i]}"
+                    base_std_log_warn "${_BASE_SETUP_CHECK_RECOVERIES[$i]}"
                 fi
                 ;;
             error)
-                log_error "${_BASE_SETUP_CHECK_MESSAGES[$i]}"
+                base_std_log_error "${_BASE_SETUP_CHECK_MESSAGES[$i]}"
                 if [[ -n "${_BASE_SETUP_CHECK_RECOVERIES[$i]}" ]]; then
-                    log_error "${_BASE_SETUP_CHECK_RECOVERIES[$i]}"
+                    base_std_log_error "${_BASE_SETUP_CHECK_RECOVERIES[$i]}"
                 fi
                 ;;
             *)
-                fatal_error "Invalid Base check status '$status'."
+                base_std_fatal_error "Invalid Base check status '$status'."
                 ;;
         esac
     done
@@ -1339,7 +1339,7 @@ setup_check_result_recovery() {
 setup_write_collected_check_result_files() {
     local count i output_dir="$1" output_path
 
-    mkdir -p -- "$output_dir" || fatal_error "Unable to create Base check result directory '$output_dir'."
+    mkdir -p -- "$output_dir" || base_std_fatal_error "Unable to create Base check result directory '$output_dir'."
 
     count="${#_BASE_SETUP_CHECK_NAMES[@]}"
     for ((i = 0; i < count; i++)); do
@@ -1369,8 +1369,8 @@ setup_run_check() {
     aggregate_status="$(setup_check_results_status)"
 
     if setup_profiles_enabled; then
-        std_make_temp_file profile_status_file base-profile-check-status ||
-            fatal_error "Unable to create temporary profile check status file."
+        base_std_make_temp_file profile_status_file base-profile-check-status ||
+            base_std_fatal_error "Unable to create temporary profile check status file."
         BASE_SETUP_CHECK_STATUS_FILE="$profile_status_file"
         export BASE_SETUP_CHECK_STATUS_FILE
         if ! setup_run_base_dev_layer check; then
@@ -1379,7 +1379,7 @@ setup_run_check() {
         elif layer_status="$(setup_read_published_check_status "$profile_status_file")"; then
             aggregate_status="$(setup_merge_diagnostic_status "$aggregate_status" "$layer_status")"
         else
-            log_error "Python prerequisite profile check layer did not report a valid aggregate status."
+            base_std_log_error "Python prerequisite profile check layer did not report a valid aggregate status."
             missing=1
             aggregate_status="error"
         fi
@@ -1387,8 +1387,8 @@ setup_run_check() {
     fi
 
     if [[ -n "$project" || -n "${BASE_SETUP_MANIFEST:-}" ]]; then
-        std_make_temp_file project_status_file base-project-check-status ||
-            fatal_error "Unable to create temporary project check status file."
+        base_std_make_temp_file project_status_file base-project-check-status ||
+            base_std_fatal_error "Unable to create temporary project check status file."
         BASE_SETUP_CHECK_STATUS_FILE="$project_status_file"
         export BASE_SETUP_CHECK_STATUS_FILE
         if ! setup_run_project_artifact_check; then
@@ -1397,7 +1397,7 @@ setup_run_check() {
         elif layer_status="$(setup_read_published_check_status "$project_status_file")"; then
             aggregate_status="$(setup_merge_diagnostic_status "$aggregate_status" "$layer_status")"
         else
-            log_error "Python project check layer did not report a valid aggregate status."
+            base_std_log_error "Python project check layer did not report a valid aggregate status."
             missing=1
             aggregate_status="error"
         fi
@@ -1408,20 +1408,20 @@ setup_run_check() {
     if ((missing == 0)) && [[ "$aggregate_status" != error ]]; then
         setup_record_project_check_result "$project" "$aggregate_status"
         if [[ -n "$project" ]]; then
-            log_info "Base CLI environment and project '$project' check passed."
+            base_std_log_info "Base CLI environment and project '$project' check passed."
         else
-            log_info "Base CLI environment check passed."
+            base_std_log_info "Base CLI environment check passed."
         fi
         return 0
     fi
 
     setup_record_project_check_result "$project" error
     if [[ -n "$project" ]]; then
-        log_error "Base CLI environment or project '$project' check found missing requirements."
-        log_error "Review the specific Fix lines above and rerun 'basectl check $project' after resolving the missing requirements."
+        base_std_log_error "Base CLI environment or project '$project' check found missing requirements."
+        base_std_log_error "Review the specific Fix lines above and rerun 'basectl check $project' after resolving the missing requirements."
     else
-        log_error "Base CLI environment check found missing requirements."
-        log_error "Review the specific Fix lines above and rerun 'basectl check' after resolving the missing requirements."
+        base_std_log_error "Base CLI environment check found missing requirements."
+        base_std_log_error "Review the specific Fix lines above and rerun 'basectl check' after resolving the missing requirements."
     fi
     return 1
 }
@@ -1445,8 +1445,8 @@ setup_run_check_json() {
     local remote_network="${1:-${BASE_SETUP_REMOTE_NETWORK:-}}"
 
     setup_collect_base_check_results warn || true
-    std_make_temp_dir check_result_dir base-check-json ||
-        fatal_error "Unable to create temporary Base check JSON result directory."
+    base_std_make_temp_dir check_result_dir base-check-json ||
+        base_std_fatal_error "Unable to create temporary Base check JSON result directory."
 
     if setup_profiles_enabled; then
         if ! profile_json="$(setup_run_base_dev_layer check --format json)"; then
@@ -1502,7 +1502,7 @@ setup_run_platform_install() {
             setup_run_linux_debian_install
             ;;
         *)
-            fatal_error "$(setup_unsupported_install_platform_message "$platform")"
+            base_std_fatal_error "$(setup_unsupported_install_platform_message "$platform")"
             ;;
     esac
 }

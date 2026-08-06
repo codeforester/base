@@ -35,14 +35,14 @@ EOF
 }
 
 base_update_profile_usage_error() {
-    print_error "$*"
+    base_std_print_error "$*"
     printf "Run 'basectl update-profile --help' for usage.\n" >&2
     return 2
 }
 
 base_update_profile_source_file_library() {
     import_base_lib file/lib_file.sh
-    assert_function_exists file_section_exists file_section_needs_update
+    base_std_assert_function_exists base_file_section_exists base_file_section_needs_update
 }
 
 base_update_profile_shell_double_quote() {
@@ -152,15 +152,15 @@ base_update_profile_backup_existing_file() {
     [[ -f "$target_file" ]] || return 0
 
     backup_path="$(base_update_profile_backup_path "$target_file" "$timestamp")" ||
-        fatal_error "Unable to resolve backup path for '$target_file'."
+        base_std_fatal_error "Unable to resolve backup path for '$target_file'."
 
     if ((dry_run)); then
-        log_info "[DRY-RUN] Would back up '$target_file' to '$backup_path'."
+        base_std_log_info "[DRY-RUN] Would back up '$target_file' to '$backup_path'."
         return 0
     fi
 
-    log_info "Backing up '$target_file' to '$backup_path'."
-    cp -p "$target_file" "$backup_path" || fatal_error "Unable to back up '$target_file' to '$backup_path'."
+    base_std_log_info "Backing up '$target_file' to '$backup_path'."
+    cp -p "$target_file" "$backup_path" || base_std_fatal_error "Unable to back up '$target_file' to '$backup_path'."
 }
 
 base_update_profile_update_file_needs_change() {
@@ -173,7 +173,7 @@ base_update_profile_update_file_needs_change() {
     [[ -f "$target_file" ]] || return 0
 
     mapfile -t lines < <(base_update_profile_section_lines "$snippet_name") || return 2
-    file_section_needs_update "$target_file" "$start_marker" "$end_marker" "${lines[@]}"
+    base_file_section_needs_update "$target_file" "$start_marker" "$end_marker" "${lines[@]}"
 }
 
 base_update_profile_remove_file_needs_change() {
@@ -181,7 +181,7 @@ base_update_profile_remove_file_needs_change() {
     local start_marker="$2"
     local end_marker="$3"
 
-    file_section_exists "$target_file" "$start_marker" "$end_marker"
+    base_file_section_exists "$target_file" "$start_marker" "$end_marker"
 }
 
 base_update_profile_update_file() {
@@ -211,14 +211,14 @@ base_update_profile_update_file() {
 
     if ((dry_run)); then
         base_update_profile_backup_existing_file "$target_file" "$backup_timestamp" "$dry_run" || return 1
-        log_info "[DRY-RUN] Would update '$target_file' with section '$snippet_name'."
+        base_std_log_info "[DRY-RUN] Would update '$target_file' with section '$snippet_name'."
         return 0
     fi
 
     base_update_profile_backup_existing_file "$target_file" "$backup_timestamp" "$dry_run" || return 1
-    safe_touch "$target_file"
+    base_std_safe_touch "$target_file"
     base_update_profile_prepare_section_spacing "$target_file" "$start_marker" || return 1
-    update_file_section "$target_file" "$start_marker" "$end_marker" "${lines[@]}"
+    base_file_update_file_section "$target_file" "$start_marker" "$end_marker" "${lines[@]}"
 }
 
 base_update_profile_remove_file() {
@@ -246,12 +246,12 @@ base_update_profile_remove_file() {
 
     if ((dry_run)); then
         base_update_profile_backup_existing_file "$target_file" "$backup_timestamp" "$dry_run" || return 1
-        log_info "[DRY-RUN] Would remove section '$snippet_name' from '$target_file'."
+        base_std_log_info "[DRY-RUN] Would remove section '$snippet_name' from '$target_file'."
         return 0
     fi
 
     base_update_profile_backup_existing_file "$target_file" "$backup_timestamp" "$dry_run" || return 1
-    update_file_section -r "$target_file" "$start_marker" "$end_marker"
+    base_file_update_file_section -r "$target_file" "$start_marker" "$end_marker"
 }
 
 base_update_profile_state_dir() {
@@ -294,12 +294,12 @@ base_update_profile_write_profile_conf() {
     fi
 
     if ((dry_run)); then
-        log_info "[DRY-RUN] Would update '$profile_conf'."
+        base_std_log_info "[DRY-RUN] Would update '$profile_conf'."
         return 0
     fi
 
-    safe_mkdir -p "$state_dir"
-    temp_file="$(mktemp "$profile_conf.XXXXXX")" || fatal_error "Unable to create temporary profile config for '$profile_conf'."
+    base_std_safe_mkdir -p "$state_dir"
+    temp_file="$(mktemp "$profile_conf.XXXXXX")" || base_std_fatal_error "Unable to create temporary profile config for '$profile_conf'."
 
     if ! {
         printf '%s\n' '# Managed by Base. Run `basectl update-profile` to refresh this file.'
@@ -308,10 +308,10 @@ base_update_profile_write_profile_conf() {
         printf 'BASE_ENABLE_ZSH_DEFAULTS=%s\n' "$enable_value"
     } > "$temp_file"; then
         rm -f -- "$temp_file"
-        fatal_error "Unable to write Base profile config '$profile_conf'."
+        base_std_fatal_error "Unable to write Base profile config '$profile_conf'."
     fi
 
-    mv -f -- "$temp_file" "$profile_conf" || fatal_error "Unable to update Base profile config '$profile_conf'."
+    mv -f -- "$temp_file" "$profile_conf" || base_std_fatal_error "Unable to update Base profile config '$profile_conf'."
 }
 
 base_update_profile_subcommand_main() {
@@ -360,14 +360,14 @@ base_update_profile_subcommand_main() {
         return $?
     fi
 
-    log_debug "Running 'basectl update-profile'."
+    base_std_log_debug "Running 'basectl update-profile'."
 
     base_home="$(basectl_runtime_base_home)" || {
-        print_error "${BASE_CLI_ERROR_MESSAGE:-Unable to find Base home.}"
+        base_std_print_error "${BASE_CLI_ERROR_MESSAGE:-Unable to find Base home.}"
         return 1
     }
     if [[ "${BASE_HOME:-}" != "$base_home" ]]; then
-        print_error "Resolved Base home '$base_home' does not match runtime BASE_HOME '${BASE_HOME:-unset}'."
+        base_std_print_error "Resolved Base home '$base_home' does not match runtime BASE_HOME '${BASE_HOME:-unset}'."
         printf "       This command must be invoked through the Base dispatcher, not directly.\n" >&2
         printf "       Fix: unset BASE_HOME and run 'basectl update-profile' through the installed 'basectl' binary.\n" >&2
         return 1
@@ -375,7 +375,7 @@ base_update_profile_subcommand_main() {
     export BASE_HOME
 
     base_update_profile_source_file_library || return 1
-    backup_timestamp="$(setup_backup_timestamp)" || fatal_error "Unable to generate update-profile backup timestamp."
+    backup_timestamp="$(setup_backup_timestamp)" || base_std_fatal_error "Unable to generate update-profile backup timestamp."
 
     if ((remove_sections)); then
         base_update_profile_remove_file "$HOME/.bash_profile" bash_profile "$dry_run" "$backup_timestamp" || return 1

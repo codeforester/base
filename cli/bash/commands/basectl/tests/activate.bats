@@ -17,7 +17,7 @@ setup_activate_lifecycle_fixture() {
         BASE_CLI_RUNTIME_OWNER \
         BASE_CLI_RUN_ID \
         BASE_CLI_RUN_ROOT \
-        BASE_CLI_PRIMARY_LOG \
+        BASE_BASH_LIBS_PRIMARY_LOG \
         BASE_CLI_HISTORY_PARENT_RUN_ID \
         BASE_CLI_HISTORY_STARTED_AT \
         BASE_CLI_HISTORY_SCOPE \

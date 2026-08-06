@@ -31,7 +31,7 @@ EOF
 }
 
 base_onboard_usage_error() {
-    print_error "$*"
+    base_std_print_error "$*"
     printf "Run 'basectl onboard --help' for usage.\n" >&2
     return 2
 }

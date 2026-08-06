@@ -37,10 +37,10 @@ create_minimal_bash_libs_fixture() {
     mkdir -p "$bash_libs_dir/std"
     cat > "$bash_libs_dir/std/lib_std.sh" <<'EOF'
 #!/usr/bin/env bash
-add_to_path() { return 0; }
-log_debug() { return 0; }
-print_error() { printf 'ERROR: %s\n' "$*" >&2; }
-fatal_error() { printf 'ERROR: %s\n' "$*" >&2; return 1; }
+base_std_add_to_path() { return 0; }
+base_std_log_debug() { return 0; }
+base_std_print_error() { printf 'ERROR: %s\n' "$*" >&2; }
+base_std_fatal_error() { printf 'ERROR: %s\n' "$*" >&2; return 1; }
 EOF
 }
 
@@ -211,7 +211,7 @@ EOF
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/update_profile.sh"
             base_update_profile_source_file_library
-            file_section_needs_update() {
+            base_file_section_needs_update() {
                 printf "helper_target=%s\n" "$1"
                 printf "helper_start=%s\n" "$2"
                 printf "helper_end=%s\n" "$3"
@@ -245,7 +245,7 @@ EOF
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/update_profile.sh"
             base_update_profile_source_file_library
-            file_section_exists() {
+            base_file_section_exists() {
                 printf "helper_target=%s\n" "$1"
                 printf "helper_start=%s\n" "$2"
                 printf "helper_end=%s\n" "$3"

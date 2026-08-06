@@ -116,7 +116,7 @@ base_release_args_request_help() {
 
 base_release_usage_error() {
     base_release_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -142,6 +142,6 @@ base_release_subcommand_main() {
         return $?
     fi
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     BASE_CLI_DISPLAY_COMMAND="basectl release" "$wrapper" --project base base_release "$@"
 }

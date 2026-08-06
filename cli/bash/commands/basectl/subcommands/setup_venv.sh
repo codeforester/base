@@ -166,17 +166,17 @@ setup_backup_existing_venv_path() {
     venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
     [[ -e "$venv_dir" ]] || return 0
 
-    timestamp="$(setup_backup_timestamp)" || fatal_error "Unable to generate virtual environment backup timestamp."
+    timestamp="$(setup_backup_timestamp)" || base_std_fatal_error "Unable to generate virtual environment backup timestamp."
     backup_path="${venv_dir}.backup.${timestamp}"
-    [[ ! -e "$backup_path" ]] || fatal_error "Virtual environment backup path already exists at '$backup_path'."
+    [[ ! -e "$backup_path" ]] || base_std_fatal_error "Virtual environment backup path already exists at '$backup_path'."
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would move $description '$venv_dir' to '$backup_path'."
+        base_std_log_info "[DRY-RUN] Would move $description '$venv_dir' to '$backup_path'."
         return 0
     fi
 
-    log_info "Moving $description '$venv_dir' to '$backup_path'."
-    mv "$venv_dir" "$backup_path" || fatal_error "Unable to move $description '$venv_dir' to '$backup_path'."
+    base_std_log_info "Moving $description '$venv_dir' to '$backup_path'."
+    mv "$venv_dir" "$backup_path" || base_std_fatal_error "Unable to move $description '$venv_dir' to '$backup_path'."
 }
 
 setup_pyyaml_package() {
@@ -243,8 +243,8 @@ setup_create_virtualenv() {
 
     if setup_virtualenv_exists && ! setup_base_recreate_venv_enabled; then
         setup_virtualenv_healthy ||
-            fatal_error "$_BASE_SETUP_VENV_HEALTH_MESSAGE $(setup_recovery_venv)"
-        log_info "Virtual environment already exists at '$venv_dir'."
+            base_std_fatal_error "$_BASE_SETUP_VENV_HEALTH_MESSAGE $(setup_recovery_venv)"
+        base_std_log_info "Virtual environment already exists at '$venv_dir'."
         return 0
     fi
 
@@ -255,14 +255,14 @@ setup_create_virtualenv() {
     fi
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would create Python virtual environment at '$venv_dir'."
+        base_std_log_info "[DRY-RUN] Would create Python virtual environment at '$venv_dir'."
         return 0
     fi
 
-    python_bin="$(setup_find_platform_python_bin)" || fatal_error "Unable to locate a python3 executable after installation. $(setup_recovery_platform_python)"
+    python_bin="$(setup_find_platform_python_bin)" || base_std_fatal_error "Unable to locate a python3 executable after installation. $(setup_recovery_platform_python)"
 
-    safe_mkdir -p "$(dirname "$venv_dir")"
-    log_info "Creating Python virtual environment at '$venv_dir'."
+    base_std_safe_mkdir -p "$(dirname "$venv_dir")"
+    base_std_log_info "Creating Python virtual environment at '$venv_dir'."
     "$python_bin" -m venv "$venv_dir"
 }
 
@@ -271,18 +271,18 @@ setup_upgrade_pip_in_virtualenv() {
     local python_bin="$2"
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would upgrade pip in the $description virtual environment."
+        base_std_log_info "[DRY-RUN] Would upgrade pip in the $description virtual environment."
         return 0
     fi
 
     [[ -x "$python_bin" ]] || {
-        log_error "Cannot upgrade pip because the $description virtual environment Python was not found at '$python_bin'."
+        base_std_log_error "Cannot upgrade pip because the $description virtual environment Python was not found at '$python_bin'."
         return 1
     }
 
-    log_info "Upgrading pip in the $description virtual environment."
+    base_std_log_info "Upgrading pip in the $description virtual environment."
     "$python_bin" -m pip install --disable-pip-version-check --upgrade pip || {
-        log_error "Unable to upgrade pip in the $description virtual environment."
+        base_std_log_error "Unable to upgrade pip in the $description virtual environment."
         return 1
     }
 }
@@ -336,20 +336,20 @@ setup_install_base_python_package() {
     venv_dir="$_BASE_SETUP_VENV_DIR_CACHE"
 
     if setup_base_python_package_installed "$package"; then
-        log_info "Python package '$package' is already installed in the Base virtual environment."
+        base_std_log_info "Python package '$package' is already installed in the Base virtual environment."
         return 0
     fi
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Would install Python package '$package' in the Base virtual environment."
+        base_std_log_info "[DRY-RUN] Would install Python package '$package' in the Base virtual environment."
         return 0
     fi
 
-    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
+    python_bin="$(setup_base_venv_python_bin "$venv_dir")" || base_std_fatal_error "Base virtual environment Python was not found at '$venv_dir/bin/python'. $(setup_recovery_venv)"
 
-    log_info "Installing Python package '$package' in the Base virtual environment."
+    base_std_log_info "Installing Python package '$package' in the Base virtual environment."
     "$python_bin" -m pip install --disable-pip-version-check "$package" ||
-        fatal_error "Unable to install Python package '$package' in the Base virtual environment."
+        base_std_fatal_error "Unable to install Python package '$package' in the Base virtual environment."
 }
 
 setup_install_pyyaml() {
@@ -484,16 +484,16 @@ setup_run_ci_runtime_install() {
     setup_install_base_cli
     if setup_profiles_enabled; then
         if setup_is_dry_run; then
-            setup_run_base_dev_layer setup --dry-run || fatal_error "Python prerequisite profile layer failed."
+            setup_run_base_dev_layer setup --dry-run || base_std_fatal_error "Python prerequisite profile layer failed."
         else
-            setup_run_base_dev_layer setup || fatal_error "Python prerequisite profile layer failed."
+            setup_run_base_dev_layer setup || base_std_fatal_error "Python prerequisite profile layer failed."
         fi
     fi
     setup_run_project_artifact_setup || return $?
 
     if setup_is_dry_run; then
-        log_info "[DRY-RUN] Base CI setup check is complete."
+        base_std_log_info "[DRY-RUN] Base CI setup check is complete."
     else
-        log_info "Base CI setup is complete."
+        base_std_log_info "Base CI setup is complete."
     fi
 }

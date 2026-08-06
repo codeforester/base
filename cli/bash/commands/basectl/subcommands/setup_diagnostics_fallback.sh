@@ -87,17 +87,17 @@ setup_diagnostics_fallback_record_check() {
                 shift 2
                 ;;
             *)
-                fatal_error "Unsupported diagnostics fallback argument '$1'."
+                base_std_fatal_error "Unsupported diagnostics fallback argument '$1'."
                 ;;
         esac
     done
 
     case "$status" in
         ok|warn|error) ;;
-        *) fatal_error "Invalid diagnostics record status '$status'." ;;
+        *) base_std_fatal_error "Invalid diagnostics record status '$status'." ;;
     esac
     [[ -n "$project" && -n "$checked_at" && -n "$path" ]] ||
-        fatal_error "Diagnostics record fallback requires project, status, checked-at, and output-path."
+        base_std_fatal_error "Diagnostics record fallback requires project, status, checked-at, and output-path."
 
     mkdir -p -- "$(dirname -- "$path")" || return 1
     tmp_path="${path}.tmp.$$"
@@ -146,7 +146,7 @@ setup_diagnostics_fallback_json() {
                         shift 2
                         ;;
                     *)
-                        fatal_error "Unsupported diagnostics fallback argument '$1'."
+                        base_std_fatal_error "Unsupported diagnostics fallback argument '$1'."
                         ;;
                 esac
             done
@@ -205,7 +205,7 @@ setup_diagnostics_fallback_json() {
                         shift 2
                         ;;
                     *)
-                        fatal_error "Unsupported diagnostics fallback argument '$1'."
+                        base_std_fatal_error "Unsupported diagnostics fallback argument '$1'."
                         ;;
                 esac
             done
@@ -259,7 +259,7 @@ setup_diagnostics_fallback_json() {
             return $?
             ;;
         *)
-            fatal_error "Python is required to render diagnostics command '$command'."
+            base_std_fatal_error "Python is required to render diagnostics command '$command'."
             ;;
     esac
 }

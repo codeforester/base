@@ -140,12 +140,12 @@ run_repo_command_with_mocks() {
         bash -c '
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/repo.sh"
-            [[ "$(type -t gh_require_cli)" == "function" ]]
-            [[ "$(type -t gh_auth_status_diagnostics)" == "function" ]]
-            [[ "$(type -t gh_run)" == "function" ]]
-            [[ "$(type -t gh_infer_repo_from_origin)" == "function" ]]
-            [[ "$(type -t git_detect_default_branch)" == "function" ]]
-            [[ "$(type -t gh_repo_default_branch)" == "function" ]]
+            [[ "$(type -t base_gh_require_cli)" == "function" ]]
+            [[ "$(type -t base_gh_auth_status_diagnostics)" == "function" ]]
+            [[ "$(type -t base_gh_run)" == "function" ]]
+            [[ "$(type -t base_gh_infer_repo_from_origin)" == "function" ]]
+            [[ "$(type -t base_git_detect_default_branch)" == "function" ]]
+            [[ "$(type -t base_gh_repo_default_branch)" == "function" ]]
         '
 
     [ "$status" -eq 0 ]
@@ -161,13 +161,13 @@ run_repo_command_with_mocks() {
             base_repo_require_gh() {
                 return 0
             }
-            gh_infer_repo_from_origin() {
+            base_gh_infer_repo_from_origin() {
                 printf -v "$2" "%s" "owner/repo"
             }
-            git_detect_default_branch() {
+            base_git_detect_default_branch() {
                 printf -v "$2" "%s" "develop"
             }
-            gh_repo_default_branch() {
+            base_gh_repo_default_branch() {
                 printf -v "$2" "%s" "trunk"
             }
             printf "repo=%s\n" "$(base_repo_infer_github_repo /tmp/repo)"

@@ -21,7 +21,7 @@ EOF
 
 base_docs_usage_error() {
     base_docs_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -42,7 +42,7 @@ base_docs_open_url() {
     local opener
 
     if ! opener="$(base_docs_platform_opener)"; then
-        print_error "No supported browser opener was found. Use 'basectl docs --show-url' to print the URL."
+        base_std_print_error "No supported browser opener was found. Use 'basectl docs --show-url' to print the URL."
         return 1
     fi
 

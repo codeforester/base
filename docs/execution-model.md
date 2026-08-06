@@ -114,8 +114,9 @@ argument. `basectl` then:
 5. sources the script
 6. calls `main` with the remaining user arguments
 
-This makes Base stdlib helpers such as `log_info`, `print_error`,
-`fatal_error`, `run`, `assert_command_exists`, and `import_base_lib` available
+This makes Base stdlib helpers such as `base_std_log_info`, `base_std_print_error`,
+`base_std_fatal_error`, `base_std_run`, `base_std_assert_command_exists`, and
+`import_base_lib` available
 without the script sourcing `lib_std.sh` directly.
 
 Standalone Bash scripts that are not intended to run through Base should use the
@@ -173,7 +174,7 @@ list is `basectl --help`; this list summarizes the shipped public surface:
 - `activate`
 - `test`
 - `build`
-- `run`
+- `base_std_run`
 - `demo`
 - `repo`
 - `release`

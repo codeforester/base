@@ -74,7 +74,7 @@ explicit Bash script, or starts a Base runtime Bash shell.
 | `BASE_BASH_COMMANDS_DIR` | Base | `$BASE_BASH_DIR/commands`. Directory used by command dispatch. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_LIB_DIR` | Base | `$BASE_HOME/lib`. Root for shared Base libraries. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_BASH_LIB_DIR` | Base | `$BASE_HOME/lib/bash`. Base-specific Bash helper root, including runtime and version helpers. | Do not set. Readonly after `base_init.sh`. |
-| `BASE_BASH_LIBS_DIR` | Base | Resolved reusable Bash library root used for stdlib loading and `import_base_lib`. It can point at an explicit `BASE_BASH_LIBS_DIR`, a sibling `base-bash-libs` checkout, or a Homebrew `base-bash-libs` package next to Homebrew Base. Base requires the corrected 1.x release line at version 1.3.0 or newer. | May be provided only before runtime bootstrap to force a compatible reusable library root. Readonly after `base_init.sh`. |
+| `BASE_BASH_LIBS_DIR` | Base | Resolved reusable Bash library root used for stdlib loading and `import_base_lib`. It can point at an explicit `BASE_BASH_LIBS_DIR`, a sibling `base-bash-libs` checkout, or a Homebrew `base-bash-libs` package next to Homebrew Base. Base requires the v2 `base_` API; the final coordinated cutover applies the 2.0.0 version floor. | May be provided only before runtime bootstrap to force a compatible reusable library root. Readonly after `base_init.sh`. |
 | `BASE_BASH_LIBS_SOURCE` | Base | Source category for `BASE_BASH_LIBS_DIR`: `explicit`, `sibling`, or `homebrew`. `basectl check` and `basectl doctor` use this to report how Base is consuming external reusable Bash libraries. | Do not set. Readonly after `base_init.sh`. |
 | `BASE_CLI_SOURCE` | Base | Resolved `base_cli` provider: `explicit`, `sibling`, or `pip` after the standalone package is installed. | Do not set. Derived by Base before Python runtime startup. |
 | `BASE_SHELL_DIR` | Base | `$BASE_HOME/lib/shell`. Root for managed shell startup snippets and completions. | Do not set. Readonly after `base_init.sh`. |
@@ -121,7 +121,7 @@ script path. They describe the script being dispatched, not the user's project.
 | `BASE_BASH_COMMAND_NAME` | Base | Normalized command name, such as `basectl` or a script basename without `.sh`. | Do not set. Readonly before the command script is sourced. |
 | `BASE_BASH_COMMAND_DIR` | Base | Physical directory containing the dispatched Bash script. | Do not set. Readonly before the command script is sourced. |
 | `BASE_BASH_COMMAND_SCRIPT` | Base | Physical path of the dispatched Bash script. | Do not set. Readonly before the command script is sourced. |
-| `BASE_BASH_BOOTSTRAP_SOURCE` | Base | Internal transient override used while `base_init.sh` loads the Bash stdlib so `__SCRIPT_DIR__` resolves to the command script. | Do not set. It is unset immediately after bootstrap and is not part of the public runtime contract. |
+| `BASE_BASH_LIBS_BOOTSTRAP_SOURCE` | Base | Internal transient override used while `base_init.sh` initializes the Bash stdlib so the v2 runtime source directory resolves to the command script. | Do not set. It is unset immediately after bootstrap and is not part of the public runtime contract. |
 
 ## Cache And Run Variables
 

@@ -33,7 +33,7 @@ EOF
 
 base_build_usage_error() {
     base_build_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -97,7 +97,7 @@ base_build_run_target_record() {
         environment_prepared=1
     fi
 
-    log_info "Building target '$target_name' for project '$resolved_name': $display_command"
+    base_std_log_info "Building target '$target_name' for project '$resolved_name': $display_command"
     base_validate_command_runner "$command_runner"
     base_project_run_shell_command "$working_dir" "$command_to_run" basectl-build "${extra_args[@]}"
 }
@@ -113,7 +113,7 @@ base_build_list_targets() {
     local list_output
     local printed_header=0
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
     if [[ -n "$explicit_project" ]]; then
         command_args+=(--project "$explicit_project")
     elif [[ -n "$project" ]]; then
@@ -237,13 +237,13 @@ base_build_subcommand_main() {
     }
 
     wrapper="$BASE_HOME/bin/base-wrapper"
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     local command_args=(build-targets)
     [[ -z "$explicit_project" ]] || command_args+=(--project "$explicit_project")
     command_args+=("${targets[@]}")
     resolve_output="$("$wrapper" --project base base_projects "${command_args[@]}" "${args[@]}" --format command-protocol)" || return $?
-    [[ -n "$resolve_output" ]] || fatal_error "Unable to resolve build targets for project '${explicit_project:-current project}'."
+    [[ -n "$resolve_output" ]] || base_std_fatal_error "Unable to resolve build targets for project '${explicit_project:-current project}'."
 
     base_command_protocol_each build-target "$resolve_output" base_build_run_target_record
 }

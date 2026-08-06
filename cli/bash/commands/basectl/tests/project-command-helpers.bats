@@ -137,7 +137,7 @@ source_project_command_helpers() {
         bash -c '
             source "$BASE_REPO_ROOT/cli/bash/commands/basectl/subcommands/project_command_helpers.sh"
             HOME="$1"
-            log_warn() { printf "WARN:%s\n" "$*"; }
+            base_std_log_warn() { printf "WARN:%s\n" "$*"; }
             base_project_activate_environment demo "$2" "$3" 0 "$4" false
         ' bash "$TEST_HOME" "$project_root" "$manifest_path" "$venv_dir"
 
@@ -150,7 +150,7 @@ source_project_command_helpers() {
         bash -c '
             source "$BASE_REPO_ROOT/cli/bash/commands/basectl/subcommands/project_command_helpers.sh"
             HOME="$1"
-            log_warn() { printf "WARN:%s\n" "$*"; }
+            base_std_log_warn() { printf "WARN:%s\n" "$*"; }
             base_project_activate_environment demo "$2" "$3" 1 "$4" false
         ' bash "$TEST_HOME" "$project_root" "$manifest_path" "$venv_dir"
 

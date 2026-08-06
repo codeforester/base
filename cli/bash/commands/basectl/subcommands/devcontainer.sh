@@ -23,7 +23,7 @@ EOF
 
 base_devcontainer_usage_error() {
     base_devcontainer_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -97,17 +97,17 @@ base_devcontainer_subcommand_main() {
     }
 
     wrapper="$BASE_HOME/bin/base-wrapper"
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     if [[ -n "$project" ]]; then
         resolve_output="$("$wrapper" --project base base_projects resolve "$project" "${args[@]}" --format command-protocol)" || return $?
         base_command_protocol_decode_one project-route "$resolve_output" || {
-            fatal_error "Unable to resolve project for devcontainer export."
+            base_std_fatal_error "Unable to resolve project for devcontainer export."
         }
     else
         resolve_output="$("$wrapper" --project base base_projects current --format command-protocol)" || return $?
         base_command_protocol_decode_one project-reference "$resolve_output" || {
-            fatal_error "Unable to resolve project for devcontainer export."
+            base_std_fatal_error "Unable to resolve project for devcontainer export."
         }
     fi
     resolved_name="${BASE_COMMAND_PROTOCOL_FIELDS[project_name]}"
@@ -115,7 +115,7 @@ base_devcontainer_subcommand_main() {
     manifest_path="${BASE_COMMAND_PROTOCOL_FIELDS[manifest_path]}"
 
     [[ -n "$resolved_name" && -n "$project_root" && -n "$manifest_path" ]] || {
-        fatal_error "Unable to resolve project for devcontainer export."
+        base_std_fatal_error "Unable to resolve project for devcontainer export."
     }
 
     setup_args=(--manifest "$manifest_path" --action devcontainer --format "$output_format")

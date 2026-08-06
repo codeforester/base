@@ -276,13 +276,13 @@ run_gh_subcommand() {
         bash -c '
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
-            [[ "$(type -t gh_require_cli)" == "function" ]]
-            [[ "$(type -t gh_auth_status_diagnostics)" == "function" ]]
-            [[ "$(type -t gh_run)" == "function" ]]
-            [[ "$(type -t git_detect_default_branch)" == "function" ]]
-            [[ "$(type -t gh_infer_repo_from_origin)" == "function" ]]
-            [[ "$(type -t git_worktree_path_for_branch)" == "function" ]]
-            [[ "$(type -t git_branch_merged_to_ref)" == "function" ]]
+            [[ "$(type -t base_gh_require_cli)" == "function" ]]
+            [[ "$(type -t base_gh_auth_status_diagnostics)" == "function" ]]
+            [[ "$(type -t base_gh_run)" == "function" ]]
+            [[ "$(type -t base_git_detect_default_branch)" == "function" ]]
+            [[ "$(type -t base_gh_infer_repo_from_origin)" == "function" ]]
+            [[ "$(type -t base_git_worktree_path_for_branch)" == "function" ]]
+            [[ "$(type -t base_git_branch_merged_to_ref)" == "function" ]]
         '
 
     [ "$status" -eq 0 ]
@@ -388,10 +388,10 @@ run_gh_subcommand() {
         bash -c '
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
-            git_detect_default_branch() {
+            base_git_detect_default_branch() {
                 printf -v "$2" "%s" "develop"
             }
-            gh_infer_repo_from_origin() {
+            base_gh_infer_repo_from_origin() {
                 printf -v "$2" "%s" "owner/repo"
             }
             printf "default=%s\n" "$(base_gh_default_branch)"
@@ -411,7 +411,7 @@ run_gh_subcommand() {
         bash -c '
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
-            str_join() {
+            base_str_join() {
                 printf "%s\n" "$*" > "${BASE_GH_TEST_STATE_DIR:?}/str-join"
                 printf -v "$1" "%s" "joined-by-helper"
             }
@@ -1536,8 +1536,8 @@ EOF
             cd "$1"
             source "$BASE_HOME/base_init.sh"
             source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
-            eval "$(declare -f std_make_temp_file | sed "1s/std_make_temp_file/__orig_std_make_temp_file/")"
-            std_make_temp_file() {
+            eval "$(declare -f base_std_make_temp_file | sed "1s/base_std_make_temp_file/__orig_std_make_temp_file/")"
+            base_std_make_temp_file() {
                 printf "%s\n" "$*" >> "${BASE_GH_TEST_STATE_DIR:?}/temp-helper"
                 __orig_std_make_temp_file "$@"
             }

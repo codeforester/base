@@ -22,7 +22,7 @@ EOF
 
 base_projects_usage_error() {
     base_projects_subcommand_usage >&2
-    print_error "$*"
+    base_std_print_error "$*"
     return 2
 }
 
@@ -68,8 +68,8 @@ base_projects_source_python() {
 }
 
 base_projects_list_pre_setup_error() {
-    print_error "basectl projects list needs either the Base project virtualenv or a Python 3 with Click and PyYAML available."
-    print_error "Run 'basectl setup' to create the Base project virtualenv."
+    base_std_print_error "basectl projects list needs either the Base project virtualenv or a Python 3 with Click and PyYAML available."
+    base_std_print_error "Run 'basectl setup' to create the Base project virtualenv."
     return 1
 }
 
@@ -79,7 +79,7 @@ base_projects_run_list() {
     local python_bin
     local base_pythonpath
 
-    [[ -x "$wrapper" ]] || fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
+    [[ -x "$wrapper" ]] || base_std_fatal_error "Base Python wrapper '$wrapper' is missing or is not executable."
 
     venv_python="$(base_projects_base_venv_python)"
     if [[ -x "$venv_python" ]]; then

@@ -114,11 +114,11 @@ EOF
     '
 
     [ "$status" -ne 0 ]
-    [[ "$output" == *"base-bash-libs 1.3.0 or newer is required"* ]]
-    [[ "$output" == *"loaded version is 1.2.0"* ]]
+    [[ "$output" == *"Base requires base-bash-libs 1.4.0 or newer"* ]]
+    [[ "$output" == *"loaded version is '1.2.0'"* ]]
 }
 
-@test "base_init rejects an incompatible base-bash-libs major release" {
+@test "base_init accepts the v2 base-bash-libs namespace during the cutover" {
     printf '2.0.0\n' > "$TEST_TMPDIR/base-bash-libs/VERSION"
 
     run_base_init_script '
@@ -126,9 +126,7 @@ EOF
         source "$base_home/base_init.sh"
     '
 
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Base requires base-bash-libs 1.3.0 or a compatible later 1.x release"* ]]
-    [[ "$output" == *"loaded version is '2.0.0'"* ]]
+    [ "$status" -eq 0 ]
 }
 
 @test "base_init preserves explicit symlinked BASE_HOME paths" {
@@ -395,7 +393,7 @@ EOF
         base_home="$1"
         source "$base_home/base_init.sh"
         source "$base_home/base_init.sh"
-        print_path | grep -Fxc "$BASE_BIN_DIR"
+        base_std_print_path | grep -Fxc "$BASE_BIN_DIR"
     '
 
     [ "$status" -eq 0 ]
@@ -407,7 +405,7 @@ EOF
         base_home="$1"
         source "$base_home/base_init.sh"
         import_base_lib file/lib_file.sh
-        declare -F safe_touch >/dev/null
+        declare -F base_std_safe_touch >/dev/null
     '
 
     [ "$status" -eq 0 ]

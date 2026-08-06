@@ -55,7 +55,7 @@ load ./basectl_helpers.bash
         BASE_CACHE_DIR="$cache_root" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
-            log_debug() { :; }
+            base_std_log_debug() { :; }
             basectl_do_setup() { return 7; }
             basectl_history_record() { :; }
             basectl_main setup
@@ -79,7 +79,7 @@ load ./basectl_helpers.bash
         BASE_CACHE_DIR="$cache_root" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
-            log_debug() { :; }
+            base_std_log_debug() { :; }
             basectl_do_setup() {
                 mkdir -p "$BASE_CLI_RUN_ROOT/tmp/base_setup"
                 printf "temporary\\n" >"$BASE_CLI_RUN_ROOT/tmp/base_setup/file.txt"
@@ -108,7 +108,7 @@ load ./basectl_helpers.bash
         BASE_CACHE_DIR="$cache_root" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
-            log_debug() { :; }
+            base_std_log_debug() { :; }
             basectl_do_setup() {
                 mkdir -p "$BASE_CLI_RUN_ROOT/tmp/base_setup"
                 printf "temporary\\n" >"$BASE_CLI_RUN_ROOT/tmp/base_setup/file.txt"
@@ -190,7 +190,7 @@ load ./basectl_helpers.bash
         BASE_HOME="$BASE_REPO_ROOT" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
-            log_debug() { :; }
+            base_std_log_debug() { :; }
             basectl_get_base_home() { return 0; }
             basectl_do_version() { printf "keep=%s\n" "${BASE_CLI_KEEP_TEMP:-}"; }
             basectl_main --keep-temp version
@@ -229,7 +229,7 @@ EOF
         BASE_TEST_FAKE_BASE_HOME="$fake_base_home" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
-            log_debug() { :; }
+            base_std_log_debug() { :; }
             basectl_should_start_shell() { return 0; }
             basectl_get_base_home() { BASE_HOME="$BASE_TEST_FAKE_BASE_HOME"; export BASE_HOME; }
             basectl_do_activate() { printf "activate=%s preserve=%s\n" "$*" "${BASE_ACTIVATE_PRESERVE_CWD:-}"; }
@@ -256,7 +256,7 @@ EOF
         BASE_TEST_FAKE_BASE_HOME="$fake_base_home" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
-            log_debug() { :; }
+            base_std_log_debug() { :; }
             basectl_should_start_shell() { return 0; }
             basectl_get_base_home() { BASE_HOME="$BASE_TEST_FAKE_BASE_HOME"; export BASE_HOME; }
             basectl_do_activate() { printf "activate=%s preserve=%s\n" "$*" "${BASE_ACTIVATE_PRESERVE_CWD:-}"; }
@@ -489,8 +489,8 @@ EOF
 
     cat > "$script_path" <<'EOF'
 main() {
-    printf 'LOG_DEBUG=%s\n' "${LOG_DEBUG:-unset}"
-    printf 'LOG_UTC=%s\n' "${LOG_UTC:-unset}"
+    printf 'BASE_BASH_LIBS_LOG_DEBUG=%s\n' "${BASE_BASH_LIBS_LOG_DEBUG:-unset}"
+    printf 'BASE_BASH_LIBS_LOG_UTC=%s\n' "${BASE_BASH_LIBS_LOG_UTC:-unset}"
     printf 'BASE_CLI_COLOR=%s\n' "${BASE_CLI_COLOR:-unset}"
     printf 'args=%s\n' "$*"
 }
@@ -502,8 +502,8 @@ EOF
         "$BASE_REPO_ROOT/bin/basectl" "$script_path" --debug-wrapper --utc-wrapper --color
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"LOG_DEBUG=1"* ]]
-    [[ "$output" == *"LOG_UTC=1"* ]]
+    [[ "$output" == *"BASE_BASH_LIBS_LOG_DEBUG=1"* ]]
+    [[ "$output" == *"BASE_BASH_LIBS_LOG_UTC=1"* ]]
     [[ "$output" == *"BASE_CLI_COLOR=1"* ]]
     grep -Fqx 'args=' <<<"$output"
 }

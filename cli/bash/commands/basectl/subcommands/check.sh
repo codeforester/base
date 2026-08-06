@@ -83,7 +83,7 @@ EOF
 }
 
 base_check_usage_error() {
-    print_error "$*"
+    base_std_print_error "$*"
     printf "Run 'basectl check --help' for usage.\n" >&2
     return 2
 }
@@ -169,7 +169,7 @@ base_check_subcommand_main() {
     BASE_SETUP_REMOTE_NETWORK="$remote_network"
     export BASE_SETUP_PROJECT_NAME
     export BASE_SETUP_REMOTE_NETWORK
-    log_debug "Running 'basectl check'."
+    base_std_log_debug "Running 'basectl check'."
     if [[ "$output_format" == json ]]; then
         BASE_SETUP_XCODE_HOMEBREW_DIAGNOSTICS=true setup_run_check_json "$remote_network"
     else

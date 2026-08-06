@@ -134,7 +134,7 @@ base_gh_auth_environment_warning() {
     local token_name
 
     token_name="$(base_gh_auth_environment_token_name "$hostname")" || return 1
-    log_warn "GitHub CLI is using $token_name from the environment. Stored credentials and 'basectl gh auth refresh' will not affect commands until this variable is unset or rotated at its source."
+    base_std_log_warn "GitHub CLI is using $token_name from the environment. Stored credentials and 'basectl gh auth refresh' will not affect commands until this variable is unset or rotated at its source."
     return 0
 }
 
@@ -150,9 +150,9 @@ base_gh_auth_status() {
     ((status == 0)) && return 0
 
     if grep -Eqi 'lookup .*api\.[^[:space:]]+|error connecting|no such host|network' <<<"$output"; then
-        log_warn "Unable to reach GitHub while checking authentication. Verify network or DNS and retry."
+        base_std_log_warn "Unable to reach GitHub while checking authentication. Verify network or DNS and retry."
     elif grep -Eqi 'not logged in|invalid|failed to log in|bad credentials|401' <<<"$output"; then
-        log_warn "GitHub authentication is unavailable for '$hostname'. Run 'gh auth login -h $hostname'."
+        base_std_log_warn "GitHub authentication is unavailable for '$hostname'. Run 'gh auth login -h $hostname'."
     fi
 
     return "$status"
@@ -242,7 +242,7 @@ base_gh_auth_refresh_command() {
     token_name="$(base_gh_auth_environment_token_name "$hostname")" || true
     if [[ -n "$token_name" ]]; then
         base_gh_error "Cannot refresh the stored GitHub credential while $token_name is set."
-        log_warn "Unset $token_name for this process or rotate the environment token at its source, then retry."
+        base_std_log_warn "Unset $token_name for this process or rotate the environment token at its source, then retry."
         return 2
     fi
 
@@ -250,7 +250,7 @@ base_gh_auth_refresh_command() {
     args=(auth refresh --hostname "$hostname")
     [[ -z "$scopes_csv" ]] || args+=(--scopes "$scopes_csv")
     ((clipboard)) && args+=(--clipboard)
-    base_gh_run "${args[@]}" || status=$?
+    base_cli_gh_run "${args[@]}" || status=$?
     ((status == 0)) || return "$status"
     printf "GitHub credentials refreshed for '%s'.\n" "$hostname"
 }
@@ -615,7 +615,7 @@ EOF
 }
 
 base_gh_error() {
-    print_error "$*"
+    base_std_print_error "$*"
 }
 
 base_gh_usage_error() {
@@ -631,7 +631,7 @@ base_gh_require_command() {
     local command="$1"
 
     if [[ "$command" == "gh" ]]; then
-        gh_require_cli
+        base_gh_require_cli
         return $?
     fi
 
@@ -641,30 +641,25 @@ base_gh_require_command() {
     }
 }
 
-base_gh_auth_status_diagnostics() {
-    gh_auth_status_diagnostics
-}
-
-base_gh_report_command_failure() {
-    local status="$1"
-    shift
-
-    gh_report_command_failure "$status" "$@"
-}
-
 base_gh_run() {
     local status=0
 
-    gh_run "$@" || status=$?
+    base_gh_require_cli || return 1
+    gh "$@" || status=$?
     ((status == 0)) && return 0
 
+    base_gh_report_command_failure "$status" "$@" || true
     base_gh_auth_environment_warning github.com || true
     if [[ "${1:-}" == project ]]; then
-        log_warn "GitHub Project operations require the 'project' scope for stored OAuth credentials."
-        log_warn "Run 'basectl gh auth refresh --scope project' if the stored credential is active."
+        base_std_log_warn "GitHub Project operations require the 'project' scope for stored OAuth credentials."
+        base_std_log_warn "Run 'basectl gh auth refresh --scope project' if the stored credential is active."
     fi
 
     return "$status"
+}
+
+base_cli_gh_run() {
+    base_gh_run "$@"
 }
 
 base_gh_args_request_help() {
@@ -690,7 +685,7 @@ base_gh_default_branch() {
     local base_default_branch repo_root
 
     repo_root="$(git rev-parse --show-toplevel 2>/dev/null || printf '.')"
-    if git_detect_default_branch "$repo_root" base_default_branch; then
+    if base_git_detect_default_branch "$repo_root" base_default_branch; then
         printf '%s\n' "$base_default_branch"
         return 0
     fi
@@ -865,7 +860,7 @@ base_gh_issue_readiness_project_row() {
 
     repo_literal="$(base_gh_jq_string_literal "$repo")"
     query=".items[] | select((.content.number == $issue) and (.content.repository == $repo_literal)) | [.status // \"\", .priority // \"\", .size // \"\", .area // \"\", .initiative // \"\"] | join(\"\u001f\")"
-    base_gh_run project item-list "$project_number" --owner "$project_owner" --format json --limit 1000 --jq "$query"
+    base_cli_gh_run project item-list "$project_number" --owner "$project_owner" --format json --limit 1000 --jq "$query"
 }
 
 base_gh_issue_readiness_format_error() {
@@ -999,19 +994,19 @@ base_gh_issue_readiness() {
         return $?
     }
 
-    body="$(base_gh_run issue view "$issue" --repo "$github_repo" --json body --jq .body)"
+    body="$(base_cli_gh_run issue view "$issue" --repo "$github_repo" --json body --jq .body)"
     status=$?
     ((status == 0)) || {
         base_gh_issue_readiness_upstream_error "$output_format" issue_view_body "$status"
         return $?
     }
-    labels_output="$(base_gh_run issue view "$issue" --repo "$github_repo" --json labels --jq '.labels[].name')"
+    labels_output="$(base_cli_gh_run issue view "$issue" --repo "$github_repo" --json labels --jq '.labels[].name')"
     status=$?
     ((status == 0)) || {
         base_gh_issue_readiness_upstream_error "$output_format" issue_view_labels "$status"
         return $?
     }
-    assignees_output="$(base_gh_run issue view "$issue" --repo "$github_repo" --json assignees --jq '.assignees[].login')"
+    assignees_output="$(base_cli_gh_run issue view "$issue" --repo "$github_repo" --json assignees --jq '.assignees[].login')"
     status=$?
     ((status == 0)) || {
         base_gh_issue_readiness_upstream_error "$output_format" issue_view_assignees "$status"
@@ -1171,7 +1166,7 @@ base_gh_infer_github_repo() {
     local github_repo repo_root
 
     repo_root="$(git rev-parse --show-toplevel 2>/dev/null || printf '.')"
-    gh_infer_repo_from_origin "$repo_root" github_repo || return 1
+    base_gh_infer_repo_from_origin "$repo_root" github_repo || return 1
 
     printf '%s\n' "$github_repo"
 }
@@ -1290,10 +1285,10 @@ base_gh_issue_default_assignee_from_config() {
 
 base_gh_join_csv() {
     local joined=""
-    # shellcheck disable=SC2034 # Passed by name to str_join.
+    # shellcheck disable=SC2034 # Passed by name to base_str_join.
     local values=("$@")
 
-    str_join joined ", " values
+    base_str_join joined ", " values
     printf '%s\n' "$joined"
 }
 
@@ -1353,11 +1348,11 @@ base_gh_apply_project_issue_fields() {
 
     if [[ -n "$output" ]]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
-            [[ -n "$line" ]] && log_warn "$line"
+            [[ -n "$line" ]] && base_std_log_warn "$line"
         done <<<"$output"
     fi
-    log_warn "Project field update failed. Set fields manually or rerun:"
-    log_warn "$(base_gh_project_issue_set_fields_command "$@")"
+    base_std_log_warn "Project field update failed. Set fields manually or rerun:"
+    base_std_log_warn "$(base_gh_project_issue_set_fields_command "$@")"
     return "$status"
 }
 
@@ -1419,7 +1414,7 @@ base_gh_do_issue() {
                 base_gh_issue_list_usage
                 return 0
             fi
-            base_gh_run issue list "$@"
+            base_cli_gh_run issue list "$@"
             ;;
         create)
             if base_gh_args_request_help "$@"; then
@@ -1570,7 +1565,7 @@ base_gh_issue_create() {
     if [[ -n "$github_repo" ]]; then
         issue_args+=(--repo "$github_repo")
     fi
-    issue_output="$(base_gh_run "${issue_args[@]}")" || return $?
+    issue_output="$(base_cli_gh_run "${issue_args[@]}")" || return $?
     printf '%s\n' "$issue_output"
 
     if ((configure_project)) && [[ -n "$github_repo" ]]; then
@@ -1663,19 +1658,19 @@ base_gh_pr_create() {
         return 2
     fi
     if [[ -n "$issue" && "$no_fixes" -eq 0 ]]; then
-        std_make_temp_file body_file basectl-gh-pr || return 1
+        base_std_make_temp_file body_file basectl-gh-pr || return 1
         base_gh_pr_policy_body "$issue" "$github_repo" > "$body_file" || {
             status=$?
             rm -f "$body_file"
             return "$status"
         }
         printf 'Auto-linking PR to issue #%s from branch name. Pass --no-fixes to suppress.\n' "$issue"
-        base_gh_run pr create --fill --body-file "$body_file" "${passthrough[@]}"
+        base_cli_gh_run pr create --fill --body-file "$body_file" "${passthrough[@]}"
         status=$?
         rm -f "$body_file"
         return "$status"
     fi
-    base_gh_run pr create --fill "${passthrough[@]}"
+    base_cli_gh_run pr create --fill "${passthrough[@]}"
 }
 
 base_gh_issue_start() {
@@ -1794,28 +1789,28 @@ base_gh_do_pr() {
                 base_gh_pr_leaf_usage status
                 return 0
             fi
-            base_gh_run pr status "$@"
+            base_cli_gh_run pr status "$@"
             ;;
         checks)
             if base_gh_args_request_help "$@"; then
                 base_gh_pr_leaf_usage checks
                 return 0
             fi
-            base_gh_run pr checks "$@"
+            base_cli_gh_run pr checks "$@"
             ;;
         ready)
             if base_gh_args_request_help "$@"; then
                 base_gh_pr_leaf_usage ready
                 return 0
             fi
-            base_gh_run pr ready "$@"
+            base_cli_gh_run pr ready "$@"
             ;;
         merge)
             if base_gh_args_request_help "$@"; then
                 base_gh_pr_leaf_usage merge
                 return 0
             fi
-            base_gh_run pr merge "$@"
+            base_cli_gh_run pr merge "$@"
             ;;
         -h|--help|help|"")
             base_gh_pr_usage
