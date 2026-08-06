@@ -251,6 +251,7 @@ _base_runtime_release_launcher_context() {
         BASE_CLI_RUN_ID \
         BASE_CLI_RUN_ROOT \
         BASE_CLI_PRIMARY_LOG \
+        BASE_BASH_LIBS_PRIMARY_LOG \
         BASE_CLI_HISTORY_PARENT_RUN_ID \
         BASE_CLI_HISTORY_STARTED_AT \
         BASE_CLI_HISTORY_SCOPE \
