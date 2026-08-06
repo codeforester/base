@@ -71,9 +71,10 @@ EOF
 }
 
 @test "base_init exports the Base runtime path contract" {
-    local expected_bash_libs_dir
+    local expected_bash_libs_dir expected_bash_libs_version
 
     expected_bash_libs_dir="$(cd "$TEST_TMPDIR/base-bash-libs/lib/bash" && pwd -P)"
+    expected_bash_libs_version="$(<"$TEST_TMPDIR/base-bash-libs/VERSION")"
 
     run_base_init_script '
         base_home="$1"
@@ -101,7 +102,7 @@ EOF
     [[ "$output" == *"BASE_BASH_LIB_DIR=$TEST_BASE_HOME/lib/bash"* ]]
     [[ "$output" == *"BASE_BASH_LIBS_DIR=$expected_bash_libs_dir"* ]]
     [[ "$output" == *"BASE_BASH_LIBS_SOURCE=sibling"* ]]
-    [[ "$output" == *"BASE_BASH_LIBS_VERSION=1.4.0"* ]]
+    [[ "$output" == *"BASE_BASH_LIBS_VERSION=$expected_bash_libs_version"* ]]
     [[ "$output" == *"BASE_SHELL_DIR=$TEST_BASE_HOME/lib/shell"* ]]
 }
 
@@ -118,15 +119,36 @@ EOF
     [[ "$output" == *"loaded version is '1.2.0'"* ]]
 }
 
-@test "base_init accepts the v2 base-bash-libs namespace during the cutover" {
-    printf '2.0.0\n' > "$TEST_TMPDIR/base-bash-libs/VERSION"
+@test "base_init accepts v2 prerelease and GA base-bash-libs versions" {
+    local version
 
-    run_base_init_script '
-        base_home="$1"
-        source "$base_home/base_init.sh"
-    '
+    for version in 2.0.0-alpha.1 2.0.0-beta.2 2.0.0-rc.1 2.0.0; do
+        printf '%s\n' "$version" > "$TEST_TMPDIR/base-bash-libs/VERSION"
 
-    [ "$status" -eq 0 ]
+        run_base_init_script '
+            base_home="$1"
+            source "$base_home/base_init.sh"
+        '
+
+        [ "$status" -eq 0 ]
+    done
+}
+
+@test "base_init rejects malformed v2 prerelease versions" {
+    local version
+
+    for version in 2.0.0-rc 2.0.0-gamma.1 3.0.0; do
+        printf '%s\n' "$version" > "$TEST_TMPDIR/base-bash-libs/VERSION"
+
+        run_base_init_script '
+            base_home="$1"
+            source "$base_home/base_init.sh"
+        '
+
+        [ "$status" -ne 0 ]
+        [[ "$output" == *"loaded version is '$version'"* ]]
+        [[ "$output" != *"base_require_version expects dotted numeric versions"* ]]
+    done
 }
 
 @test "base_init preserves explicit symlinked BASE_HOME paths" {
