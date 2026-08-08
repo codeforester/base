@@ -49,6 +49,16 @@ class FindingExplanationTests(unittest.TestCase):
         self.assertGreaterEqual(len(payload["related_commands"]), 1)
         self.assertEqual(payload["docs"][0]["path"], "docs/doctor-findings.md#base-runtime-findings")
 
+    def test_linux_github_cli_id_renders_its_matching_explanation(self) -> None:
+        status, stdout, stderr = invoke(["BASE-D011", "--format", "json"])
+
+        self.assertEqual(status, 0)
+        self.assertEqual(stderr, "")
+        payload = json.loads(stdout)
+        self.assertTrue(payload["found"])
+        self.assertEqual(payload["id"], "BASE-D011")
+        self.assertEqual(payload["title"], "GitHub CLI availability on Ubuntu/Debian")
+
     def test_unknown_id_fails_with_clear_text_guidance(self) -> None:
         status, stdout, stderr = invoke(["BASE-X999"])
 
