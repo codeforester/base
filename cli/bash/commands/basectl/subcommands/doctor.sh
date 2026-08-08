@@ -237,9 +237,9 @@ base_doctor_run_ci_runtime_text() {
     fi
 
     if [[ -n "$project" ]]; then
-        base_std_log_info "Base CI doctor found $errors blocking issue(s) for project '$project'."
+        base_std_log_error "Base CI doctor found $errors blocking issue(s) for project '$project'."
     else
-        base_std_log_info "Base CI doctor found $errors blocking issue(s)."
+        base_std_log_error "Base CI doctor found $errors blocking issue(s)."
     fi
     return 1
 }
@@ -427,9 +427,9 @@ base_doctor_subcommand_main() {
     fi
 
     if [[ -n "$project" ]]; then
-        base_std_log_info "Base doctor found $errors blocking issue(s) for project '$project'."
+        base_std_log_error "Base doctor found $errors blocking issue(s) for project '$project'."
     else
-        base_std_log_info "Base doctor found $errors blocking issue(s)."
+        base_std_log_error "Base doctor found $errors blocking issue(s)."
     fi
     return 1
 }

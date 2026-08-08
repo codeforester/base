@@ -665,7 +665,7 @@ EOF
     [[ "$output" == *"error"*"Homebrew"*"Homebrew is not installed."* ]]
     [[ "$output" == *"Fix: Run 'basectl setup' to install Homebrew, or install it manually from https://brew.sh/."* ]]
     [[ "$output" == *$'\n       Fix: Run '\''basectl setup'\'' to install Homebrew, or install it manually from https://brew.sh/.'* ]]
-    [[ "$output" == *" INFO "*"Base doctor found"*"blocking issue(s)."* ]]
+    [[ "$output" == *" ERROR "*"Base doctor found"*"blocking issue(s)."* ]]
     [[ "$output" != *$'\n\n'*"Base doctor found"* ]]
 }
 

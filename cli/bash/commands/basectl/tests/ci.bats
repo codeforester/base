@@ -86,6 +86,17 @@ prepare_ci_runtime() {
     [ "$(cat "$TEST_STATE_DIR/project-setup-ci")" = "true" ]
 }
 
+@test "basectl doctor --ci logs a blocking summary at error level" {
+    create_system_python3_stub
+    create_project_setup_venv_stub "$TEST_HOME/.base.d/base/.venv"
+    touch "$TEST_STATE_DIR/pyyaml-installed"
+
+    run_base_command OSTYPE=linux-gnu doctor --ci base
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *" ERROR "*"Base CI doctor found 1 blocking issue(s) for project 'base'."* ]]
+}
+
 @test "basectl setup --ci json output summarizes stderr without embedding log stream" {
     local workspace="$TEST_TMPDIR/workspace"
 
