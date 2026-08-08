@@ -46,6 +46,30 @@ class RemoteInstallerTests(unittest.TestCase):
         self.assertIsNone(source.expected_sha256)
         self.assertFalse(source.managed)
 
+    def test_ai_installers_support_paired_managed_source_and_checksum_overrides(self) -> None:
+        for spec, url_env, sha256_env in (
+            (
+                remote_installers.CODEX_REMOTE_INSTALLER,
+                "BASE_SETUP_CODEX_INSTALLER_URL",
+                "BASE_SETUP_CODEX_INSTALLER_SHA256",
+            ),
+            (
+                remote_installers.CLAUDE_REMOTE_INSTALLER,
+                "BASE_SETUP_CLAUDE_INSTALLER_URL",
+                "BASE_SETUP_CLAUDE_INSTALLER_SHA256",
+            ),
+        ):
+            source = remote_installers.resolve_remote_installer_source(
+                spec,
+                environ={url_env: "/tmp/installer.sh", sha256_env: "a" * 64},
+            )
+
+            self.assertEqual(spec.url_env, url_env)
+            self.assertEqual(spec.sha256_env, sha256_env)
+            self.assertEqual(source.location, "/tmp/installer.sh")
+            self.assertEqual(source.expected_sha256, "a" * 64)
+            self.assertTrue(source.managed)
+
     def test_override_url_and_sha256_must_be_paired(self) -> None:
         spec = remote_installers.UV_REMOTE_INSTALLER
         with self.assertRaisesRegex(ArtifactError, "must be set together"):

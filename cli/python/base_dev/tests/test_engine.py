@@ -21,6 +21,7 @@ from base_dev import engine
 from base_dev import profile_output
 from base_dev.engine import main
 from base_setup import remote_installers
+from base_setup.errors import ArtifactError
 from base_setup.prerequisites import PrerequisiteCheck
 
 
@@ -141,32 +142,21 @@ class DevManifestTests(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            [ai_tools.ai_tool_installer_command(tool) for tool in ai_tools.AI_TOOLS],
+            [
+                (tool.installer.url_env, tool.installer.sha256_env)
+                for tool in ai_tools.AI_TOOLS
+            ],
             [
                 (
-                    "sh",
-                    "-c",
-                    'curl -fsSL "$1" | "$2"',
-                    "--",
-                    "https://chatgpt.com/codex/install.sh",
-                    "sh",
+                    "BASE_SETUP_CODEX_INSTALLER_URL",
+                    "BASE_SETUP_CODEX_INSTALLER_SHA256",
                 ),
                 (
-                    "sh",
-                    "-c",
-                    'curl -fsSL "$1" | "$2"',
-                    "--",
-                    "https://claude.ai/install.sh",
-                    "bash",
+                    "BASE_SETUP_CLAUDE_INSTALLER_URL",
+                    "BASE_SETUP_CLAUDE_INSTALLER_SHA256",
                 ),
             ],
         )
-
-    def test_ai_installer_command_does_not_interpolate_url_into_shell_source(self) -> None:
-        command = ai_tools.ai_tool_installer_command(ai_tools.AI_TOOLS[0])
-
-        self.assertNotIn(ai_tools.AI_TOOLS[0].installer_url, command[2])
-        self.assertEqual(command[3:], ("--", ai_tools.AI_TOOLS[0].installer_url, "sh"))
 
     @unittest.skipUnless(importlib.util.find_spec("click"), "Click is not installed")
     def test_setup_profile_sre_uses_sre_manifest(self) -> None:
@@ -189,25 +179,21 @@ class DevManifestTests(unittest.TestCase):
 
         self.assertEqual(status, 0)
         self.assertIn(
-            "Remote installer policy: Codex CLI uses allowlisted official mutable installer "
-            "https://chatgpt.com/codex/install.sh without checksum verification; "
-            "execution requires explicit --profile ai.",
+            "Remote installer policy: Codex CLI execution requires explicit --profile ai.",
             stderr,
         )
         self.assertIn(
-            "Remote installer policy: Claude Code uses allowlisted official mutable installer "
-            "https://claude.ai/install.sh without checksum verification; "
-            "execution requires explicit --profile ai.",
+            "Remote installer policy: Claude Code execution requires explicit --profile ai.",
             stderr,
         )
         self.assertIn(
-            "[DRY-RUN] Would run: sh -c 'curl -fsSL \"$1\" | \"$2\"' -- "
-            "https://chatgpt.com/codex/install.sh sh",
+            "[DRY-RUN] Would fetch https://chatgpt.com/codex/install.sh once, execute the same bytes with sh, "
+            "then remove the temporary copy.",
             stderr,
         )
         self.assertIn(
-            "[DRY-RUN] Would run: sh -c 'curl -fsSL \"$1\" | \"$2\"' -- "
-            "https://claude.ai/install.sh bash",
+            "[DRY-RUN] Would fetch https://claude.ai/install.sh once, execute the same bytes with bash, "
+            "then remove the temporary copy.",
             stderr,
         )
 
@@ -257,13 +243,13 @@ class DevManifestTests(unittest.TestCase):
         with (
             mock.patch("base_dev.ai_tools.AI_TOOLS", (tool,)),
             mock.patch("base_dev.ai_tools.check_ai_tool", return_value=engine.DevCheck("bad-ai", False, "missing", "")),
-            mock.patch("base_dev.ai_tools.run_command") as run_command,
+            mock.patch("base_dev.ai_tools.run_remote_installer") as run_installer,
         ):
             status = ai_tools.setup_ai_tools(ctx, dry_run=False)
 
         self.assertEqual(status, 1)
         self.assertIn("Remote installer URL is not allowlisted", ctx.log.error.call_args.args[0])
-        run_command.assert_not_called()
+        run_installer.assert_not_called()
 
     def test_ai_profile_rejects_registered_installer_owned_by_another_setup_surface(self) -> None:
         tool = ai_tools.AITool(
@@ -273,8 +259,8 @@ class DevManifestTests(unittest.TestCase):
             installer=remote_installers.MISE_REMOTE_INSTALLER,
         )
 
-        with self.assertRaisesRegex(RuntimeError, "not allowlisted for Base 'ai' profile"):
-            ai_tools.ai_tool_installer_command(tool)
+        with self.assertRaisesRegex(ArtifactError, "not allowlisted for Base 'ai' profile"):
+            ai_tools.validate_ai_remote_installer(tool)
 
     def test_setup_ai_tools_noninteractive_explicit_profile_runs_allowlisted_installers(self) -> None:
         ctx = mock.Mock()
@@ -282,17 +268,21 @@ class DevManifestTests(unittest.TestCase):
         with (
             mock.patch.dict(os.environ, {"CI": "true"}),
             mock.patch("base_dev.ai_tools.check_ai_tool", return_value=engine.DevCheck("tool", False, "missing", "")),
-            mock.patch("base_dev.ai_tools.run_command") as run_command,
+            mock.patch("base_dev.ai_tools.run_remote_installer") as run_installer,
         ):
             status = ai_tools.setup_ai_tools(ctx, dry_run=False)
 
         self.assertEqual(status, 0)
         self.assertEqual(
-            [call.args[1] for call in run_command.call_args_list],
+            [call.args[1] for call in run_installer.call_args_list],
             [
-                ["sh", "-c", 'curl -fsSL "$1" | "$2"', "--", "https://chatgpt.com/codex/install.sh", "sh"],
-                ["sh", "-c", 'curl -fsSL "$1" | "$2"', "--", "https://claude.ai/install.sh", "bash"],
+                remote_installers.CODEX_REMOTE_INSTALLER,
+                remote_installers.CLAUDE_REMOTE_INSTALLER,
             ],
+        )
+        self.assertEqual(
+            [call.kwargs for call in run_installer.call_args_list],
+            [{"dry_run": False}, {"dry_run": False}],
         )
 
     def test_check_ai_tool_warns_when_version_probe_times_out(self) -> None:

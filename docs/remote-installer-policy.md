@@ -14,8 +14,8 @@ mutable installer without checksum verification.
 | Installer | URL | Where Base may use it | Opt-in |
 | --- | --- | --- | --- |
 | Homebrew | `https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh` by default; managed environments may provide a pinned installer location with an expected SHA-256 | `bootstrap.sh`, `install.sh`, and `basectl setup` when Homebrew is missing on macOS | First-mile setup path; `bootstrap.sh --no-homebrew-install` can refuse this path |
-| Codex CLI | `https://chatgpt.com/codex/install.sh` | `basectl setup --profile ai` | Explicit `--profile ai` |
-| Claude Code | `https://claude.ai/install.sh` | `basectl setup --profile ai` | Explicit `--profile ai` |
+| Codex CLI | `https://chatgpt.com/codex/install.sh` by default; managed environments may provide a local, mirrored, or pinned installer with an expected SHA-256 | `basectl setup --profile ai` | Explicit `--profile ai` |
+| Claude Code | `https://claude.ai/install.sh` by default; managed environments may provide a local, mirrored, or pinned installer with an expected SHA-256 | `basectl setup --profile ai` | Explicit `--profile ai` |
 | uv | `https://astral.sh/uv/install.sh` by default; managed environments may provide a local, mirrored, or pinned installer with an expected SHA-256 | `basectl setup <project>` on Debian-family Linux when a manifest declares `python.manager: uv` or a `runner: uv` command and uv is missing | Explicit `--yes`; `--dry-run` only previews |
 | mise | `https://mise.run` by default; managed environments may provide a local, mirrored, or pinned installer with an expected SHA-256 | `basectl setup <project>` on Debian-family Linux when a manifest declares mise configuration and mise is missing | Explicit `--yes`; `--dry-run` only previews |
 
@@ -46,8 +46,7 @@ so exporting `BASE_SETUP_YES` does not bypass that boundary.
 Base intentionally follows each tool's official mutable installer entry point
 instead of pinning a reviewed commit by default. When Base uses a default path,
 it identifies the URL as mutable and explicitly says that the script is not
-checksum-verified. The Codex CLI and Claude Code paths do not currently expose
-a Base-managed checksum override.
+checksum-verified.
 
 Teams that require pinned, mirrored, or managed Homebrew installer content can
 opt in by setting both a
@@ -67,14 +66,19 @@ installer location and expected SHA-256. Missing or mismatched values fail
 closed before installer execution. Local file paths, `file://` URLs, and remote
 URLs are accepted as installer locations.
 
-Debian-family Linux setup provides equivalent paired overrides for uv and mise:
+The Python-owned Codex CLI, Claude Code, uv, and mise installers support paired
+overrides:
 
+- Codex CLI: `BASE_SETUP_CODEX_INSTALLER_URL` and
+  `BASE_SETUP_CODEX_INSTALLER_SHA256`
+- Claude Code: `BASE_SETUP_CLAUDE_INSTALLER_URL` and
+  `BASE_SETUP_CLAUDE_INSTALLER_SHA256`
 - uv: `BASE_SETUP_UV_INSTALLER_URL` and
   `BASE_SETUP_UV_INSTALLER_SHA256`
 - mise: `BASE_SETUP_MISE_INSTALLER_URL` and
   `BASE_SETUP_MISE_INSTALLER_SHA256`
 
-For uv and mise, either both variables must be present or neither may be
+For these installers, either both variables must be present or neither may be
 present. The URL may be a local path, a local `file://` URL, or an HTTPS URL;
 HTTP and other schemes fail closed. Base fetches or copies the installer once
 into a user-private temporary directory, verifies the expected SHA-256, runs
