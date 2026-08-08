@@ -358,11 +358,15 @@ def filter_history(records: list[HistoryRecord], options: HistoryOptions) -> lis
 def print_history_table(records: list[HistoryRecord], *, local_time: bool = False) -> None:
     time_label = "TIME (LOCAL)" if local_time else "TIME (UTC)"
     columns = ((time_label, "time"), *history_output_columns()[1:])
+    output_records = history_output_records(records, local_time=local_time)
+    minimum_widths = (19, 12, 12, 6, 4)
     base_cli.render_records(
-        history_output_records(records, local_time=local_time),
+        output_records,
         requested_format="text",
         columns=columns,
-        minimum_widths=(19, 12, 12, 6, 4),
+        minimum_widths=minimum_widths,
+        max_cell_width=None,
+        terminal_width=history_table_width(output_records, columns, minimum_widths),
     )
 
 
@@ -389,6 +393,21 @@ def history_output_records(records: list[HistoryRecord], *, local_time: bool = F
         }
         for record in records
     ]
+
+
+def history_table_width(
+    records: list[dict[str, Any]],
+    columns: tuple[tuple[str, str], ...],
+    minimum_widths: tuple[int, ...],
+) -> int:
+    """Return enough width for the history table without truncating log paths."""
+
+    widths = []
+    for index, (header, key) in enumerate(columns):
+        values = [str(record.get(key, "")) for record in records]
+        minimum_width = minimum_widths[index] if index < len(minimum_widths) else 0
+        widths.append(max(len(header), minimum_width, *(len(value) for value in values)))
+    return sum(widths) + 2 * (len(columns) - 1)
 
 
 def display_time(record: HistoryRecord, *, local_time: bool = False) -> str:
