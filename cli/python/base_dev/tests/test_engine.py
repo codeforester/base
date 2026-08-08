@@ -555,7 +555,7 @@ class DevManifestTests(unittest.TestCase):
         )
         self.assertIn(
             {
-                "id": "BASE-D107",
+                "id": "BASE-D011",
                 "status": "error",
                 "name": "gh",
                 "message": (

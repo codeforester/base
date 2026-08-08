@@ -84,7 +84,7 @@ def check_linux_debian_github_cli_artifact(
             ok=True,
             message="GitHub CLI 'gh' is installed; authentication remains user-owned.",
             fix="",
-            finding_id="BASE-D107",
+            finding_id="BASE-D011",
         )
     return DevCheck(
         name=artifact.name,
@@ -94,7 +94,7 @@ def check_linux_debian_github_cli_artifact(
             "Debian/Ubuntu apt repository."
         ),
         fix=profile_setup_fix(profile),
-        finding_id="BASE-D107",
+        finding_id="BASE-D011",
     )
 
 
