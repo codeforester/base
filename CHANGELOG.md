@@ -9,6 +9,9 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Changed
 
+- Align the published Base CLI provider used by development dependencies and
+  CI checkout workflows with `base-cli` `0.4.2`.
+
 - Treat GitHub's unsupported `branch_name_pattern` response as a capability
   warning during `basectl repo configure`, preserving the issue-branch policy
   workflow fallback instead of failing the whole repository configuration.
