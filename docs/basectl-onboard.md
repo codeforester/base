@@ -194,6 +194,9 @@ Failures are recoverable and specific:
   profile updates.
 - If `basectl update-profile` fails, leave setup success intact and explain how
   to rerun that step.
+- If `basectl doctor` reports remaining findings, preserve its output and
+  continue to project discovery and manifest trust status. The findings remain
+  actionable, but do not prevent the rest of the read-only onboarding summary.
 - If project discovery or trust status fails after setup, stop before activation
   guidance, preserve the failing status, and tell the user to retry
   `basectl projects list` followed by `basectl trust status`. Earlier setup or

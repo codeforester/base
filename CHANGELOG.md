@@ -28,6 +28,8 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Fixed
 
+- Continue `basectl onboard` through project discovery and manifest trust
+  status when `basectl doctor` reports remaining findings.
 - Kept helper-backed Bash defaults and runtime prompts shell-local so child
   shells no longer report missing prompt helper functions.
 - Corrected Bash startup's readonly `BASE_HOME` detection to inspect only

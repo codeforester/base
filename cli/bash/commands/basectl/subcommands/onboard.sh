@@ -151,6 +151,7 @@ base_onboard_subcommand_main() {
     local verbose=0
     local yes=0
     local check_status=0
+    local doctor_status=0
     local profile_status=0
     local projects_status=0
     local setup_status=0
@@ -288,7 +289,11 @@ base_onboard_subcommand_main() {
     fi
 
     base_onboard_print_heading "Doctor"
-    base_onboard_execute "$dry_run" "${doctor_args[@]}" || return $?
+    base_onboard_execute "$dry_run" "${doctor_args[@]}"
+    doctor_status=$?
+    if ((doctor_status != 0)); then
+        printf '%s\n' "Some doctor findings remain. Project discovery and trust status will still run."
+    fi
 
     base_onboard_print_heading "Projects"
     if ((dry_run)); then
