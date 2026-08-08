@@ -14,6 +14,7 @@ from base_projects.project_discovery import discover_projects_cached
 from base_projects.project_discovery import read_project
 from base_projects.workspace_context import resolve_workspace_root
 from base_projects.workspace_scanner import ProjectDiscoveryError
+from base_setup.manifest import read_manifest
 from base_setup.manifest_loader import ManifestError
 from .trust_store import ALLOWED_COMMANDS  # pylint: disable=unused-import
 from .trust_store import SCHEMA_VERSION
@@ -22,12 +23,14 @@ from .trust_store import ManifestCommandTrustIdentity
 from .trust_store import ManifestCommandTrustStore
 from .trust_store import TrustStatus
 from .trust_store import compute_identity_key  # pylint: disable=unused-import
+from .trust_store import compute_trust_identity
 from .trust_store import compute_trust_identity_for_manifest
 from .trust_store import git_head  # pylint: disable=unused-import
 from .trust_store import git_origin  # pylint: disable=unused-import
 from .trust_store import git_repository_root  # pylint: disable=unused-import
 from .trust_store import identity_key_from_record  # pylint: disable=unused-import
 from .trust_store import manifest_command_surfaces
+from .trust_store import manifest_command_surfaces_from_manifest
 from .trust_store import sha256_file  # pylint: disable=unused-import
 from .trust_store import write_json_atomic  # pylint: disable=unused-import
 
@@ -173,10 +176,11 @@ def workspace_status_command(ctx: base_cli.Context, workspace: str | None, outpu
         store = ManifestCommandTrustStore()
         statuses = []
         for project in projects:
-            surfaces = manifest_command_surfaces(project.manifest_path)
+            manifest = read_manifest(project.manifest_path)
+            surfaces = manifest_command_surfaces_from_manifest(manifest)
             if not surfaces:
                 continue
-            identity = compute_trust_identity_for_manifest(project.manifest_path)
+            identity = compute_trust_identity(manifest)
             statuses.append((store.status(identity), surfaces))
     except (ProjectDiscoveryError, ManifestError, TrustError) as exc:
         ctx.log.error(str(exc))
