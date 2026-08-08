@@ -200,6 +200,29 @@ load ./basectl_helpers.bash
     [[ "$output" != *"RUN:trust allow"* ]]
 }
 
+@test "basectl onboard continues to projects and trust when doctor reports findings" {
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        bash -c '
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/onboard.sh"
+            base_onboard_run_command() {
+                printf "RUN:%s\\n" "$*"
+                [[ "$1" == doctor ]] && return 1
+                return 0
+            }
+            base_onboard_subcommand_main --yes --no-profile
+        '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"RUN:doctor base"* ]]
+    [[ "$output" == *"Some doctor findings remain. Project discovery and trust status will still run."* ]]
+    [[ "$output" == *"RUN:projects list"* ]]
+    [[ "$output" == *"RUN:trust status"* ]]
+    [[ "$output" == *"Next Steps"* ]]
+}
+
 @test "basectl onboard --yes accepts setup and profile prompts" {
     run env \
         HOME="$TEST_HOME" \
