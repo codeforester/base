@@ -11,6 +11,7 @@ from base_cli_adapters.history import format_timestamp, utc_now
 from base_cli_adapters.paths import base_state_root
 from base_setup.git_commands import run_git
 from base_setup.git_remote_parse import parse_origin_remote
+from base_setup.manifest import BaseManifest
 from base_setup.manifest import read_manifest
 
 SCHEMA_VERSION = 1
@@ -149,6 +150,10 @@ class ManifestCommandTrustStore:
 
 def manifest_command_surfaces(manifest_path: Path) -> tuple[str, ...]:
     manifest = read_manifest(manifest_path.expanduser().resolve())
+    return manifest_command_surfaces_from_manifest(manifest)
+
+
+def manifest_command_surfaces_from_manifest(manifest: BaseManifest) -> tuple[str, ...]:
     surfaces = []
     if manifest.test is not None:
         surfaces.append("test")
@@ -165,6 +170,10 @@ def manifest_command_surfaces(manifest_path: Path) -> tuple[str, ...]:
 
 def compute_trust_identity_for_manifest(manifest_path: Path) -> ManifestCommandTrustIdentity:
     manifest = read_manifest(manifest_path.expanduser().resolve())
+    return compute_trust_identity(manifest)
+
+
+def compute_trust_identity(manifest: BaseManifest) -> ManifestCommandTrustIdentity:
     canonical_manifest = manifest.path.resolve()
     project_root = canonical_manifest.parent.resolve()
     manifest_sha256 = sha256_file(canonical_manifest)

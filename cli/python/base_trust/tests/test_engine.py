@@ -270,12 +270,13 @@ class ManifestCommandTrustTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = invoke(
-                engine.app,
-                ["status", "--workspace", str(workspace), "--format", "json"],
-                home=home,
-                env={"BASE_HOME": str(workspace / "base")},
-            )
+            with mock.patch("base_trust.engine.read_manifest", wraps=engine.read_manifest) as read_manifest:
+                result = invoke(
+                    engine.app,
+                    ["status", "--workspace", str(workspace), "--format", "json"],
+                    home=home,
+                    env={"BASE_HOME": str(workspace / "base")},
+                )
             text_result = invoke(
                 engine.app,
                 ["status", "--workspace", str(workspace)],
@@ -296,6 +297,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             "manifest_changed",
         )
         self.assertNotIn("metadata-only", result.stdout)
+        self.assertEqual(read_manifest.call_count, 4)
         self.assertEqual(text_result.exit_code, 0, text_result.output)
         self.assertIn("allowed\tallowed\tallowed", text_result.stdout)
         self.assertIn("changed\tblocked\tmanifest_changed", text_result.stdout)
