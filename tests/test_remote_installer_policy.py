@@ -67,8 +67,9 @@ def test_standalone_homebrew_entry_points_share_the_documented_default() -> None
         assert urls == {HOMEBREW_INSTALLER_URL}, entry_point
 
 
-def test_uv_and_mise_do_not_embed_remote_shell_pipelines() -> None:
+def test_python_remote_installer_consumers_do_not_embed_remote_shell_pipelines() -> None:
     for relative_path in (
+        "cli/python/base_dev/ai_tools.py",
         "cli/python/base_setup/uv.py",
         "cli/python/base_setup/mise_delegate.py",
     ):

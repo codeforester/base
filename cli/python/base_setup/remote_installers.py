@@ -46,6 +46,8 @@ CODEX_REMOTE_INSTALLER = RemoteInstallerSpec(
     interpreter="sh",
     trigger="Codex CLI is missing from the explicit ai prerequisite profile",
     consent="basectl setup --profile ai",
+    url_env="BASE_SETUP_CODEX_INSTALLER_URL",
+    sha256_env="BASE_SETUP_CODEX_INSTALLER_SHA256",
 )
 CLAUDE_REMOTE_INSTALLER = RemoteInstallerSpec(
     name="claude",
@@ -54,6 +56,8 @@ CLAUDE_REMOTE_INSTALLER = RemoteInstallerSpec(
     interpreter="bash",
     trigger="Claude Code is missing from the explicit ai prerequisite profile",
     consent="basectl setup --profile ai",
+    url_env="BASE_SETUP_CLAUDE_INSTALLER_URL",
+    sha256_env="BASE_SETUP_CLAUDE_INSTALLER_SHA256",
 )
 UV_REMOTE_INSTALLER = RemoteInstallerSpec(
     name="uv",
