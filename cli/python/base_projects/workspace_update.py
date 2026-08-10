@@ -62,12 +62,10 @@ def workspace_update_from_options(
         )
         return base_cli.ExitCode.FAILURE
 
-    active_base_home = ctx.application_home.resolve() if ctx.application_home is not None else None
     return workspace_update_command(
         ctx,
         workspace_root,
         manifest,
-        active_base_home=active_base_home,
         dry_run=options.dry_run,
     )
 
@@ -77,10 +75,9 @@ def workspace_update_command(
     workspace_root: Path,
     workspace_manifest: WorkspaceManifest,
     *,
-    active_base_home: Path | None,
     dry_run: bool,
 ) -> int:
-    targets = workspace_update_targets(workspace_root, workspace_manifest, active_base_home=active_base_home)
+    targets = workspace_update_targets(workspace_root, workspace_manifest)
     print_workspace_update_header(workspace_root, workspace_manifest, len(targets))
 
     counts = WorkspaceUpdateCounts()
@@ -115,14 +112,11 @@ def workspace_update_command(
 def workspace_update_targets(
     workspace_root: Path,
     workspace_manifest: WorkspaceManifest,
-    *,
-    active_base_home: Path | None,
 ) -> tuple[WorkspaceUpdateTarget, ...]:
     return tuple(
         workspace_update_manifest_target(
             workspace_root,
             repo,
-            active_base_home=active_base_home,
         )
         for repo in workspace_manifest.repos
     )
@@ -131,8 +125,6 @@ def workspace_update_targets(
 def workspace_update_manifest_target(
     workspace_root: Path,
     repo: WorkspaceManifestRepo,
-    *,
-    active_base_home: Path | None,
 ) -> WorkspaceUpdateTarget:
     root = (workspace_root / repo.name).resolve()
 
@@ -144,15 +136,6 @@ def workspace_update_manifest_target(
             reason=f"repository is missing at '{root}'",
             required=repo.required,
             fatal=repo.required,
-        )
-
-    if repo.name == "base" and active_base_home is not None and root == active_base_home:
-        return WorkspaceUpdateTarget(
-            name=repo.name,
-            root=root,
-            action="skip",
-            reason="active Base control plane is managed from BASE_HOME",
-            required=repo.required,
         )
 
     return WorkspaceUpdateTarget(

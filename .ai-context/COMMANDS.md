@@ -77,7 +77,8 @@ reusable-layer DEBUG diagnostics.
     the source; `workspace init` can clone the workspace configuration repo,
     update `~/.base.d/config.yaml`, and materialize manifest repositories;
     `workspace update` runs `git pull --ff-only` across present repositories in
-    manifest order;
+    manifest order, including the active Base checkout when it is the
+    manifest's `base` target;
     `workspace setup` delegates local project setup serially in manifest order.
   - `workspace configure --dry-run` previews delegated `repo configure` calls;
     without `--dry-run`, it skips missing or non-Base-managed repos, continues

@@ -267,8 +267,8 @@ such command directories exist. Optional utility CLIs such as `caff` and
 - `basectl workspace update` runs `git pull --ff-only` serially across present
   repositories in manifest order. It supports `--dry-run`, continues after
   individual failures, skips missing optional repositories, treats missing
-  required repositories as failures, and skips the active `BASE_HOME` checkout
-  when it is the manifest's `base` target.
+  required repositories as failures, and includes the active `BASE_HOME`
+  checkout when it is the manifest's `base` target.
 - `basectl workspace configure` applies the existing `basectl repo configure`
   repair path across discovered Base-managed projects, or across present
   Base-managed repositories from a configured or explicit workspace manifest.

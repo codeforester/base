@@ -33,7 +33,7 @@ repos:
 
 
 class WorkspaceUpdateTests(unittest.TestCase):
-    def test_workspace_update_dry_run_preserves_order_and_skips_active_base(self) -> None:
+    def test_workspace_update_dry_run_preserves_order_and_includes_active_base(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             home = root / "home"
@@ -61,12 +61,12 @@ class WorkspaceUpdateTests(unittest.TestCase):
             self.assertEqual(status, 1)
             self.assertEqual(stderr, "")
             self.assertIn(f"Workspace update plan: {root.resolve()} (7 manifest repos)", stdout)
-            self.assertIn("SKIP repository 'base'", stdout)
-            self.assertIn("active Base control plane is managed from BASE_HOME", stdout)
+            self.assertIn("PULL repository 'base'", stdout)
+            self.assertNotIn("active Base control plane is managed from BASE_HOME", stdout)
             self.assertIn("PULL repository 'first'", stdout)
             self.assertIn("SKIP repository 'optional-missing'", stdout)
             self.assertIn("PULL repository 'later'", stdout)
-            self.assertIn("Workspace update plan complete: planned=4 skipped=3 failed=1.", stdout)
+            self.assertIn("Workspace update plan complete: planned=5 skipped=2 failed=1.", stdout)
             self.assertIn("[DRY-RUN] No repositories were modified.", stdout)
             self.assertLess(stdout.index("repository 'base'"), stdout.index("repository 'first'"))
             self.assertLess(stdout.index("repository 'first'"), stdout.index("repository 'later'"))
@@ -75,12 +75,12 @@ class WorkspaceUpdateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             home = root / "home"
-            base_home = root / "base"
             workspace = root / "workspace"
+            base_home = workspace / "base"
             manifest_path = root / "workspace.yaml"
             home.mkdir()
-            base_home.mkdir()
             workspace.mkdir()
+            base_home.mkdir()
             for name in ("first", "failing", "unchanged", "later"):
                 (workspace / name).mkdir()
             manifest_path.write_text(
@@ -88,6 +88,7 @@ class WorkspaceUpdateTests(unittest.TestCase):
 workspace:
   name: demo-suite
 repos:
+  - name: base
   - name: first
   - name: failing
   - name: unchanged
@@ -99,6 +100,12 @@ repos:
             )
 
             results = [
+                subprocess.CompletedProcess(
+                    ["git", "pull", "--ff-only"],
+                    0,
+                    stdout="Already up to date.\n",
+                    stderr="",
+                ),
                 subprocess.CompletedProcess(
                     ["git", "pull", "--ff-only"],
                     0,
@@ -141,12 +148,14 @@ repos:
             self.assertIn("PULL repository 'first'", stdout)
             self.assertIn("PULL repository 'failing'", stdout)
             self.assertIn("PULL repository 'later'", stdout)
+            self.assertIn("PULL repository 'base'", stdout)
             self.assertIn("Already up to date.", stdout)
             self.assertIn("Git pull failed for repository 'failing'.", stderr)
-            self.assertIn("Workspace update completed: updated=2 unchanged=1 skipped=1 failed=1.", stdout)
+            self.assertIn("Workspace update completed: updated=2 unchanged=2 skipped=1 failed=1.", stdout)
             self.assertEqual(
                 [call.kwargs["cwd"] for call in run.call_args_list],
                 [
+                    workspace.resolve() / "base",
                     workspace.resolve() / "first",
                     workspace.resolve() / "failing",
                     workspace.resolve() / "unchanged",
