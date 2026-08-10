@@ -205,6 +205,7 @@ and their own build systems. See [Setup Hooks Boundary](setup-hooks.md).
 | `basectl workspace agent-brief [--manifest] [--format json]` | Read-only baseline, guidance, context, environment, and validation evidence for expected and extra Base-managed repositories |
 | `basectl workspace clone [--manifest] [--dry-run]` | Explicitly clone or validate expected repositories from a workspace manifest |
 | `basectl workspace pull [--source] [--manifest] [--dry-run]` | Explicitly refresh the local workspace manifest from a validated source |
+| `basectl workspace update [--manifest] [--dry-run]` | Run `git pull --ff-only` across existing repositories in manifest order |
 | `basectl workspace check [--manifest]` | Cross-project readiness check |
 | `basectl workspace doctor [--manifest]` | Cross-project diagnostic findings |
 

@@ -54,7 +54,7 @@ reusable-layer DEBUG diagnostics.
 - `basectl docs` - open the Base documentation home page on GitHub.
 - `basectl projects list` - list Base-managed projects discovered in the
   workspace.
-- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup>` -
+- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup>` -
   inspect workspace status, checks, diagnostics, read-only first-day
   onboarding, and local agent-handoff readiness; explicitly clone expected
   repositories from a manifest; initialize a workspace from a workspace
@@ -63,7 +63,7 @@ reusable-layer DEBUG diagnostics.
   project setup across eligible repositories.
   - `workspace status`, `workspace check`, `workspace doctor`,
     `workspace onboarding`, and `workspace agent-brief` support `--format json`;
-    `workspace clone`, `workspace pull`, `workspace init`, `workspace configure`,
+    `workspace clone`, `workspace pull`, `workspace update`, `workspace init`, `workspace configure`,
     and `workspace setup` use text output.
   - `workspace onboarding` summarizes ready, needs-setup, invalid-manifest,
     missing-required, and missing-optional repository state without cloning
@@ -76,6 +76,8 @@ reusable-layer DEBUG diagnostics.
     `workspace pull` mutates only the local workspace manifest after validating
     the source; `workspace init` can clone the workspace configuration repo,
     update `~/.base.d/config.yaml`, and materialize manifest repositories;
+    `workspace update` runs `git pull --ff-only` across present repositories in
+    manifest order;
     `workspace setup` delegates local project setup serially in manifest order.
   - `workspace configure --dry-run` previews delegated `repo configure` calls;
     without `--dry-run`, it skips missing or non-Base-managed repos, continues
@@ -84,6 +86,9 @@ reusable-layer DEBUG diagnostics.
     without `--dry-run`, it skips ineligible repositories, continues after
     per-repo failures, and reports setup/skipped/failed counts. `--yes` forwards
     confirmation to each delegated setup command.
+  - `workspace update --dry-run` previews the ordered Git pull plan; without
+    `--dry-run`, it continues after per-repo failures and reports
+    updated/unchanged/skipped/failed counts.
 - `basectl repo <init|clone|check|configure|agent-guidance|installer-template>` -
   create repository baselines, clone GitHub repositories into the configured
   workspace, configure GitHub repository settings, default branch protection,

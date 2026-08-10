@@ -57,7 +57,7 @@ such command directories exist. Optional utility CLIs such as `caff` and
 - `update-profile`
 - `update`
 - `projects list`
-- `workspace status/check/doctor/onboarding/agent-brief/clone/pull/init/configure`
+- `workspace status/check/doctor/onboarding/agent-brief/clone/pull/update/init/configure/setup`
 - `version`
 - `help`
 
@@ -264,6 +264,11 @@ such command directories exist. Optional utility CLIs such as `caff` and
   `~/.base.d/config.yaml`, or from an explicit `--source <url-or-path>`, and
   writes the result to `workspace.manifest` or `--manifest <path>` before the
   next workspace status, check, doctor, or clone operation.
+- `basectl workspace update` runs `git pull --ff-only` serially across present
+  repositories in manifest order. It supports `--dry-run`, continues after
+  individual failures, skips missing optional repositories, treats missing
+  required repositories as failures, and skips the active `BASE_HOME` checkout
+  when it is the manifest's `base` target.
 - `basectl workspace configure` applies the existing `basectl repo configure`
   repair path across discovered Base-managed projects, or across present
   Base-managed repositories from a configured or explicit workspace manifest.

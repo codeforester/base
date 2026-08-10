@@ -31,6 +31,7 @@ class ProjectCommandActions:
     workspace_agent_brief: Callable[[base_cli.Context, str | None, str, str | None], int]
     workspace_clone: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
     workspace_pull: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
+    workspace_update: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
     workspace_init: Callable[[base_cli.Context, str, WorkspaceCommandOptions], int]
     workspace_configure: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
     workspace_setup: Callable[[base_cli.Context, WorkspaceCommandOptions], int]
@@ -165,6 +166,16 @@ def _handle_pull(
 ) -> int:
     require_argument_count("pull", arguments, 0, 0)
     return actions.workspace_pull(ctx, options)
+
+
+def _handle_update(
+    ctx: base_cli.Context,
+    arguments: tuple[str, ...],
+    options: WorkspaceCommandOptions,
+    actions: ProjectCommandActions,
+) -> int:
+    require_argument_count("update", arguments, 0, 0)
+    return actions.workspace_update(ctx, options)
 
 
 def _handle_init(
@@ -346,6 +357,7 @@ PROJECT_COMMAND_HANDLERS: dict[str, ProjectCommandHandler] = {
     "agent-brief": _handle_agent_brief,
     "clone": _handle_clone,
     "pull": _handle_pull,
+    "update": _handle_update,
     "init": _handle_init,
     "configure": _handle_configure,
     "setup": _handle_setup,

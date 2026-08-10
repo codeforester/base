@@ -64,7 +64,7 @@ Daily project loop:
     Inspect trust across projects, or manage one project's local approval.
 
 Workspace and repositories:
-  workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]
+  workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup> [options]
     Show workspace status, onboarding, agent readiness, checks, or explicit workspace mutations.
   repo <init|clone|check|configure|agent-guidance|installer-template> [options]
     Create, clone, check, and configure repository baselines and guidance.

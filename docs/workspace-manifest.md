@@ -211,6 +211,27 @@ default. Remote source fetching is therefore an explicit manifest-file update,
 not passive workspace discovery, and it does not clone, pull, reset, or rewrite
 project repositories.
 
+### Update Existing Checkouts
+
+Use `basectl workspace update` when the repositories are already materialized
+and you want one Git update across the workspace:
+
+```bash
+basectl workspace update --dry-run
+basectl workspace update
+basectl workspace update --workspace ~/workspace --manifest ~/workspace/base-workspace/workspace.yaml
+```
+
+Update walks the manifest in order and runs `git pull --ff-only` in each
+present repository. It continues after individual failures and reports
+updated, unchanged, skipped, and failed counts. Missing optional repositories
+are skipped; missing required repositories are failures. The command never
+clones, resets, force-updates, or refreshes the manifest. When the manifest's
+`base` path is the active `BASE_HOME` checkout, it is skipped to protect the
+control plane. A separate workspace checkout of `base` is updated normally.
+Use `workspace pull` separately when the manifest file itself must be refreshed
+from `workspace.manifest_source`.
+
 ### Accepted Source Formats
 
 `workspace.manifest_source` accepts these source shapes:
@@ -518,6 +539,6 @@ expected repositories through `basectl repo configure`. It skips missing
 repositories and present repositories without `base_manifest.yaml`, and exits
 nonzero only when a delegated configure command fails.
 
-The v1 implementation is intentionally still conservative. Clone, configure,
-and project setup are explicit; update, pull, reset, and authentication
-management remain outside the workspace manifest contract.
+The v1 implementation is intentionally still conservative. Clone, update,
+configure, and project setup are explicit; reset and authentication management
+remain outside the workspace manifest contract.

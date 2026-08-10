@@ -175,7 +175,7 @@ workspace:
 ```
 
 When `workspace.manifest` is set, workspace status, check, doctor, onboarding,
-agent-brief, clone, and configure commands use it unless `--manifest <path>` is
+agent-brief, clone, configure, setup, and update commands use it unless `--manifest <path>` is
 supplied for a single command. `basectl workspace pull` treats it as the local
 destination for an explicitly requested refresh. When
 `workspace.manifest_source` is set, pull can refresh that local manifest from
@@ -351,7 +351,7 @@ Current implemented commands include:
 - `basectl update-profile`
 - `basectl update`
 - `basectl projects list`
-- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup>`
+- `basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup>`
 - `basectl trust status [project]`
 - `basectl trust <allow|revoke> <project>`
 - `basectl repo init <name>`
@@ -642,6 +642,7 @@ basectl workspace init basefoundry/base-workspace --dry-run
 basectl workspace clone --manifest ~/work/workspace.yaml --dry-run
 basectl workspace configure --dry-run
 basectl workspace setup --manifest ~/work/workspace.yaml --dry-run
+basectl workspace update --manifest ~/work/workspace.yaml --dry-run
 ```
 
 By default this scans `workspace.root` from `~/.base.d/config.yaml` when that
@@ -728,6 +729,15 @@ local workspace manifest explicitly. `--source <url-or-path>` and
 `--manifest <path>` override those configured values for one command. Pull
 validates the fetched manifest before writing and never mutates project
 repositories.
+
+Use `basectl workspace update --dry-run` to preview running `git pull --ff-only`
+across the existing repositories in manifest order, then run
+`basectl workspace update` to apply it. Update never clones, resets, or changes
+the workspace manifest. It continues after individual Git failures, reports
+updated/unchanged/skipped/failed counts, skips missing optional repositories,
+and treats missing required repositories as failures. If the manifest points at
+the active `BASE_HOME/base` checkout, that control plane is skipped; a separate
+workspace checkout of `base` is updated normally.
 
 Use `basectl workspace configure --dry-run` to preview applying
 `basectl repo configure` across Base-managed repositories in the workspace, then
