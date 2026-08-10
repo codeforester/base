@@ -32,7 +32,7 @@ load ./basectl_helpers.bash
     [[ "$output" == *"demo [project] [options]"* ]]
     [[ "$output" == *"update [project] [options]"* ]]
     [[ "$output" == *"projects list [options]"* ]]
-    [[ "$output" == *"workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]"* ]]
+    [[ "$output" == *"workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup> [options]"* ]]
     [[ "$output" == *"Invoking \`basectl\` with no command starts a Base runtime shell"* ]]
     [[ "$output" == *"--version"* ]]
     [[ "$output" == *"Wrapper options:"* ]]
@@ -103,7 +103,7 @@ load ./basectl_helpers.bash
     grep -Fqx '  docs [options]' <<<"$output"
     grep -Fqx '  logs [options]' <<<"$output"
     grep -Fqx '  history [options]' <<<"$output"
-    grep -Fqx '  workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]' <<<"$output"
+    grep -Fqx '  workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup> [options]' <<<"$output"
     grep -Fqx '  trust <status|allow|revoke> [project] [options]' <<<"$output"
     [[ "$output" != *"-b DIR"* ]]
     [[ "$output" != *"Force install"* ]]
@@ -122,7 +122,7 @@ load ./basectl_helpers.bash
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"Usage:"* ]]
-    [[ "$output" == *"basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]"* ]]
+    [[ "$output" == *"basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup> [options]"* ]]
     [[ "$output" != *"Usage: basectl [options] <command> [args...]"* ]]
 
     run_basectl help release
@@ -163,7 +163,7 @@ load ./basectl_helpers.bash
         "devenv-report" "projects list" "trust status" "trust allow"
         "trust revoke" "workspace status" "workspace check" "workspace doctor"
         "workspace onboarding" "workspace agent-brief" "workspace clone"
-        "workspace pull" "workspace init" "workspace configure" "workspace setup" "repo init"
+        "workspace pull" "workspace update" "workspace init" "workspace configure" "workspace setup" "repo init"
         "repo clone" "repo check" "repo configure" "repo agent-guidance"
         "repo installer-template"
         "release check" "release plan" "release notes" "release publish"
@@ -255,7 +255,7 @@ load ./basectl_helpers.bash
 @test "AI command context includes current clone and update surfaces" {
     local commands_file="$BASE_REPO_ROOT/.ai-context/COMMANDS.md"
 
-    grep -Fqx -- "- \`basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup>\` -" "$commands_file"
+    grep -Fqx -- "- \`basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup>\` -" "$commands_file"
     grep -Fqx -- "  - \`workspace clone\` mutates repository checkouts only when invoked directly;" "$commands_file"
     grep -Fqx -- "- \`basectl repo <init|clone|check|configure|agent-guidance|installer-template>\` -" "$commands_file"
     grep -Fqx -- "- \`basectl update [project]\` - update Base or a named project using the" "$commands_file"
@@ -327,6 +327,24 @@ load ./basectl_helpers.bash
     for flag in "--workspace <path>" "--manifest <path>" "--dry-run" "--yes"; do
         [[ "$output" == *"$flag"* ]]
         [[ "$workspace_setup_row" == *"$flag"* ]]
+    done
+}
+
+@test "command reference documents workspace update help surface" {
+    local command_reference="$BASE_REPO_ROOT/docs/command-reference.md"
+    local workspace_update_row
+
+    run_basectl workspace update --help
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"basectl workspace update [options]"* ]]
+
+    workspace_update_row="$(grep -F '| `basectl workspace update` |' "$command_reference")"
+    [[ "$workspace_update_row" == *"Run \`git pull --ff-only\` across present repositories in manifest order"* ]]
+
+    for flag in "--workspace <path>" "--manifest <path>" "--dry-run"; do
+        [[ "$output" == *"$flag"* ]]
+        [[ "$workspace_update_row" == *"$flag"* ]]
     done
 }
 

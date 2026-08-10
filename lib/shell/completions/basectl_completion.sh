@@ -504,7 +504,7 @@ _base_basectl_completion_format_values() {
     esac
 
     case "$command:$subcommand" in
-        trust:allow|trust:revoke|workspace:clone|workspace:pull|workspace:init|workspace:configure|release:plan|release:notes|logs:|build:|run:)
+        trust:allow|trust:revoke|workspace:clone|workspace:pull|workspace:update|workspace:init|workspace:configure|workspace:setup|release:plan|release:notes|logs:|build:|run:)
             format_values="text json"
             ;;
         release:check|logs:last-failed|trust:status)
@@ -652,7 +652,7 @@ _base_basectl_completion() {
             ;;
         workspace)
             if ((COMP_CWORD == 2)); then
-                _base_basectl_completion_compgen "status check doctor onboarding agent-brief clone pull init configure setup" "$cur"
+                _base_basectl_completion_compgen "status check doctor onboarding agent-brief clone pull update init configure setup" "$cur"
             else
                 case "${COMP_WORDS[2]:-}" in
                     status|check|doctor)
@@ -666,6 +666,9 @@ _base_basectl_completion() {
                         ;;
                     pull)
                         _base_basectl_completion_compgen "--source --manifest --dry-run -v -h --help" "$cur"
+                        ;;
+                    update)
+                        _base_basectl_completion_compgen "--workspace --manifest --dry-run -v -h --help" "$cur"
                         ;;
                     init)
                         _base_basectl_completion_compgen "--owner --path --workspace --manifest --include-optional --dry-run -v -h --help" "$cur"

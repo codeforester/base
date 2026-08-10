@@ -58,6 +58,23 @@ Fetch and validate a canonical workspace manifest before updating the local mani
 EOF
 }
 
+base_workspace_update_usage() {
+    cat <<'EOF'
+Usage:
+  basectl workspace update [options]
+
+Options:
+  --workspace <path>  Workspace directory to update. Defaults to workspace.root, then BASE_HOME's parent.
+  --manifest <path>   Local workspace manifest describing expected repositories.
+                      Overrides workspace.manifest from ~/.base.d/config.yaml.
+  --dry-run           Show the ordered workspace update plan without writing.
+  -v                  Enable DEBUG logging for this subcommand.
+  -h, --help          Show this help text.
+
+Run git pull --ff-only across existing repositories in manifest order.
+EOF
+}
+
 base_workspace_onboarding_usage() {
     cat <<'EOF'
 Usage:
@@ -165,6 +182,9 @@ base_workspace_subcommand_usage() {
         pull)
             base_workspace_pull_usage
             ;;
+        update)
+            base_workspace_update_usage
+            ;;
         init)
             base_workspace_init_usage
             ;;
@@ -177,7 +197,7 @@ base_workspace_subcommand_usage() {
         *)
             cat <<'EOF'
 Usage:
-  basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup> [options]
+  basectl workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup> [options]
 
 Commands:
   status     Show workspace status. Supports --format text|csv|tsv|yaml|json.
@@ -187,6 +207,7 @@ Commands:
   agent-brief Show local agent handoff readiness. Supports --format text|csv|tsv|yaml|json.
   clone      Clone or validate expected repositories from a workspace manifest.
   pull       Fetch and validate a canonical workspace manifest source.
+  update     Run git pull --ff-only across existing workspace repositories.
   init       Initialize a workspace from a workspace configuration repository.
   configure  Apply repo configure across workspace repositories.
   setup      Set up eligible workspace repositories in manifest order.
@@ -213,7 +234,7 @@ base_workspace_subcommand_main() {
             base_workspace_subcommand_usage
             return 0
             ;;
-        status|check|doctor|onboarding|agent-brief|clone|pull|init|configure|setup)
+        status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup)
             shift
             ;;
         *)
