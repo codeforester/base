@@ -253,20 +253,30 @@ def render_project_venv_doctor_payload(
     return compact_json([*checks, project_venv_check_item(status, message, fix)]) + "\n"
 
 
-def render_check_record(project: str, status: str, checked_at: str) -> str:
+def render_check_record(project: str, status: str, checked_at: str, *, command: str = "basectl check") -> str:
     payload = {
         "schema_version": DIAGNOSTIC_JSON_SCHEMA_VERSION,
         "project": project,
-        "command": "basectl check",
+        "command": command,
         "status": validate_status(status),
         "checked_at": checked_at,
     }
     return json.dumps(payload, ensure_ascii=True, indent=2) + "\n"
 
 
-def write_check_record(path: Path, project: str, status: str, checked_at: str) -> None:
+def write_check_record(
+    path: Path,
+    project: str,
+    status: str,
+    checked_at: str,
+    *,
+    command: str = "basectl check",
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    record = render_check_record(project, status, checked_at)
+    if command == "basectl check":
+        record = render_check_record(project, status, checked_at)
+    else:
+        record = render_check_record(project, status, checked_at, command=command)
     with tempfile.NamedTemporaryFile(
         mode="w",
         encoding="utf-8",

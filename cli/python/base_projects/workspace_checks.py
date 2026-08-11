@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import replace
+from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 
 import base_cli
+from base_cli_adapters.paths import base_state_root
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestRepo
 from base_projects.workspace_report_common import missing_repo_fix
@@ -17,6 +20,7 @@ from base_projects.workspace_scanner import workspace_manifest_entries
 from base_setup.checks import ArtifactCheck
 from base_setup.checks import checks_status
 from base_setup.checks import doctor_status
+from base_setup.diagnostics import write_check_record
 from base_setup.engine import manifest_checks
 from base_setup.engine import pre_venv_manifest_checks
 from base_setup.engine import read_default_manifest
@@ -25,6 +29,9 @@ from base_setup.manifest_loader import ManifestError
 from base_setup.manifest_model import BaseManifest
 from base_setup.project_routing import manifest_requires_project_python
 from base_setup.uv import manifest_uses_uv_project_manager
+
+
+WORKSPACE_CHECK_COMMAND = "basectl workspace check"
 
 
 @dataclass(frozen=True)
@@ -41,6 +48,30 @@ class WorkspaceProjectCheckResult:
     repository: str | None = None
     url: str | None = None
     default_branch: str | None = None
+
+
+def workspace_check_timestamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def persist_workspace_check_records(
+    results: tuple[WorkspaceProjectCheckResult, ...],
+) -> tuple[tuple[str, OSError], ...]:
+    checked_at = workspace_check_timestamp()
+    failures: list[tuple[str, OSError]] = []
+    for result in results:
+        record_path = base_state_root() / result.name / "checks" / "last.json"
+        try:
+            write_check_record(
+                record_path,
+                result.name,
+                result.status,
+                checked_at,
+                command=WORKSPACE_CHECK_COMMAND,
+            )
+        except OSError as exc:
+            failures.append((result.name, exc))
+    return tuple(failures)
 
 
 def workspace_project_check_results(

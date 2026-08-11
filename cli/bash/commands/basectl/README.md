@@ -235,14 +235,15 @@ such command directories exist. Optional utility CLIs such as `caff` and
 - `basectl workspace status` reports a read-only workspace summary across
   discovered projects, or across expected repositories when
   `workspace.manifest` is configured or `--manifest <path>` is supplied. When
-  `basectl check <project>` has run, status reports the latest recorded project
-  check date from `~/.base.d/<project>/checks/last.json`.
+  `basectl check <project>` or `basectl workspace check` has run, status reports
+  the latest recorded project check date from
+  `~/.base.d/<project>/checks/last.json`.
 - `basectl workspace check` renders check-oriented readiness state across
-  discovered projects. `basectl workspace doctor` renders actionable findings
-  with stable finding IDs and fix guidance. Both commands are read-only and,
-  with a configured workspace manifest or `--manifest <path>`, report missing
-  expected repositories and discovered Base-managed projects outside the
-  manifest.
+  discovered projects and records each result for later status reporting.
+  `basectl workspace doctor` renders actionable findings with stable finding
+  IDs and fix guidance and remains read-only. With a configured
+  workspace manifest or `--manifest <path>`, they also report missing expected
+  repositories and discovered Base-managed projects outside the manifest.
 - `basectl workspace onboarding` reports expected-repository first-day state
   and next actions without cloning or setup.
 - `basectl workspace agent-brief` reports expected and extra Base-managed
