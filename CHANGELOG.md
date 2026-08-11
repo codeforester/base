@@ -31,6 +31,10 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Fixed
 
+- Separated `basectl workspace check`'s readiness renderer from
+  `basectl workspace doctor`'s actionable finding renderer while preserving the
+  shared read-only workspace checks and JSON diagnostic shape.
+
 - Continue `basectl onboard` through project discovery and manifest trust
   status when `basectl doctor` reports remaining findings.
 - Kept helper-backed Bash defaults and runtime prompts shell-local so child

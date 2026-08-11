@@ -484,11 +484,13 @@ ready, inspectable Base-managed project environment. The object reports the
 environment manager, virtualenv path, interpreter path, and actual Python minor
 version so users can quickly compare project runtimes across a workspace.
 
-`basectl workspace check --manifest <path>` and
-`basectl workspace doctor --manifest <path>` include normal project diagnostics
-for present Base-managed projects. They also emit stable workspace findings for
-repository presence, outside-manifest discovered projects, and present
-repositories without a Base project manifest.
+`basectl workspace check --manifest <path>` includes normal project diagnostics
+for present Base-managed projects and renders check-oriented status, names, and
+messages in text output. `basectl workspace doctor --manifest <path>` renders
+the same read-only evidence as actionable findings with stable IDs and fix
+guidance. Both commands emit stable workspace findings for repository
+presence, outside-manifest discovered projects, and present repositories
+without a Base project manifest; their JSON diagnostic items remain compatible.
 
 `basectl workspace agent-brief --manifest <path>` reports one item per expected
 repository plus each extra locally discovered Base-managed project. JSON uses
