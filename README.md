@@ -653,17 +653,19 @@ Project list output is tab-separated as `<project-name><TAB><path>`.
 In a source checkout, `basectl projects list` can run before `basectl setup`
 when the ambient `python3` has Base's bootstrap Python dependencies available;
 otherwise it reports a targeted setup diagnostic.
-`basectl projects list` and the read-only workspace status, check, doctor,
-onboarding, and agent-brief commands support `--format json` for
+`basectl projects list` and the read-only workspace status, doctor, onboarding,
+and agent-brief commands support `--format json` for
 machine-readable output.
 Workspace clone, pull, init, configure, and setup use text output only. Status reports
 each discovered project's manifest validity, whether the Base-managed project
 virtual environment is present, and the latest recorded `basectl check
-<project>` date when one exists. Check records live under
-`~/.base.d/<project>/checks/last.json`; status JSON includes the full timestamp
-and recorded check status.
+<project>` or `basectl workspace check` date when one exists. Check records live
+under `~/.base.d/<project>/checks/last.json`; status JSON includes the full
+timestamp and recorded check status.
 Check and doctor run project diagnostics across discovered projects and keep
-invalid project manifests visible as per-project findings.
+invalid project manifests visible as per-project findings. Workspace check also
+refreshes each checked project's last-check record after rendering its report;
+record-write failures are logged without changing the diagnostic result.
 
 `basectl workspace onboarding` is also shipped. It summarizes first-day
 workspace onboarding from a workspace manifest without cloning repositories or

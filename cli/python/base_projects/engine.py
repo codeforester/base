@@ -42,6 +42,9 @@ from base_projects.workspace_clone_command import require_workspace_clone_manife
 from base_projects.workspace_clone_command import should_skip_optional_clone  # pylint: disable=unused-import
 from base_projects.workspace_clone_command import workspace_clone_command
 from base_projects.workspace_clone_command import workspace_clone_repo_spec  # pylint: disable=unused-import
+from base_projects.workspace_checks import persist_workspace_check_records
+from base_projects.workspace_checks import workspace_error_count
+from base_projects.workspace_checks import workspace_project_check_results
 from base_projects.workspace_configure import workspace_configure_from_options
 from base_projects.workspace_context import effective_workspace_manifest
 from base_projects.workspace_context import resolve_workspace_manifest
@@ -62,8 +65,6 @@ from base_projects.workspace_report_text import print_workspace_agent_brief
 from base_projects.workspace_report_text import print_workspace_onboarding
 from base_projects.workspace_report_text import print_workspace_status
 from base_projects.workspace_scanner import ProjectDiscoveryError
-from base_projects.workspace_checks import workspace_error_count
-from base_projects.workspace_checks import workspace_project_check_results
 from base_projects.workspace_statuses import workspace_project_statuses
 from base_setup.demo import resolve_demo_script_path
 from base_setup.errors import ArtifactError
@@ -324,6 +325,9 @@ def workspace_check_command(
         text_renderer=lambda: print_workspace_check(workspace_root, results, manifest),
     ):
         return base_cli.ExitCode.USAGE_ERROR
+
+    for project_name, exc in persist_workspace_check_records(results):
+        ctx.log.warning("Could not record workspace check for project '%s': %s", project_name, exc)
 
     if any(result.status == "error" for result in results):
         return base_cli.ExitCode.FAILURE

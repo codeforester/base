@@ -85,6 +85,10 @@ def write_default_manifest(base_home: Path) -> None:
     )
 
 
+def read_last_check(home: Path, project: str) -> dict[str, str]:
+    return json.loads((home / ".base.d" / project / "checks" / "last.json").read_text(encoding="utf-8"))
+
+
 class TerminalStringIO(io.StringIO):
     def isatty(self) -> bool:
         return True
@@ -106,6 +110,65 @@ def invoke_engine(args: list[str], base_home: Path, home: Path) -> tuple[int, st
 
 
 class WorkspaceCheckTests(unittest.TestCase):
+    def test_workspace_check_records_ok_and_warning_results_for_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_workspace_manifest(manifest_path, repos="  - name: demo")
+            write_shell_manifest(workspace / "demo", "demo")
+            write_shell_manifest(workspace / "extra", "extra")
+
+            status, stdout, stderr = invoke_engine(
+                ["check", "--workspace", str(workspace), "--manifest", str(manifest_path)],
+                base_home,
+                home,
+            )
+            demo_record = read_last_check(home, "demo")
+            extra_record = read_last_check(home, "extra")
+            status_status, status_stdout, status_stderr = invoke_engine(
+                ["status", "--workspace", str(workspace), "--manifest", str(manifest_path)],
+                base_home,
+                home,
+            )
+
+        self.assertEqual(status, 0)
+        self.assertIn("extra", stdout + stderr)
+        self.assertEqual(demo_record["command"], "basectl workspace check")
+        self.assertEqual(demo_record["status"], "ok")
+        self.assertEqual(extra_record["command"], "basectl workspace check")
+        self.assertEqual(extra_record["status"], "warn")
+        self.assertRegex(demo_record["checked_at"], r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+        self.assertEqual(status_status, 0)
+        self.assertEqual(status_stderr, "")
+        self.assertIn(demo_record["checked_at"][:10], status_stdout)
+        self.assertIn(extra_record["checked_at"][:10], status_stdout)
+
+    def test_workspace_check_records_error_results_before_returning_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_manifest(workspace / "demo", "demo")
+
+            status, stdout, stderr = invoke_engine(["check", "--workspace", str(workspace)], base_home, home)
+            record = read_last_check(home, "demo")
+
+        self.assertEqual(status, 1)
+        self.assertIn("Project: demo [error]", stdout)
+        self.assertIn("demo", stdout + stderr)
+        self.assertEqual(record["command"], "basectl workspace check")
+        self.assertEqual(record["status"], "error")
+
     def test_workspace_check_manifest_reports_expected_missing_and_extra_repositories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

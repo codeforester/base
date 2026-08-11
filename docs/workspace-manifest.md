@@ -59,7 +59,8 @@ basectl workspace doctor
 ```
 
 `basectl workspace status` reads the latest project check record from
-`~/.base.d/<project>/checks/last.json` when it exists. Text output shows the
+`~/.base.d/<project>/checks/last.json` when it exists. Records are written by
+`basectl check <project>` and `basectl workspace check`. Text output shows the
 check date in the `LAST CHECK` column, while JSON output includes the full
 timestamp and check status. Projects without a recorded check show `-` in text
 output and `null` in JSON output.
@@ -309,7 +310,7 @@ Warnings should not fail automation by default.
 
 ## Relationship To Workspace Commands
 
-The first read-only workspace commands should continue to work without a
+The first workspace inspection commands should continue to work without a
 workspace manifest:
 
 ```bash
