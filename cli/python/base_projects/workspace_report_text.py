@@ -199,7 +199,7 @@ def print_workspace_doctor(
     print(f"\nWorkspace doctor: {workspace_root} ({len(results)} {item_name})")
     if workspace_manifest is not None:
         print(f"Workspace manifest: {workspace_manifest.path} ({workspace_manifest.name})")
-    print_workspace_check_results(results, workspace_manifest)
+    print_workspace_doctor_results(results, workspace_manifest)
 
 
 def print_workspace_check_results(
@@ -219,7 +219,45 @@ def print_workspace_check_results(
         print(f"\n{label}: {name} [{result.status}]")
         print(f"Path: {result.root}")
         for check in result.checks:
+            print_workspace_check_finding(check)
+
+    print_workspace_summary(results, workspace_manifest)
+
+
+def print_workspace_doctor_results(
+    results: tuple[Any, ...],
+    workspace_manifest: WorkspaceManifest | None = None,
+) -> None:
+    if not results:
+        if workspace_manifest is None:
+            print("\nNo Base-managed projects discovered.")
+        else:
+            print("\nNo repositories reported by the workspace manifest.")
+        return
+
+    label = "Repository" if workspace_manifest is not None else "Project"
+    for result in results:
+        name = result.repository or result.name
+        print(f"\n{label}: {name} [{result.status}]")
+        print(f"Path: {result.root}")
+        for check in result.checks:
             print_doctor_finding(doctor_status(check), check.finding_id, check.name, check.message, check.fix)
+
+    print_workspace_summary(results, workspace_manifest)
+
+
+def print_workspace_check_finding(check: Any) -> None:
+    """Render check-oriented text without doctor finding IDs or styling."""
+    status = doctor_status(check)
+    print(f"{status:<5}  {check.name:<26}  {check.message}")
+    if check.fix:
+        print(f"       Fix: {check.fix}")
+
+
+def print_workspace_summary(
+    results: tuple[Any, ...],
+    workspace_manifest: WorkspaceManifest | None = None,
+) -> None:
 
     error_count = workspace_error_count(results)
     if error_count:

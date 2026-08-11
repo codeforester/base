@@ -65,6 +65,8 @@ reusable-layer DEBUG diagnostics.
     `workspace onboarding`, and `workspace agent-brief` support `--format json`;
     `workspace clone`, `workspace pull`, `workspace update`, `workspace init`, `workspace configure`,
     and `workspace setup` use text output.
+  - `workspace check` presents check-oriented readiness messages; `workspace doctor`
+    presents actionable findings with stable IDs and fix guidance.
   - `workspace onboarding` summarizes ready, needs-setup, invalid-manifest,
     missing-required, and missing-optional repository state without cloning
     repositories or running setup.

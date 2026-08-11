@@ -141,8 +141,9 @@ class WorkspaceCheckTests(unittest.TestCase):
         self.assertIn("Repository: api [error]", stdout)
         self.assertIn("Repository: optional-tool [warn]", stdout)
         self.assertIn("Repository: extra [warn]", stdout)
-        self.assertIn("BASE-W010", stderr)
-        self.assertIn("BASE-W011", stderr)
+        self.assertIn("workspace_repository_presence", stdout)
+        self.assertIn("workspace_manifest_membership", stdout)
+        self.assertEqual(stderr, "")
         self.assertIn("Workspace has 1 error finding(s).", stdout)
 
     def test_workspace_check_manifest_supports_json_format(self) -> None:
@@ -223,7 +224,8 @@ class WorkspaceCheckTests(unittest.TestCase):
 
         self.assertEqual(status, 1)
         self.assertIn("Repository: broken [error]", stdout)
-        self.assertIn("BASE-P002", stderr)
+        self.assertIn("project_manifest", stdout)
+        self.assertEqual(stderr, "")
 
     def test_workspace_check_reports_project_findings_and_invalid_manifests(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -246,10 +248,11 @@ class WorkspaceCheckTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn(f"Workspace check: {workspace.resolve()} (2 projects)", stdout)
         self.assertIn("Project: demo [ok]", stdout)
-        self.assertIn("BASE-P050", stdout)
-        self.assertIn("BASE-P001", stdout)
+        self.assertIn("project_virtualenv", stdout)
+        self.assertIn("manifest", stdout)
         self.assertIn("Project: broken [error]", stdout)
-        self.assertIn("BASE-P002", stderr)
+        self.assertIn("project_manifest", stdout)
+        self.assertEqual(stderr, "")
         self.assertIn("Workspace has 1 error finding(s).", stdout)
 
     def test_workspace_check_uses_uv_project_venv_without_base_project_venv(self) -> None:
@@ -277,7 +280,8 @@ class WorkspaceCheckTests(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertEqual(stderr, "")
         self.assertIn("Project: bankbuddy [ok]", stdout)
-        self.assertIn("BASE-P154", stdout)
+        self.assertIn("uv project virtualenv", stdout)
+        self.assertNotIn("BASE-P154", stdout)
         self.assertNotIn("BASE-P050", stdout)
         self.assertIn("All discovered projects passed.", stdout)
 
@@ -425,6 +429,45 @@ class WorkspaceCheckTests(unittest.TestCase):
         self.assertEqual(payload["projects"][0]["checks"][0]["id"], "BASE-P050")
         self.assertEqual(payload["projects"][0]["checks"][0]["status"], "error")
         self.assertNotIn("ok", payload["projects"][0]["checks"][0])
+
+    def test_workspace_check_text_avoids_doctor_finding_renderer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_manifest(workspace / "demo", "demo")
+
+            with mock.patch("base_projects.workspace_report_text.print_doctor_finding") as doctor_finding:
+                status, stdout, stderr = invoke_engine(["check", "--workspace", str(workspace)], base_home, home)
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stderr, "")
+        doctor_finding.assert_not_called()
+        self.assertIn("project_virtualenv", stdout)
+        self.assertIn("Fix: Run 'basectl setup demo --recreate-venv'", stdout)
+        self.assertNotIn("BASE-P050", stdout)
+
+    def test_workspace_doctor_text_keeps_finding_ids_and_fix_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_manifest(workspace / "demo", "demo")
+
+            status, stdout, stderr = invoke_engine(["doctor", "--workspace", str(workspace)], base_home, home)
+
+        self.assertEqual(status, 1)
+        self.assertIn("BASE-P050", stderr)
+        self.assertIn("Fix: Run 'basectl setup demo --recreate-venv'", stderr)
+        self.assertNotIn("BASE-P050", stdout)
 
     def test_workspace_doctor_text_reports_all_clear(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
