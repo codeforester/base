@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -60,16 +61,17 @@ class WorkspaceUpdateTests(unittest.TestCase):
 
             self.assertEqual(status, 1)
             self.assertEqual(stderr, "")
-            self.assertIn(f"Workspace update plan: {root.resolve()} (7 manifest repos)", stdout)
-            self.assertIn("PULL repository 'base'", stdout)
+            self.assertIn(f"Workspace update: {root.resolve()} (7 manifest repos)", stdout)
+            self.assertIn("REPOSITORY", stdout)
+            assert_workspace_result(self, stdout, "base", "PULL", "planned")
+            assert_workspace_result(self, stdout, "first", "PULL", "planned")
+            assert_workspace_result(self, stdout, "optional-missing", "SKIP", "skipped")
+            assert_workspace_result(self, stdout, "later", "PULL", "planned")
             self.assertNotIn("active Base control plane is managed from BASE_HOME", stdout)
-            self.assertIn("PULL repository 'first'", stdout)
-            self.assertIn("SKIP repository 'optional-missing'", stdout)
-            self.assertIn("PULL repository 'later'", stdout)
             self.assertIn("Workspace update plan complete: planned=5 skipped=2 failed=1.", stdout)
             self.assertIn("[DRY-RUN] No repositories were modified.", stdout)
-            self.assertLess(stdout.index("repository 'base'"), stdout.index("repository 'first'"))
-            self.assertLess(stdout.index("repository 'first'"), stdout.index("repository 'later'"))
+            self.assertLess(stdout.index("\nbase "), stdout.index("\nfirst "))
+            self.assertLess(stdout.index("\nfirst "), stdout.index("\nlater "))
 
     def test_workspace_update_pulls_serially_and_aggregates_failures(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -145,12 +147,13 @@ repos:
                 )
 
             self.assertEqual(status, 1)
-            self.assertIn("PULL repository 'first'", stdout)
-            self.assertIn("PULL repository 'failing'", stdout)
-            self.assertIn("PULL repository 'later'", stdout)
-            self.assertIn("PULL repository 'base'", stdout)
-            self.assertIn("Already up to date.", stdout)
-            self.assertIn("Git pull failed for repository 'failing'.", stderr)
+            self.assertEqual(stderr, "")
+            assert_workspace_result(self, stdout, "base", "PULL", "unchanged")
+            assert_workspace_result(self, stdout, "first", "PULL", "updated")
+            assert_workspace_result(self, stdout, "failing", "PULL", "failed (exit 1)")
+            self.assertIn("fatal: Not possible to fast-forward, aborting.", stdout)
+            assert_workspace_result(self, stdout, "later", "PULL", "updated")
+            self.assertNotIn("Already up to date.", stdout)
             self.assertIn("Workspace update completed: updated=2 unchanged=2 skipped=1 failed=1.", stdout)
             self.assertEqual(
                 [call.kwargs["cwd"] for call in run.call_args_list],
@@ -186,6 +189,17 @@ repos:
             self.assertEqual(status, 1)
             self.assertEqual(stdout, "")
             self.assertIn("requires a configured or explicit workspace manifest", stderr)
+
+
+def assert_workspace_result(
+    test_case: unittest.TestCase,
+    output: str,
+    repository: str,
+    action: str,
+    result: str,
+) -> None:
+    pattern = rf"^{re.escape(repository)}\s+{re.escape(action)}\s+{re.escape(result)}$"
+    test_case.assertRegex(output, re.compile(pattern, re.MULTILINE))
 
 
 def invoke_engine(

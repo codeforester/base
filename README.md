@@ -737,7 +737,9 @@ the workspace manifest. It continues after individual Git failures, reports
 updated/unchanged/skipped/failed counts, skips missing optional repositories,
 and treats missing required repositories as failures. If the manifest points at
 the active `BASE_HOME/base` checkout, that control plane is skipped; a separate
-workspace checkout of `base` is updated normally.
+workspace checkout of `base` is updated normally. Text output uses a stable
+repository/action/result table; raw Git output is retained for debug
+diagnostics, and failures include concise repository and exit details.
 
 Use `basectl workspace configure --dry-run` to preview applying
 `basectl repo configure` across Base-managed repositories in the workspace, then
