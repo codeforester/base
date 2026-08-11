@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -17,6 +16,7 @@ from base_projects.workspace_scanner import ProjectDiscoveryError
 
 
 WorkspaceUpdateAction = Literal["pull", "skip"]
+WorkspaceUpdateStatus = Literal["planned", "updated", "unchanged", "skipped", "failed"]
 WORKSPACE_UPDATE_TIMEOUT_SECONDS = 1800
 
 
@@ -36,6 +36,13 @@ class WorkspaceUpdateCounts:
     unchanged: int = 0
     skipped: int = 0
     failed: int = 0
+
+
+@dataclass(frozen=True)
+class WorkspaceUpdateResult:
+    status: WorkspaceUpdateStatus
+    detail: str | None = None
+    exit_code: int | None = None
 
 
 def workspace_update_from_options(
@@ -78,19 +85,24 @@ def workspace_update_command(
     dry_run: bool,
 ) -> int:
     targets = workspace_update_targets(workspace_root, workspace_manifest)
-    print_workspace_update_header(workspace_root, workspace_manifest, len(targets))
+    name_width = max(len("REPOSITORY"), *(len(target.name) for target in targets))
+    print_workspace_update_header(workspace_root, workspace_manifest, len(targets), name_width)
 
     counts = WorkspaceUpdateCounts()
     for target in targets:
         if target.action == "skip":
-            counts = print_workspace_update_skip(target, counts)
+            result = WorkspaceUpdateResult("skipped", target.reason)
+            counts = update_workspace_update_counts(counts, result, fatal=target.fatal)
+            print_workspace_update_result(target, result, name_width)
             continue
 
-        print_workspace_update_target(target)
         if dry_run:
+            print_workspace_update_result(target, WorkspaceUpdateResult("planned"), name_width)
             continue
 
-        counts = execute_workspace_update_target(ctx, target, counts)
+        result = execute_workspace_update_target(ctx, target)
+        counts = update_workspace_update_counts(counts, result)
+        print_workspace_update_result(target, result, name_width)
 
     if dry_run:
         planned = sum(target.action == "pull" for target in targets)
@@ -150,34 +162,47 @@ def print_workspace_update_header(
     workspace_root: Path,
     workspace_manifest: WorkspaceManifest,
     target_count: int,
+    name_width: int,
 ) -> None:
-    print(f"Workspace update plan: {workspace_root} ({target_count} manifest repos)")
+    print(f"Workspace update: {workspace_root} ({target_count} manifest repos)")
     print(f"Workspace manifest: {workspace_manifest.path} ({workspace_manifest.name})")
+    print()
+    print(f"{'REPOSITORY':<{name_width}}  {'ACTION':<6}  RESULT")
 
 
-def print_workspace_update_target(target: WorkspaceUpdateTarget) -> None:
-    print(f"PULL repository '{target.name}' at '{target.root}': git pull --ff-only")
-
-
-def print_workspace_update_skip(
+def print_workspace_update_result(
     target: WorkspaceUpdateTarget,
+    result: WorkspaceUpdateResult,
+    name_width: int,
+) -> None:
+    action = target.action.upper()
+    outcome = result.status
+    if result.exit_code is not None:
+        outcome = f"{outcome} (exit {result.exit_code})"
+    print(f"{target.name:<{name_width}}  {action:<6}  {outcome}")
+    if result.detail:
+        for line in result.detail.splitlines():
+            print(f"{'':<{name_width}}  {'':<6}  {line}")
+
+
+def update_workspace_update_counts(
     counts: WorkspaceUpdateCounts,
+    result: WorkspaceUpdateResult,
+    *,
+    fatal: bool = False,
 ) -> WorkspaceUpdateCounts:
-    print(f"SKIP repository '{target.name}' at '{target.root}': {target.reason}.")
-    failed = counts.failed + (1 if target.fatal else 0)
     return WorkspaceUpdateCounts(
-        counts.updated,
-        counts.unchanged,
-        counts.skipped + 1,
-        failed,
+        updated=counts.updated + (result.status == "updated"),
+        unchanged=counts.unchanged + (result.status == "unchanged"),
+        skipped=counts.skipped + (result.status == "skipped"),
+        failed=counts.failed + (result.status == "failed" or fatal),
     )
 
 
 def execute_workspace_update_target(
     ctx: base_cli.Context,
     target: WorkspaceUpdateTarget,
-    counts: WorkspaceUpdateCounts,
-) -> WorkspaceUpdateCounts:
+) -> WorkspaceUpdateResult:
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"
     env["LC_ALL"] = "C"
@@ -193,52 +218,38 @@ def execute_workspace_update_target(
             timeout=WORKSPACE_UPDATE_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired:
-        ctx.log.error(
-            "Timed out running git pull for repository '%s' after %s seconds.",
-            target.name,
-            WORKSPACE_UPDATE_TIMEOUT_SECONDS,
-        )
-        return WorkspaceUpdateCounts(
-            counts.updated,
-            counts.unchanged,
-            counts.skipped,
-            counts.failed + 1,
+        return WorkspaceUpdateResult(
+            "failed",
+            detail=f"timed out after {WORKSPACE_UPDATE_TIMEOUT_SECONDS} seconds",
         )
     except OSError as exc:
-        ctx.log.error("Could not run git pull for repository '%s': %s", target.name, exc)
-        return WorkspaceUpdateCounts(
-            counts.updated,
-            counts.unchanged,
-            counts.skipped,
-            counts.failed + 1,
+        return WorkspaceUpdateResult(
+            "failed",
+            detail=f"could not run git pull: {exc}",
         )
 
-    if result.stdout:
-        print(result.stdout, end="")
-    if result.stderr:
-        print(result.stderr, end="", file=sys.stderr)
+    ctx.log.debug(
+        "Git pull for repository '%s' exited with %s; stdout=%r stderr=%r",
+        target.name,
+        result.returncode,
+        result.stdout,
+        result.stderr,
+    )
     if result.returncode != 0:
-        ctx.log.error("Git pull failed for repository '%s'.", target.name)
-        return WorkspaceUpdateCounts(
-            counts.updated,
-            counts.unchanged,
-            counts.skipped,
-            counts.failed + 1,
+        return WorkspaceUpdateResult(
+            "failed",
+            detail=git_pull_detail(result.stdout, result.stderr),
+            exit_code=result.returncode,
         )
 
     if git_pull_was_unchanged(result.stdout, result.stderr):
-        return WorkspaceUpdateCounts(
-            counts.updated,
-            counts.unchanged + 1,
-            counts.skipped,
-            counts.failed,
-        )
-    return WorkspaceUpdateCounts(
-        counts.updated + 1,
-        counts.unchanged,
-        counts.skipped,
-        counts.failed,
-    )
+        return WorkspaceUpdateResult("unchanged")
+    return WorkspaceUpdateResult("updated")
+
+
+def git_pull_detail(stdout: str, stderr: str) -> str:
+    details = [part.strip() for part in (stderr, stdout) if part.strip()]
+    return "\n".join(details) or "git pull failed without diagnostic output"
 
 
 def git_pull_was_unchanged(stdout: str, stderr: str) -> bool:

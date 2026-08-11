@@ -229,8 +229,10 @@ are skipped; missing required repositories are failures. The command never
 clones, resets, force-updates, or refreshes the manifest. When the manifest's
 `base` path is the active `BASE_HOME` checkout, it is skipped to protect the
 control plane. A separate workspace checkout of `base` is updated normally.
-Use `workspace pull` separately when the manifest file itself must be refreshed
-from `workspace.manifest_source`.
+Text output is rendered as one repository/action/result table; raw Git output
+is retained for debug diagnostics, while failures include concise repository
+context and exit details in the report. Use `workspace pull` separately when
+the manifest file itself must be refreshed from `workspace.manifest_source`.
 
 ### Accepted Source Formats
 
