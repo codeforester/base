@@ -681,12 +681,31 @@ def print_log_table(entries: list[LogEntry]) -> None:
         ("STATUS", "status"),
         ("PATH", "path"),
     )
+    output_records = log_output_records(entries)
+    minimum_widths = (19, 12, 24, 6)
     base_cli.render_records(
-        log_output_records(entries),
+        output_records,
         requested_format="text",
         columns=columns,
-        minimum_widths=(19, 12, 24, 6),
+        minimum_widths=minimum_widths,
+        max_cell_width=None,
+        terminal_width=logs_table_width(output_records, columns, minimum_widths),
     )
+
+
+def logs_table_width(
+    records: list[dict[str, Any]],
+    columns: tuple[tuple[str, str], ...],
+    minimum_widths: tuple[int, ...],
+) -> int:
+    """Return enough width for the logs table without truncating log paths."""
+
+    widths = []
+    for index, (header, key) in enumerate(columns):
+        values = [str(record.get(key, "")) for record in records]
+        minimum_width = minimum_widths[index] if index < len(minimum_widths) else 0
+        widths.append(max(len(header), minimum_width, *(len(value) for value in values)))
+    return sum(widths) + 2 * (len(columns) - 1)
 
 
 def log_output_columns() -> tuple[tuple[str, str], ...]:
