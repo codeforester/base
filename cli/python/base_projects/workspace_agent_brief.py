@@ -16,6 +16,8 @@ from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_onboarding import test_command_for_status
 from base_projects.workspace_statuses import WorkspaceProjectStatus
 from base_projects.workspace_statuses import workspace_manifest_project_statuses
+from base_setup.manifest import read_manifest
+from base_setup.manifest_loader import ManifestError
 
 
 # Keep these tuples in parity with the shell-owned repo check contract. The
@@ -123,7 +125,13 @@ def agent_brief_repository_from_status(status: WorkspaceProjectStatus) -> Worksp
         baseline = not_applicable_file_signal()
         agent_guidance = unmanaged_agent_guidance_signal(status.root)
     else:
-        baseline = repository_file_signal(status.root, REPO_BASELINE_FILES, check_executable=True)
+        validation_file = repository_baseline_validation_file(status)
+        baseline = repository_file_signal(
+            status.root,
+            repository_baseline_files(validation_file),
+            check_executable=True,
+            executable_files=(validation_file,),
+        )
         agent_guidance = repository_file_signal(status.root, REPO_AGENT_GUIDANCE_FILES)
     ai_context_status = repository_ai_context_status(status.root) if present else "unavailable"
     validation = repository_validation_signal(status) if present else RepositoryValidationSignal(status="unavailable")
@@ -160,18 +168,44 @@ def not_applicable_file_signal() -> RepositoryFileSignal:
     return RepositoryFileSignal(status="not_applicable")
 
 
+def repository_baseline_validation_file(status: WorkspaceProjectStatus) -> str:
+    """Return the validation file required by the repository baseline contract."""
+    if status.name != "base" or status.manifest != "valid" or status.manifest_path is None:
+        return "tests/validate.sh"
+    try:
+        manifest = read_manifest(status.manifest_path)
+    except ManifestError:
+        return "tests/validate.sh"
+    if manifest.test is not None and manifest.test.command == "./bin/base-test":
+        return "bin/base-test"
+    return "tests/validate.sh"
+
+
+def repository_baseline_files(validation_file: str) -> tuple[str, ...]:
+    if validation_file == "tests/validate.sh":
+        return REPO_BASELINE_FILES
+    return tuple(
+        validation_file if relative_path == "tests/validate.sh" else relative_path
+        for relative_path in REPO_BASELINE_FILES
+    )
+
+
 def repository_file_signal(
     root: Path,
     required_files: tuple[str, ...],
     *,
     check_executable: bool = False,
+    executable_files: tuple[str, ...] = (),
 ) -> RepositoryFileSignal:
     missing_files = tuple(relative_path for relative_path in required_files if not (root / relative_path).is_file())
     not_executable_files: tuple[str, ...] = ()
     if check_executable:
-        validation_script = root / "tests" / "validate.sh"
-        if validation_script.is_file() and not executable_file(validation_script):
-            not_executable_files = ("tests/validate.sh",)
+        executable_paths = executable_files or ("tests/validate.sh",)
+        not_executable_files = tuple(
+            relative_path
+            for relative_path in executable_paths
+            if (root / relative_path).is_file() and not executable_file(root / relative_path)
+        )
 
     status = "complete" if not missing_files and not not_executable_files else "incomplete"
     return RepositoryFileSignal(

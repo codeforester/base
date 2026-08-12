@@ -103,8 +103,10 @@ basectl workspace agent-brief --manifest ~/work/base-workspace/workspace.yaml --
 
 The brief reports the Base repository baseline and agent-guidance file
 contracts, `.ai-context` Markdown availability, project environment state, and
-an inferred validation path. An executable `tests/validate.sh` is preferred;
-when only a manifest-declared test is available, its execution stays behind a
+an inferred validation path. The generated repository baseline uses an
+executable `tests/validate.sh`; Base's own manifest-declared
+`test.command: ./bin/base-test` is used for the Base repository instead. When
+only a manifest-declared test is available, its execution stays behind a
 recommended `basectl test` so Base retains runner, trust, and environment
 ownership. The brief never executes those commands. It does not use GitHub,
 generate guidance or context files, clone repositories, or change setup state.

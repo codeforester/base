@@ -245,6 +245,13 @@ Existing files are left unchanged. This makes `repo init` useful both for a
 fresh directory and for bringing a small existing repository up to Base's
 minimum expectations.
 
+The generated repositories use `tests/validate.sh` as their baseline
+validation file. Base's own repository is the documented exception: when
+`base_manifest.yaml` declares `test.command: ./bin/base-test`, `repo check`
+requires the manifest-declared `bin/base-test` path instead of
+`tests/validate.sh`. This keeps the self-check aligned with Base's actual
+validation contract without changing the generated-repository default.
+
 The generated `base_manifest.yaml` declares the project name and a test command.
 When language profiles are selected, it also records the normalized languages
 and applies the Python uv profile:

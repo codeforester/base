@@ -31,6 +31,10 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Fixed
 
+- Aligned Base's self-repository baseline checks and workspace agent brief with
+  `base_manifest.yaml`'s `./bin/base-test` validation contract while retaining
+  `tests/validate.sh` for generated repositories.
+
 - Preserved `basectl check` diagnostics and exit status when the optional
   latest-check record cannot be written, with stable JSON and text warnings.
 

@@ -1644,6 +1644,23 @@ EOF
     [[ "$output" == *"Repository baseline: all 13 required files present."* ]]
 }
 
+@test "basectl repo check uses the Base manifest validation command" {
+    run_basectl repo check "$BASE_REPO_ROOT"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Repository baseline: all 13 required files present."* ]]
+    [[ "$output" != *"tests/validate.sh"* ]]
+}
+
+@test "basectl repo check JSON uses the Base manifest validation command" {
+    run_basectl repo check "$BASE_REPO_ROOT" --format json
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"status":"ok"'* ]]
+    [[ "$output" == *'"missing_files":[]'* ]]
+    [[ "$output" != *"tests/validate.sh"* ]]
+}
+
 @test "basectl repo check reports missing baseline files" {
     local repo_dir="$TEST_TMPDIR/incomplete"
 

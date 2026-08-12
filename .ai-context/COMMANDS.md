@@ -103,6 +103,8 @@ reusable-layer DEBUG diagnostics.
   repositories to the configured workspace root; use `--path .` for the current
   checkout. Plain `repo init` writes local baseline files without committing or
   pushing them; `repo init --agent-ready` also seeds `AGENTS.md` and `skills.md`;
+  `repo check` follows the manifest-declared `./bin/base-test` validation path
+  for Base itself while generated repositories retain `tests/validate.sh`;
   `repo check --agent-ready` verifies that baseline-integrated agent guidance
   contract; `repo init --pr --issue <number>` commits baseline changes on a
   canonical issue-backed branch, pushes to `origin`, and opens a PR. Offline

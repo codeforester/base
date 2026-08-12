@@ -50,15 +50,29 @@ def write_project_manifest(project_root: Path, name: str, test_command: str | No
     (project_root / "base_manifest.yaml").write_text("\n".join(lines), encoding="utf-8")
 
 
-def write_repo_contract(project_root: Path, name: str, *, context: bool = True) -> None:
-    write_project_manifest(project_root, name)
+def write_repo_contract(
+    project_root: Path,
+    name: str,
+    *,
+    context: bool = True,
+    test_command: str | None = None,
+) -> None:
+    write_project_manifest(project_root, name, test_command)
     for relative_path in REPO_BASELINE_FILES:
+        if test_command == "./bin/base-test" and relative_path == "tests/validate.sh":
+            continue
         path = project_root / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         if relative_path == "base_manifest.yaml":
             continue
         path.write_text(f"fixture for {relative_path}\n", encoding="utf-8")
-    validation_script = project_root / "tests" / "validate.sh"
+    validation_script = (
+        project_root / "bin" / "base-test"
+        if test_command == "./bin/base-test"
+        else project_root / "tests" / "validate.sh"
+    )
+    validation_script.parent.mkdir(parents=True, exist_ok=True)
+    validation_script.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     validation_script.chmod(0o755)
 
     for relative_path in REPO_AGENT_GUIDANCE_FILES:
@@ -574,6 +588,47 @@ class WorkspaceAgentBriefTests(unittest.TestCase):
         self.assertIn(".ai-context is reported but is not required", stdout)
         self.assertIn(f"basectl repo check {(workspace / 'ready').resolve()} --agent-ready", stdout)
         self.assertIn(f"cd {(workspace / 'ready').resolve()} && ./tests/validate.sh", stdout)
+
+    def test_base_self_repository_uses_manifest_validation_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            write_workspace_manifest(manifest_path)
+            write_repo_contract(workspace / "ready", "base", test_command="./bin/base-test")
+            write_ready_python(workspace / "ready", home, "base")
+
+            status, stdout, stderr = invoke_engine(
+                [
+                    "agent-brief",
+                    "--workspace",
+                    str(workspace),
+                    "--manifest",
+                    str(manifest_path),
+                    "--format",
+                    "json",
+                ],
+                base_home,
+                home,
+            )
+
+        payload = json.loads(stdout)
+        ready = next(item for item in payload["repositories"] if item["repository"] == "ready")
+        self.assertEqual(status, 0)
+        self.assertEqual(stderr, "")
+        self.assertEqual(ready["handoff_status"], "ready")
+        self.assertEqual(ready["signals"]["baseline"]["status"], "complete")
+        self.assertEqual(ready["signals"]["baseline"]["missing_files"], [])
+        self.assertEqual(ready["signals"]["baseline"]["not_executable_files"], [])
+        self.assertEqual(ready["signals"]["validation"]["source"], "manifest_test")
+        self.assertEqual(
+            ready["signals"]["validation"]["command"],
+            f"cd {(workspace / 'ready').resolve()} && basectl test",
+        )
 
     def test_python_readiness_file_contract_matches_shell_repo_check(self) -> None:
         repo_source = (REPO_ROOT / "cli/bash/commands/basectl/subcommands/repo.sh").read_text(encoding="utf-8")

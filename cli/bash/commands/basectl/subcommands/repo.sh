@@ -1984,18 +1984,23 @@ base_repo_check_baseline() {
     local path="$1"
     local rel
     local repo_name
-    local required_count="${#BASE_REPO_BASELINE_FILES[@]}"
+    local required_files=()
+    local required_count
+    local validation_file
     local not_executable_files=()
     local command=()
 
-    for rel in "${BASE_REPO_BASELINE_FILES[@]}"; do
+    validation_file="$(base_repo_baseline_validation_file "$path")"
+    mapfile -t required_files < <(base_repo_required_baseline_files "$path")
+    required_count="${#required_files[@]}"
+    for rel in "${required_files[@]}"; do
         if [[ ! -f "$path/$rel" ]]; then
             missing_files+=("$rel")
         fi
     done
 
-    if [[ -f "$path/tests/validate.sh" && ! -x "$path/tests/validate.sh" ]]; then
-        not_executable_files+=(tests/validate.sh)
+    if [[ -f "$path/$validation_file" && ! -x "$path/$validation_file" ]]; then
+        not_executable_files+=("$validation_file")
     fi
 
     if ((${#missing_files[@]} || ${#not_executable_files[@]})); then
@@ -2020,7 +2025,18 @@ base_repo_check_baseline() {
             fi
             printf "  Fix: chmod +x %s\n" "$(base_repo_pretty_arg "$fix_path")"
         done
-        if ((${#missing_files[@]})); then
+        if ((${#missing_files[@]})) && [[ "$validation_file" != 'tests/validate.sh' ]]; then
+            for rel in "${missing_files[@]}"; do
+                if [[ "$rel" == "$validation_file" ]]; then
+                    printf "  Fix: create executable %s as declared by base_manifest.yaml.\n" "$rel"
+                fi
+            done
+        fi
+        if ((${#missing_files[@]})) && {
+            [[ "$validation_file" == 'tests/validate.sh' ]] ||
+                ((${#missing_files[@]} > 1)) ||
+                [[ "${missing_files[0]}" != "$validation_file" ]]
+        }; then
             repo_name="$(basename -- "$path")"
             command=(basectl repo init "$repo_name" --path "$path")
             printf "Run '"
@@ -2789,6 +2805,44 @@ base_repo_check_missing_files() {
     done
 }
 
+base_repo_manifest_uses_base_test() {
+    local manifest_path="$1"
+
+    [[ -f "$manifest_path" ]] || return 1
+    awk '
+        $0 ~ /^test:[[:space:]]*$/ { in_test=1; next }
+        in_test && $0 ~ /^[^[:space:]]/ { in_test=0 }
+        in_test && $0 ~ /^[[:space:]]+command:[[:space:]]*\.\/bin\/base-test[[:space:]]*$/ {
+            found=1
+            exit
+        }
+        END { exit !found }
+    ' "$manifest_path"
+}
+
+base_repo_baseline_validation_file() {
+    local path="$1"
+
+    if base_repo_manifest_uses_base_test "$path/base_manifest.yaml"; then
+        printf '%s\n' 'bin/base-test'
+    else
+        printf '%s\n' 'tests/validate.sh'
+    fi
+}
+
+base_repo_required_baseline_files() {
+    local path="$1"
+    local rel
+    local validation_file
+
+    validation_file="$(base_repo_baseline_validation_file "$path")"
+    for rel in "${BASE_REPO_BASELINE_FILES[@]}"; do
+        [[ "$rel" == 'tests/validate.sh' ]] && continue
+        printf '%s\n' "$rel"
+    done
+    printf '%s\n' "$validation_file"
+}
+
 base_repo_check_json() {
     local path="$1"
     local release_contract="$2"
@@ -2800,13 +2854,15 @@ base_repo_check_json() {
     local check_count=1 failed_count=0 passed_count=0
     local manifest_declared=false process_present=false
     local missing_files=() not_executable_files=() agent_missing_files=() checks_json=()
-    local required_count present_count
+    local required_files=() required_count present_count validation_file
 
-    mapfile -t missing_files < <(base_repo_check_missing_files "$path" "${BASE_REPO_BASELINE_FILES[@]}")
-    if [[ -f "$path/tests/validate.sh" && ! -x "$path/tests/validate.sh" ]]; then
-        not_executable_files+=(tests/validate.sh)
+    validation_file="$(base_repo_baseline_validation_file "$path")"
+    mapfile -t required_files < <(base_repo_required_baseline_files "$path")
+    mapfile -t missing_files < <(base_repo_check_missing_files "$path" "${required_files[@]}")
+    if [[ -f "$path/$validation_file" && ! -x "$path/$validation_file" ]]; then
+        not_executable_files+=("$validation_file")
     fi
-    required_count="${#BASE_REPO_BASELINE_FILES[@]}"
+    required_count="${#required_files[@]}"
     present_count=$((required_count - ${#missing_files[@]}))
     baseline_status=ok
     if ((${#missing_files[@]} || ${#not_executable_files[@]})); then
