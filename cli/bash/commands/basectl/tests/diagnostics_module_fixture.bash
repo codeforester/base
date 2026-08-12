@@ -135,9 +135,9 @@ base_test_diagnostics_record_check() {
             *) return 2 ;;
         esac
     done
-    mkdir -p -- "$(dirname -- "$path")" || return 1
+    mkdir -p -- "$(dirname -- "$path")" 2>/dev/null || return 1
     tmp_path="${path}.tmp.$$"
-    {
+    if ! {
         printf '{"schema_version":1,"project":'
         base_test_diagnostics_json_string "$project"
         printf ',"command":"basectl check","status":'
@@ -145,7 +145,26 @@ base_test_diagnostics_record_check() {
         printf ',"checked_at":'
         base_test_diagnostics_json_string "$checked_at"
         printf '}\n'
-    } >"$tmp_path" && mv -- "$tmp_path" "$path"
+    } >"$tmp_path" 2>/dev/null; then
+        rm -f -- "$tmp_path"
+        return 1
+    fi
+    if ! mv -- "$tmp_path" "$path" 2>/dev/null; then
+        rm -f -- "$tmp_path"
+        return 1
+    fi
+}
+
+base_test_diagnostics_record_warning() {
+    local path="$1"
+
+    printf '{"status":"warn","message":'
+    base_test_diagnostics_json_string "Latest check record could not be saved."
+    printf ',"fix":'
+    base_test_diagnostics_json_string "Ensure the Base state directory is writable, then rerun the check."
+    printf ',"path":'
+    base_test_diagnostics_json_string "$path"
+    printf '}'
 }
 
 base_test_diagnostics_module() {
@@ -262,11 +281,14 @@ base_test_diagnostics_module() {
                 base_test_diagnostics_json_string "${embedded_keys[$i]}"
                 printf ': %s' "${embedded_values[$i]}"
             done
-            printf '}\n'
             if [[ -n "$record_path" && -n "$project" && -n "$checked_at" && "$command" == check-json ]]; then
-                base_test_diagnostics_record_check \
-                    --project "$project" --status "$status" --checked-at "$checked_at" --output-path "$record_path" || return 1
+                if ! base_test_diagnostics_record_check \
+                    --project "$project" --status "$status" --checked-at "$checked_at" --output-path "$record_path"; then
+                    printf ', "record": '
+                    base_test_diagnostics_record_warning "$record_path"
+                fi
             fi
+            printf '}\n'
             [[ "$status" != error ]]
             return $?
             ;;

@@ -748,11 +748,15 @@ setup_record_project_check_result() {
     # Keep external date -u here so persisted JSON records carry explicit UTC
     # without mutating shell TZ; Bash printf time formatting follows local time.
     checked_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')" || return 0
-    setup_run_diagnostics_json record-check \
+    if ! setup_run_diagnostics_json record-check \
         --project "$project" \
         --status "$status" \
         --checked-at "$checked_at" \
-        --output-path "$path" >/dev/null || return 0
+        --output-path "$path" >/dev/null; then
+        base_std_log_warn \
+            "Unable to persist latest check record at '$path'. Ensure the Base state directory is writable and rerun the check."
+    fi
+    return 0
 }
 
 setup_user_config_path() {

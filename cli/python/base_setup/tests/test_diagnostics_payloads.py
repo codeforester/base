@@ -113,6 +113,94 @@ class DiagnosticsPayloadTests(unittest.TestCase):
             self.assertEqual(payload["status"], "ok")
             self.assertFalse(list(Path(tmpdir).glob(".last.json.*.tmp")))
 
+    def test_write_check_record_returns_false_when_parent_is_unwritable(self) -> None:
+        path = Path("/unwritable-base-state/checks/last.json")
+
+        with mock.patch.object(Path, "mkdir", side_effect=PermissionError("read-only")):
+            written = diagnostics.write_check_record(
+                path,
+                project="demo",
+                status="ok",
+                checked_at="2026-06-28T12:00:00Z",
+            )
+
+        self.assertFalse(written)
+
+    def test_write_check_record_cleans_temp_file_when_replace_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "last.json"
+            with mock.patch.object(Path, "replace", side_effect=OSError("read-only")):
+                written = diagnostics.write_check_record(
+                    path,
+                    project="demo",
+                    status="ok",
+                    checked_at="2026-06-28T12:00:00Z",
+                )
+
+            self.assertFalse(written)
+            self.assertFalse(list(Path(tmpdir).glob(".last.json.*.tmp")))
+
+    def test_check_json_preserves_payload_when_record_persistence_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            record_path = Path(tmpdir) / "last.json"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with mock.patch.object(diagnostics, "write_check_record", return_value=False):
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    status = diagnostics.main(
+                        [
+                            "check-json",
+                            "--project",
+                            "demo",
+                            "--check",
+                            "homebrew",
+                            "ok",
+                            "Homebrew is installed.",
+                            "",
+                            "--record-path",
+                            str(record_path),
+                            "--checked-at",
+                            "2026-06-28T12:00:00Z",
+                        ]
+                    )
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(status, 0)
+            self.assertEqual(payload["status"], "ok")
+            self.assertEqual(payload["checks"][0]["status"], "ok")
+            self.assertEqual(payload["record"]["status"], "warn")
+            self.assertEqual(payload["record"]["path"], str(record_path))
+            self.assertIn("could not be saved", payload["record"]["message"])
+            self.assertIn("writable", payload["record"]["fix"])
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_check_json_preserves_error_exit_when_record_persistence_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            stdout = io.StringIO()
+            with mock.patch.object(diagnostics, "write_check_record", return_value=False):
+                with redirect_stdout(stdout):
+                    status = diagnostics.main(
+                        [
+                            "check-json",
+                            "--project",
+                            "demo",
+                            "--check",
+                            "homebrew",
+                            "error",
+                            "Homebrew is missing.",
+                            "Install Homebrew.",
+                            "--record-path",
+                            str(Path(tmpdir) / "last.json"),
+                            "--checked-at",
+                            "2026-06-28T12:00:00Z",
+                        ]
+                    )
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(status, 1)
+            self.assertEqual(payload["status"], "error")
+            self.assertEqual(payload["record"]["status"], "warn")
+
     def test_render_base_check_payload_merges_embedded_statuses(self) -> None:
         payload_text = render_base_check_payload(
             checks=(

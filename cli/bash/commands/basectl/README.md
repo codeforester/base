@@ -101,6 +101,9 @@ such command directories exist. Optional utility CLIs such as `caff` and
 - `basectl check --format json` and `basectl doctor --format json` preserve
   valid structured output even when no usable Python diagnostics renderer is
   available; the result still carries the blocking finding and recovery hint.
+- If a project check cannot save its optional latest-check record, text output
+  continues with a concise warning and JSON adds a `record.status: "warn"`
+  persistence warning without changing the diagnostic result or exit status.
 - `basectl doctor explain <finding-id>` prints local, deterministic guidance
   for selected stable finding IDs, with optional JSON output.
 - Base's extracted adapters require a `base-cli` provider that exports

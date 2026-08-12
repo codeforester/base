@@ -24,6 +24,8 @@ from .checks import DIAGNOSTIC_JSON_SCHEMA_VERSION
 
 
 VALID_STATUSES = {"ok", "warn", "error"}
+CHECK_RECORD_WARNING_MESSAGE = "Latest check record could not be saved."
+CHECK_RECORD_WARNING_FIX = "Ensure the Base state directory is writable, then rerun the check."
 BASE_CHECK_FINDING_IDS = {
     "homebrew": "BASE-D001",
     "xcode_command_line_tools": "BASE-D002",
@@ -271,27 +273,45 @@ def write_check_record(
     checked_at: str,
     *,
     command: str = "basectl check",
-) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if command == "basectl check":
-        record = render_check_record(project, status, checked_at)
-    else:
-        record = render_check_record(project, status, checked_at, command=command)
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        encoding="utf-8",
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        delete=False,
-    ) as temp_file:
-        temp_file.write(record)
-        temp_path = Path(temp_file.name)
-
+) -> bool:
+    temp_path: Path | None = None
     try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if command == "basectl check":
+            record = render_check_record(project, status, checked_at)
+        else:
+            record = render_check_record(project, status, checked_at, command=command)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+            temp_file.write(record)
+        if temp_path is None:
+            return False
         temp_path.replace(path)
+    except OSError:
+        return False
     finally:
-        temp_path.unlink(missing_ok=True)
+        if temp_path is not None:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+    return True
+
+
+def check_record_warning(path: Path) -> dict[str, str]:
+    return {
+        "status": "warn",
+        "message": CHECK_RECORD_WARNING_MESSAGE,
+        "fix": CHECK_RECORD_WARNING_FIX,
+        "path": str(path),
+    }
 
 
 def diagnostic_check(name: str, status: str, message: str, fix: str = "") -> DiagnosticCheck:
@@ -408,10 +428,14 @@ def main(argv: list[str] | None = None) -> int:
         checks = load_diagnostic_checks(args.check, args.check_result_file)
         embedded_payloads = tuple((key, payload) for key, payload in args.embedded_payload)
         payload = render_base_check_payload(checks, project=args.project, embedded_payloads=embedded_payloads)
-        print(payload, end="")
-        status = payload_status(json.loads(payload))
+        payload_object = json.loads(payload)
+        status = payload_status(payload_object)
         if args.record_path and args.project and args.checked_at:
-            write_check_record(Path(args.record_path), args.project, status, args.checked_at)
+            record_path = Path(args.record_path)
+            if not write_check_record(record_path, args.project, status, args.checked_at):
+                payload_object["record"] = check_record_warning(record_path)
+                payload = render_top_level_payload(payload_object)
+        print(payload, end="")
         exit_code = base_cli.ExitCode.SUCCESS if status != "error" else base_cli.ExitCode.FAILURE
     elif args.command == "doctor-json":
         checks = load_diagnostic_checks(args.finding, args.finding_result_file)
@@ -421,7 +445,8 @@ def main(argv: list[str] | None = None) -> int:
         status = payload_status(json.loads(payload))
         exit_code = base_cli.ExitCode.SUCCESS if status != "error" else base_cli.ExitCode.FAILURE
     elif args.command == "record-check":
-        write_check_record(Path(args.output_path), args.project, args.status, args.checked_at)
+        if not write_check_record(Path(args.output_path), args.project, args.status, args.checked_at):
+            exit_code = base_cli.ExitCode.FAILURE
     elif args.command == "base-check-metadata":
         print(render_base_check_metadata(args.name), end="")
     elif args.command == "project-venv-check-json":
