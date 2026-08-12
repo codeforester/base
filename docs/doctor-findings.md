@@ -84,6 +84,12 @@ results as nested diagnostic payload objects under `project_checks` and
 object shape and use the same diagnostic item fields inside each project's
 `checks` array.
 
+When a project check cannot persist its optional latest-check record, the check
+payload may also include a top-level `record` object with `status: "warn"`, a
+stable `message`, a suggested `fix`, and the attempted `path`. This warning
+does not change the aggregate diagnostic `status` or exit code; workspace
+status explicitly treats the missing record as unavailable state.
+
 Doctor commands use the same diagnostic item fields. The top-level
 `basectl doctor --format json` wrapper includes `schema_version` and aggregate
 `status`, and keeps doctor-specific arrays named `findings`,

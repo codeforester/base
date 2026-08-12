@@ -31,6 +31,9 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Fixed
 
+- Preserved `basectl check` diagnostics and exit status when the optional
+  latest-check record cannot be written, with stable JSON and text warnings.
+
 - Separated `basectl workspace check`'s readiness renderer from
   `basectl workspace doctor`'s actionable finding renderer while preserving the
   shared read-only workspace checks and JSON diagnostic shape.

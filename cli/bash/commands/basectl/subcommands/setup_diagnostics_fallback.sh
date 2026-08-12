@@ -65,6 +65,18 @@ setup_diagnostics_fallback_append_item() {
     fi
 }
 
+setup_diagnostics_fallback_record_warning() {
+    local path="$1"
+
+    printf '{"status":"warn","message":'
+    base_inspection_json_string "Latest check record could not be saved."
+    printf ',"fix":'
+    base_inspection_json_string "Ensure the Base state directory is writable, then rerun the check."
+    printf ',"path":'
+    base_inspection_json_string "$path"
+    printf '}'
+}
+
 setup_diagnostics_fallback_record_check() {
     local checked_at="" path="" project="" status="" tmp_path
 
@@ -99,9 +111,9 @@ setup_diagnostics_fallback_record_check() {
     [[ -n "$project" && -n "$checked_at" && -n "$path" ]] ||
         base_std_fatal_error "Diagnostics record fallback requires project, status, checked-at, and output-path."
 
-    mkdir -p -- "$(dirname -- "$path")" || return 1
+    mkdir -p -- "$(dirname -- "$path")" 2>/dev/null || return 1
     tmp_path="${path}.tmp.$$"
-    {
+    if ! {
         printf '{\n  "schema_version": 1,\n  "project": '
         base_inspection_json_string "$project"
         printf ',\n  "command": "basectl check",\n  "status": '
@@ -109,7 +121,14 @@ setup_diagnostics_fallback_record_check() {
         printf ',\n  "checked_at": '
         base_inspection_json_string "$checked_at"
         printf '\n}\n'
-    } >"$tmp_path" && mv -- "$tmp_path" "$path"
+    } >"$tmp_path" 2>/dev/null; then
+        rm -f -- "$tmp_path"
+        return 1
+    fi
+    if ! mv -- "$tmp_path" "$path" 2>/dev/null; then
+        rm -f -- "$tmp_path"
+        return 1
+    fi
 }
 
 setup_diagnostics_fallback_json() {
@@ -246,15 +265,17 @@ setup_diagnostics_fallback_json() {
                 base_inspection_json_string "$embedded_key"
                 printf ': %s' "$embedded_payload"
             done
-            printf '}\n'
-
             if [[ -n "$record_path" && -n "$project" && -n "$checked_at" && "$command" == check-json ]]; then
-                setup_diagnostics_fallback_record_check \
+                if ! setup_diagnostics_fallback_record_check \
                     --project "$project" \
                     --status "$status" \
                     --checked-at "$checked_at" \
-                    --output-path "$record_path" || return 1
+                    --output-path "$record_path" 2>/dev/null; then
+                    printf ', "record": '
+                    setup_diagnostics_fallback_record_warning "$record_path"
+                fi
             fi
+            printf '}\n'
             [[ "$status" != error ]]
             return $?
             ;;

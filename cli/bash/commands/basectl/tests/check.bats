@@ -443,6 +443,31 @@ EOF
     grep -Eq '"checked_at": "20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z"' "$record_path"
 }
 
+@test "basectl check continues with a warning when last check record cannot be saved" {
+    local venv_dir="$TEST_HOME/.base.d/base/.venv"
+    local workspace="$TEST_TMPDIR/workspace"
+    local record_parent="$TEST_HOME/.base.d/demo/checks"
+
+    create_brew_stub
+    create_xcode_stubs
+    touch "$TEST_STATE_DIR/xcode-installed"
+    mkdir -p "$TEST_TMPDIR/CommandLineTools" "$workspace/demo" "$TEST_HOME/.base.d/demo"
+    touch "$TEST_STATE_DIR/python-installed"
+    touch "$TEST_STATE_DIR/pyyaml-installed"
+    touch "$TEST_STATE_DIR/click-installed"
+    printf 'project:\n  name: demo\nartifacts: []\n' > "$workspace/demo/base_manifest.yaml"
+    printf 'not-a-directory\n' > "$record_parent"
+    BASE_SETUP_TEST_WORKSPACE="$workspace" create_project_setup_venv_stub "$venv_dir"
+    BASE_SETUP_TEST_WORKSPACE="$workspace" create_project_setup_venv_stub "$workspace/demo/.venv"
+
+    run_base_command BASE_SETUP_TEST_WORKSPACE="$workspace" check demo
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARN"*"Unable to persist latest check record"* ]]
+    [[ "$output" == *"Base CLI environment and project 'demo' check passed."* ]]
+    [[ "$output" != *"Traceback"* ]]
+}
+
 @test "basectl check persists warnings from Base, profile, and project checks in text and JSON modes" {
     local args record_path="$TEST_HOME/.base.d/demo/checks/last.json"
     local source

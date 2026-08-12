@@ -65,6 +65,11 @@ check date in the `LAST CHECK` column, while JSON output includes the full
 timestamp and check status. Projects without a recorded check show `-` in text
 output and `null` in JSON output.
 
+The latest-check record is optional persistence state. If a check succeeds but
+cannot save that record, the check result remains authoritative and workspace
+status reports the missing record as `-` or `null` until a later check can save
+one.
+
 With `--manifest <path>`, the same commands also report expected repositories,
 missing required and optional repositories, and discovered Base-managed
 projects outside the manifest.
