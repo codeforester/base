@@ -291,7 +291,8 @@ def write_check_record(
         ) as temp_file:
             temp_path = Path(temp_file.name)
             temp_file.write(record)
-        assert temp_path is not None
+        if temp_path is None:
+            return False
         temp_path.replace(path)
     except OSError:
         return False
