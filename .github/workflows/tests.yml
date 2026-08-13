@@ -47,6 +47,7 @@ jobs:
 
       - name: Run Python tests
         env:
+          BASE_CLI_SOURCE_DIR: ${{ github.workspace }}/.dependencies/base-cli/lib/python
           PYTHONPATH: .dependencies/base-cli/lib/python:lib/python:cli/python
         run: |
           python -m pytest \

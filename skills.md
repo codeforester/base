@@ -178,13 +178,15 @@ Use this workflow when adding or changing Python-backed Base behavior.
 - Command execution wrapper: `bin/base-wrapper`
 - Keep Base-owned tests under `cli/python/**/tests/`; framework tests live in
   the standalone `base-cli` repository.
-- Run Base Python commands with `PYTHONPATH=cli/python` and an installed
-  `base-cli` development dependency, or set `BASE_CLI_SOURCE_DIR` for a source
-  checkout.
+- Run Base Python commands with the standalone `base-cli` source checkout:
+  `BASE_CLI_SOURCE_DIR=../base-cli/lib/python` and
+  `PYTHONPATH=../base-cli/lib/python:lib/python:cli/python`.
 - Validate with:
 
 ```bash
-env PYTHONPATH=cli/python python -m pytest
+BASE_CLI_SOURCE_DIR=../base-cli/lib/python \
+PYTHONPATH=../base-cli/lib/python:lib/python:cli/python \
+python -m pytest
 ```
 
 ## Add or change artifact setup
