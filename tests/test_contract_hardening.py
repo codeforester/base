@@ -107,6 +107,49 @@ def test_python_coverage_policy_is_wired_and_documented() -> None:
     assert "Bash/BATS" in testing_doc
 
 
+def test_python_test_docs_and_ci_use_the_standalone_base_cli_source_contract() -> None:
+    workflow = TESTS_WORKFLOW.read_text(encoding="utf-8")
+    testing_doc = TESTING_DOC.read_text(encoding="utf-8")
+    contributor_doc = (REPO_ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    workflow_guidance = (REPO_ROOT / ".ai-context" / "WORKFLOWS.md").read_text(
+        encoding="utf-8"
+    )
+    skills_doc = (REPO_ROOT / "skills.md").read_text(encoding="utf-8")
+    supply_chain_doc = (REPO_ROOT / "docs" / "ci-supply-chain-policy.md").read_text(
+        encoding="utf-8"
+    )
+
+    source_path = "../base-cli/lib/python"
+    pythonpath = f"{source_path}:lib/python:cli/python"
+
+    assert (
+        "BASE_CLI_SOURCE_DIR: ${{ github.workspace }}/.dependencies/base-cli/lib/python"
+        in workflow
+    )
+    assert (
+        "PYTHONPATH: .dependencies/base-cli/lib/python:lib/python:cli/python"
+        in workflow
+    )
+    for text in (
+        testing_doc,
+        contributor_doc,
+        workflow_guidance,
+        skills_doc,
+        supply_chain_doc,
+    ):
+        assert f"BASE_CLI_SOURCE_DIR={source_path}" in text
+        assert f"PYTHONPATH={pythonpath}" in text
+
+    for text in (
+        testing_doc,
+        contributor_doc,
+        workflow_guidance,
+        skills_doc,
+        supply_chain_doc,
+    ):
+        assert "PYTHONPATH=cli/python" not in text
+
+
 def test_active_project_guidance_uses_repo_named_project_language() -> None:
     for path in ACTIVE_WORKFLOW_GUIDANCE_FILES:
         text = path.read_text(encoding="utf-8")

@@ -112,10 +112,17 @@ Before opening the PR:
 4. Run the narrowest validation command that proves the change.
 
 For documentation-only starter issues, `git diff --check` is usually enough.
-For Python-only changes, run the focused pytest target with
-`PYTHONPATH=lib/python:cli/python python -m pytest`. For shell command or
-runtime changes, run the focused BATS test when one exists and broaden only
-when the change crosses command boundaries.
+For Python-only changes, run the focused pytest target with the standalone
+`base-cli` source path used by CI:
+
+```bash
+BASE_CLI_SOURCE_DIR=../base-cli/lib/python \
+PYTHONPATH=../base-cli/lib/python:lib/python:cli/python \
+python -m pytest
+```
+
+For shell command or runtime changes, run the focused BATS test when one exists
+and broaden only when the change crosses command boundaries.
 
 When the full source-checkout suite is needed from a linked worktree under
 `~/work/base-worktrees`, export the reusable Bash library path first:

@@ -62,17 +62,30 @@ scan all production packages, or invoke shell files live under the top-level
 `tests/` directory so they are not mistaken for tests of an installed Python
 distribution.
 
-Run them with:
+From a Base source checkout with the standalone `base-cli` checkout next to it,
+run the Python suite with the same source roots used by CI:
 
 ```bash
-PYTHONPATH=cli/python python -m pytest
+BASE_CLI_SOURCE_DIR=../base-cli/lib/python \
+PYTHONPATH=../base-cli/lib/python:lib/python:cli/python \
+python -m pytest
 ```
+
+If `base-cli` is not at `../base-cli`, replace that path in both assignments
+with the absolute path to its `lib/python` directory. `BASE_CLI_SOURCE_DIR`
+must point at a directory containing `base_cli/__init__.py`. The pinned
+`base-cli` package installed from `requirements-dev.txt` is useful for package
+metadata and tooling, but it is not a substitute for this source checkout:
+the documented suite imports source-level APIs that the package does not
+provide.
 
 The Python CI job also measures coverage for production code under
 `cli/python`:
 
 ```bash
-PYTHONPATH=cli/python python -m pytest \
+BASE_CLI_SOURCE_DIR=../base-cli/lib/python \
+PYTHONPATH=../base-cli/lib/python:lib/python:cli/python \
+python -m pytest \
   --cov=cli/python \
   --cov-report=term-missing \
   --cov-fail-under=85

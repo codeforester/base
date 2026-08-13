@@ -153,7 +153,9 @@ basectl test base
 Python tests run with:
 
 ```bash
-PYTHONPATH=cli/python python -m pytest
+BASE_CLI_SOURCE_DIR=../base-cli/lib/python \
+PYTHONPATH=../base-cli/lib/python:lib/python:cli/python \
+python -m pytest
 ```
 
 The shared `base_cli` framework is maintained in the standalone `base-cli`
