@@ -18,6 +18,7 @@ WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 COPILOT_INSTRUCTIONS = REPO_ROOT / ".github" / "copilot-instructions.md"
 COPILOT_SETUP_WORKFLOW = WORKFLOW_DIR / "copilot-setup-steps.yml"
 BASE_CHECK_WORKFLOW = WORKFLOW_DIR / "base-check.yml"
+BASE_DEMO_E2E_WORKFLOW = WORKFLOW_DIR / "base-demo-e2e.yml"
 BASE_PROJECT_CONFIG = REPO_ROOT / ".github" / "base-project.yml"
 ISSUE_BRANCH_POLICY_WORKFLOW = WORKFLOW_DIR / "issue-branch-policy.yml"
 ISSUE_BRANCH_POLICY_TEMPLATE = REPO_ROOT / "templates" / "issue-branch-policy.yml"
@@ -632,6 +633,50 @@ def test_reusable_base_check_workflow_contract() -> None:
     assert "${{ inputs.base-ref || github.workflow_sha }}" in str(steps)
     assert "uses: basefoundry/base/.github/workflows/base-check.yml@<base-ref-or-sha>" in ci_docs
     assert "| `setup-mode` | `source-checkout` |" in ci_docs
+
+
+def test_base_demo_e2e_workflow_covers_the_external_project_loop() -> None:
+    workflow = load_workflow(BASE_DEMO_E2E_WORKFLOW)
+    triggers = workflow.get("on") or workflow.get(True)
+    job = workflow["jobs"]["base-demo-e2e"]
+    steps = job["steps"]
+    run_commands = "\n".join(step.get("run", "") for step in steps if isinstance(step, dict))
+
+    assert workflow["name"] == "Base Demo E2E"
+    assert triggers["schedule"] == [{"cron": "17 3 * * *"}]
+    assert "workflow_dispatch" in triggers
+    assert workflow["permissions"] == {"contents": "read"}
+    assert "concurrency" in workflow
+    assert job["runs-on"] == "macos-14"
+    assert job["timeout-minutes"] == 45
+    assert job["env"]["BASE_DEMO_ENV"] == "baseline"
+    assert job["env"]["BASE_CLI_SOURCE_DIR"].endswith(".dependencies/base-cli/lib/python")
+
+    checkout_repositories = [
+        step.get("with", {}).get("repository")
+        for step in steps
+        if isinstance(step, dict) and step.get("uses", "").startswith("actions/checkout@")
+        and step.get("with", {}).get("repository")
+    ]
+    assert checkout_repositories == [
+        "basefoundry/base-cli",
+        "basefoundry/base-bash-libs",
+    ]
+    assert "b4243765726c133499feeabdc50154f99c0fec12" in str(steps)
+    assert "v0.4.2" in str(steps)
+
+    for command in (
+        "basectl setup --ci base-demo",
+        "basectl check --ci base-demo",
+        "basectl test base-demo",
+        "basectl demo base-demo",
+    ):
+        assert command in run_commands
+    assert "basefoundry/base-demo.git" in run_commands
+    assert "base-demo manifest needs updating" in run_commands
+    assert "owner=\"Base bug\"" in run_commands
+    assert "BASE_DEMO_ROOT/base_manifest.yaml" in run_commands
+    assert "--non-interactive" in run_commands
 
 
 def test_copilot_repository_instructions_stay_anchored_to_base_guidance() -> None:
