@@ -1067,6 +1067,7 @@ _base_basectl_completion() {
                             '--dry-run[Show planned deletions]' \
                             '--yes[Apply branch pruning]' \
                             '--remote[Prune stale remote tracking refs]' \
+                            '--closed-unmerged[Include branches tied to closed, unmerged PRs]' \
                             '(-h --help)'{-h,--help}'[Show help text]'
                     else
                         _arguments '2:gh area:(auth issue pr branch worktree project)' \
@@ -1078,6 +1079,7 @@ _base_basectl_completion() {
                         '3:worktree command:(prune)' \
                         '--dry-run[Show planned removals]' \
                         '--yes[Apply worktree pruning]' \
+                        '--closed-unmerged[Include worktrees tied to closed, unmerged PRs]' \
                         '(-h --help)'{-h,--help}'[Show help text]'
                     ;;
                 project)

@@ -341,7 +341,7 @@ EOF
     [[ "$output" == *"gh_project_configure_options=--project --owner --schema --config --copy-fields-from --initiative-option --repo --replace-project --dry-run"* ]]
     [[ "$output" == *"gh_project_issue_set_fields_options=--repo --project --owner --config --allow-cross-repo --status --priority --area --initiative --size --dry-run"* ]]
     [[ "$output" == *"gh_worktree_commands=prune"* ]]
-    [[ "$output" == *"gh_worktree_prune_options=--dry-run --yes"* ]]
+    [[ "$output" == *"gh_worktree_prune_options=--dry-run --yes --closed-unmerged"* ]]
 }
 
 @test "Zsh repo pull request helper completions include issue and category options" {

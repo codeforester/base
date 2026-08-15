@@ -888,14 +888,14 @@ _base_basectl_completion() {
                     elif [[ "${COMP_WORDS[3]:-}" == stale ]]; then
                         _base_basectl_completion_compgen "--days --format -h --help" "$cur"
                     elif [[ "${COMP_WORDS[3]:-}" == prune ]]; then
-                        _base_basectl_completion_compgen "--dry-run --yes --remote -h --help" "$cur"
+                        _base_basectl_completion_compgen "--dry-run --yes --remote --closed-unmerged -h --help" "$cur"
                     fi
                     ;;
                 worktree)
                     if ((COMP_CWORD == 3)); then
                         _base_basectl_completion_compgen "prune" "$cur"
                     else
-                        _base_basectl_completion_compgen "--dry-run --yes -h --help" "$cur"
+                        _base_basectl_completion_compgen "--dry-run --yes --closed-unmerged -h --help" "$cur"
                     fi
                     ;;
                 project)
