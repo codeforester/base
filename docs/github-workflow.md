@@ -422,8 +422,11 @@ Base can also help with branch cleanup:
 basectl gh branch prune
 basectl gh branch prune --yes
 basectl gh branch prune --remote --yes
+basectl gh branch prune --remote --closed-unmerged
+basectl gh branch prune --remote --closed-unmerged --yes
 basectl gh worktree prune
 basectl gh worktree prune --yes
+basectl gh worktree prune --closed-unmerged --yes
 ```
 
 The command is dry-run by default. It reports merged local branches as delete
@@ -431,22 +434,30 @@ candidates, reports branches attached to worktrees as skipped, and treats
 `--remote` as GitHub remote branch cleanup plus stale `origin/*` tracking-ref
 cleanup. Because Base usually uses squash merges, pruning checks GitHub PR state
 when Git ancestry does not prove the merge. A successful GitHub query with no
-merged PR keeps the branch as an ordinary unmerged skip and prints the retained
-branch name. If the GitHub query cannot complete, pruning retains the branch or
-worktree, reports the underlying verification error, counts the incomplete check
-as a failure, and exits nonzero instead of classifying it as unmerged.
+merged PR classifies the branch as open, closed-unmerged, or no-PR and prints the
+retention reason. Closed-unmerged branches remain review-only by default. Pass
+`--closed-unmerged` to include them in the dry-run candidate set; `--yes` then
+applies that explicitly selected cleanup scope. If the GitHub query cannot
+complete, pruning retains the branch or worktree, reports the underlying
+verification error, counts the incomplete check as a failure, and exits nonzero
+instead of classifying it as unmerged.
 
-Remote branch pruning is deliberately conservative. Base deletes a GitHub branch
-only when GitHub confirms a merged pull request for that exact branch name. It
-does not delete the default branch, the current branch, or a branch attached to a
-local worktree. After safe GitHub branches are deleted, Base prunes stale local
-`origin/*` refs.
+Remote branch pruning is deliberately conservative. Without
+`--closed-unmerged`, Base deletes a GitHub branch only when GitHub confirms a
+merged pull request for that exact branch name. With the explicit option, it may
+also delete a branch whose associated pull requests are all closed without a
+merge, but never when an open PR exists. It does not delete the default branch,
+the current branch, or a branch attached to a local worktree. After safe GitHub
+branches are deleted, Base prunes stale local `origin/*` refs.
 
 Worktree pruning is also dry-run by default. It removes only clean, non-current
 worktrees whose branches are confirmed merged into the default branch or through
-a merged GitHub PR, then deletes the now-free local branch when safe. Resolve any
-reported GitHub verification failures and rerun the preview before applying it
-with `--yes`.
+a merged GitHub PR. With `--closed-unmerged`, it may also remove clean
+worktrees tied to closed, unmerged PRs. That option deletes only the local
+worktree and local branch; the remote branch remains for
+`basectl gh branch prune --remote --closed-unmerged`. Resolve any reported
+GitHub verification failures and rerun the preview before applying it with
+`--yes`.
 
 If a worktree is removed but its local branch cannot be deleted, the command
 retains the branch, reports the incomplete cleanup, and exits nonzero. Resolve
@@ -454,9 +465,9 @@ the branch condition before treating the cleanup as complete.
 
 When `basectl gh branch prune` reports branches attached to worktrees, preview
 those worktrees with `basectl gh worktree prune`, apply the safe removals with
-`basectl gh worktree prune --yes`, and rerun the branch-prune command. The
-`--remote` option belongs to `basectl gh branch prune`; worktree pruning only
-removes local worktrees and their local branches.
+the same `--closed-unmerged` scope when needed, and rerun the branch-prune
+command. The `--remote` option belongs to `basectl gh branch prune`; worktree
+pruning only removes local worktrees and their local branches.
 
 ## Superseded Pull Requests
 

@@ -7,6 +7,12 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ## [Unreleased]
 
+### Added
+
+- Added opt-in `--closed-unmerged` cleanup to `basectl gh branch prune` and
+  `basectl gh worktree prune`, with explicit PR-state classification and
+  retention details for open, closed-unmerged, and no-PR branches.
+
 ## [1.8.0] - 2026-08-15
 
 ### Added

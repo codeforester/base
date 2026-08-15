@@ -4,6 +4,8 @@
 _base_gh_branch_worktree_sourced=1
 readonly _base_gh_branch_worktree_sourced
 
+declare -gA BASE_GH_BRANCH_PR_STATE_CACHE=()
+
 base_gh_branch_stale() {
     local days=30 now ref name timestamp age
     local output_format="text" requested_format
@@ -152,6 +154,49 @@ base_gh_format_unix_date() {
     printf 'unknown\n'
 }
 
+base_gh_closed_age_days() {
+    local closed_unix="$1"
+    local now age
+
+    [[ "$closed_unix" =~ ^[0-9]+$ ]] || {
+        printf 'unknown\n'
+        return 0
+    }
+    printf -v now '%(%s)T' -1
+    age=$(((now - closed_unix) / 86400))
+    ((age < 0)) && age=0
+    printf '%s\n' "$age"
+}
+
+base_gh_branch_pr_detail() {
+    local state="$1"
+    local pr_numbers="$2"
+    local closed_at="$3"
+    local closed_unix="$4"
+    local age
+
+    case "$state" in
+        open)
+            printf 'open GitHub PR #%s; branch retained' "$pr_numbers"
+            ;;
+        closed_unmerged)
+            age="$(base_gh_closed_age_days "$closed_unix")"
+            if [[ -n "$closed_at" ]]; then
+                printf 'closed GitHub PR #%s without merge (%s days ago, %s); branch retained' \
+                    "$pr_numbers" "$age" "${closed_at%%T*}"
+            else
+                printf 'closed GitHub PR #%s without merge; branch retained' "$pr_numbers"
+            fi
+            ;;
+        no_pr)
+            printf 'no GitHub PR found; branch retained'
+            ;;
+        *)
+            printf 'branch retained'
+            ;;
+    esac
+}
+
 base_gh_worktree_path_for_branch() {
     local branch="$1"
 
@@ -182,39 +227,105 @@ base_gh_prune_github_ready() {
     [[ "$_base_gh_prune_github_ready" == 1 ]]
 }
 
-base_gh_branch_github_merged() {
+base_gh_branch_github_pr_state() {
     local branch="$1"
-    local count
+    local result state pr_numbers closed_at closed_unix
 
+    if [[ ${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]+cached} ]]; then
+        printf '%s\n' "${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]}"
+        return 0
+    fi
     if ! base_gh_prune_github_ready; then
         base_gh_error "GitHub merge verification requires the GitHub CLI 'gh' on PATH."
         return 2
     fi
-    count="$(base_cli_gh_run pr list --head "$branch" --state merged --json number --jq 'length')" || return 2
-    if [[ ! "$count" =~ ^[0-9]+$ ]]; then
-        base_gh_error "GitHub merge verification returned an invalid result for branch '$branch'."
+
+    result="$(base_cli_gh_run pr list --head "$branch" --state all \
+        --json number,state,closedAt,mergedAt \
+        --jq '
+            if any(.[]; .state == "OPEN") then
+                ["open", ([.[] | select(.state == "OPEN") | .number] | map(tostring) | join(",")), "-", 0]
+            elif any(.[]; .state == "MERGED") then
+                ["merged", ([.[] | select(.state == "MERGED") | .number] | map(tostring) | join(",")), "-", 0]
+            elif any(.[]; .state == "CLOSED" and .mergedAt == null) then
+                [
+                    "closed_unmerged",
+                    ([.[] | select(.state == "CLOSED" and .mergedAt == null) | .number] | map(tostring) | join(",")),
+                    ([.[] | select(.state == "CLOSED" and .mergedAt == null and .closedAt != null) | .closedAt] | sort | last // "-"),
+                    (([.[] | select(.state == "CLOSED" and .mergedAt == null and .closedAt != null) | (.closedAt | fromdateiso8601)] | sort | last) // 0)
+                ]
+            else
+                ["no_pr", "-", "-", 0]
+            end | @tsv')" || return 2
+    IFS=$'\t' read -r state pr_numbers closed_at closed_unix <<< "$result"
+    case "$state" in
+        open|merged|closed_unmerged|no_pr)
+            ;;
+        *)
+            base_gh_error "GitHub PR state verification returned an invalid result for branch '$branch'."
+            return 2
+            ;;
+    esac
+    if [[ ! "$closed_unix" =~ ^[0-9]+$ ]]; then
+        base_gh_error "GitHub PR state verification returned an invalid close time for branch '$branch'."
         return 2
     fi
-    ((count > 0))
+
+    BASE_GH_BRANCH_PR_STATE_CACHE["$branch"]="$result"
+    printf '%s\n' "$result"
+}
+
+base_gh_branch_github_merged() {
+    local branch="$1"
+    local result state pr_numbers closed_at closed_unix
+
+    result="$(base_gh_branch_github_pr_state "$branch")" || return $?
+    IFS=$'\t' read -r state pr_numbers closed_at closed_unix <<< "$result"
+    [[ "$state" == merged ]]
+}
+
+base_gh_branch_cleanup_state() {
+    local branch="$1"
+    local default_branch="$2"
+    local state_var="$3"
+    local merge_source_var="$4"
+    local pr_numbers_var="$5"
+    local closed_at_var="$6"
+    local closed_unix_var="$7"
+    local result resolved_state resolved_pr_numbers resolved_closed_at resolved_closed_unix
+
+    if base_gh_branch_merged_to_ref "$branch" "$default_branch"; then
+        printf -v "$state_var" '%s' merged
+        printf -v "$merge_source_var" '%s' git
+        printf -v "$pr_numbers_var" '%s' ''
+        printf -v "$closed_at_var" '%s' ''
+        printf -v "$closed_unix_var" '%s' 0
+        return 0
+    fi
+
+    result="$(base_gh_branch_github_pr_state "$branch")" || return $?
+    IFS=$'\t' read -r resolved_state resolved_pr_numbers resolved_closed_at resolved_closed_unix <<< "$result"
+    [[ "$resolved_pr_numbers" == - ]] && resolved_pr_numbers=""
+    [[ "$resolved_closed_at" == - ]] && resolved_closed_at=""
+    printf -v "$state_var" '%s' "$resolved_state"
+    printf -v "$merge_source_var" '%s' "$([[ "$resolved_state" == merged ]] && printf github || printf '')"
+    printf -v "$pr_numbers_var" '%s' "$resolved_pr_numbers"
+    printf -v "$closed_at_var" '%s' "$resolved_closed_at"
+    printf -v "$closed_unix_var" '%s' "$resolved_closed_unix"
+    [[ "$resolved_state" == merged ]]
 }
 
 base_gh_branch_cleanup_merged() {
     local branch="$1"
     local default_branch="$2"
     local merge_source_var="${3:-}"
-    local rc
+    local state resolved_source pr_numbers closed_at closed_unix rc
 
-    if base_gh_branch_merged_to_ref "$branch" "$default_branch"; then
-        [[ -z "$merge_source_var" ]] || printf -v "$merge_source_var" '%s' git
+    if base_gh_branch_cleanup_state "$branch" "$default_branch" state resolved_source pr_numbers closed_at closed_unix; then
+        [[ -z "$merge_source_var" ]] || printf -v "$merge_source_var" '%s' "$resolved_source"
         return 0
     fi
-
-    base_gh_branch_github_merged "$branch"
     rc=$?
-    if ((rc == 0)); then
-        [[ -z "$merge_source_var" ]] || printf -v "$merge_source_var" '%s' github
-        return 0
-    fi
     if ((rc == 2)); then
         [[ -z "$merge_source_var" ]] || printf -v "$merge_source_var" '%s' unknown
         return 2
@@ -226,7 +337,7 @@ base_gh_branch_delete() {
     local branch="$1"
     local merge_source="$2"
 
-    if [[ "$merge_source" == github ]]; then
+    if [[ "$merge_source" == github || "$merge_source" == closed_unmerged ]]; then
         git branch -D "$branch" >/dev/null 2>&1
     else
         git branch -d "$branch" >/dev/null 2>&1
@@ -246,8 +357,11 @@ base_gh_branch_delete_remote() {
 base_gh_branch_prune_local() {
     local dry_run="$1"
     local default_branch="$2"
+    local include_closed_unmerged="${3:-0}"
     local branch current_branch merge_source merge_status worktree_path upstream
+    local state pr_numbers closed_at closed_unix detail
     local deleted=0 skipped_current=0 skipped_worktree=0 skipped_upstream=0 failed=0 candidates=0
+    local closed_review=0 open_review=0 no_pr_review=0
 
     current_branch="$(git branch --show-current)"
     printf 'Local branches\n'
@@ -262,15 +376,25 @@ base_gh_branch_prune_local() {
         fi
 
         merge_source=""
-        if base_gh_branch_cleanup_merged "$branch" "$default_branch" merge_source; then
+        if base_gh_branch_cleanup_state "$branch" "$default_branch" state merge_source pr_numbers closed_at closed_unix; then
             merge_status=0
         else
             merge_status=$?
         fi
         if ((merge_status == 1)); then
-            printf 'SKIP   %s  not confirmed merged into %s or through a merged GitHub PR; local branch retained\n' \
-                "$branch" "$default_branch"
-            continue
+            if [[ "$state" == closed_unmerged && "$include_closed_unmerged" == 1 ]]; then
+                merge_source=closed_unmerged
+                merge_status=0
+            else
+                detail="$(base_gh_branch_pr_detail "$state" "$pr_numbers" "$closed_at" "$closed_unix")"
+                printf 'SKIP   %s  %s\n' "$branch" "$detail"
+                case "$state" in
+                    closed_unmerged) closed_review=$((closed_review + 1)) ;;
+                    open) open_review=$((open_review + 1)) ;;
+                    no_pr) no_pr_review=$((no_pr_review + 1)) ;;
+                esac
+                continue
+            fi
         fi
         if ((merge_status != 0)); then
             printf 'SKIP   %s  GitHub merge verification unavailable; local branch retained\n' "$branch"
@@ -287,14 +411,16 @@ base_gh_branch_prune_local() {
         fi
 
         upstream="$(base_gh_branch_upstream "$branch")"
-        if [[ "$merge_source" != github && -n "$upstream" ]] && ! base_gh_branch_merged_to_ref "$branch" "$upstream"; then
+        if [[ "$merge_source" != github && "$merge_source" != closed_unmerged && -n "$upstream" ]] && ! base_gh_branch_merged_to_ref "$branch" "$upstream"; then
             printf 'SKIP   %s  not fully merged to upstream %s\n' "$branch" "$upstream"
             skipped_upstream=$((skipped_upstream + 1))
             continue
         fi
 
         if ((dry_run)); then
-            if [[ "$merge_source" == github ]]; then
+            if [[ "$merge_source" == closed_unmerged ]]; then
+                printf '[DRY-RUN] DELETE %s  closed unmerged GitHub PR #%s\n' "$branch" "$pr_numbers"
+            elif [[ "$merge_source" == github ]]; then
                 printf '[DRY-RUN] DELETE %s  merged GitHub PR\n' "$branch"
             else
                 printf '[DRY-RUN] DELETE %s\n' "$branch"
@@ -304,7 +430,7 @@ base_gh_branch_prune_local() {
             printf 'DELETE %s\n' "$branch"
             deleted=$((deleted + 1))
         else
-            printf 'FAIL   %s  git branch -d failed\n' "$branch"
+            printf 'FAIL   %s  local branch deletion failed\n' "$branch"
             failed=$((failed + 1))
         fi
     done < <(git branch --format='%(refname:short)')
@@ -318,6 +444,8 @@ base_gh_branch_prune_local() {
     printf 'Summary: %s %s, %s skipped current/default, %s skipped worktree, %s skipped upstream, %s failed.\n' \
         "$deleted" "$([[ "$dry_run" -eq 1 ]] && printf 'would delete' || printf 'deleted')" \
         "$skipped_current" "$skipped_worktree" "$skipped_upstream" "$failed"
+    printf 'Classification: %s closed-unmerged review, %s open PR, %s no PR.\n' \
+        "$closed_review" "$open_review" "$no_pr_review"
     if ((failed > 0)); then
         return 1
     fi
@@ -327,8 +455,11 @@ base_gh_branch_prune_local() {
 base_gh_branch_prune_github_branches() {
     local dry_run="$1"
     local default_branch="$2"
-    local branch current_branch merge_status worktree_path remote_branches
+    local include_closed_unmerged="${3:-0}"
+    local branch current_branch merge_source merge_status worktree_path remote_branches result
+    local state pr_numbers closed_at closed_unix detail
     local deleted=0 skipped_current=0 skipped_worktree=0 skipped_unmerged=0 failed=0 candidates=0 found=0
+    local closed_review=0 open_review=0 no_pr_review=0
 
     printf 'GitHub branches\n'
     if ! base_gh_prune_github_ready; then
@@ -353,16 +484,31 @@ base_gh_branch_prune_github_branches() {
             continue
         fi
 
-        if base_gh_branch_github_merged "$branch"; then
+        merge_source=""
+        if result="$(base_gh_branch_github_pr_state "$branch")"; then
             merge_status=0
+            IFS=$'\t' read -r state pr_numbers closed_at closed_unix <<< "$result"
+            [[ "$pr_numbers" == - ]] && pr_numbers=""
+            [[ "$closed_at" == - ]] && closed_at=""
+            if [[ "$state" != merged ]]; then
+                if [[ "$state" == closed_unmerged && "$include_closed_unmerged" == 1 ]]; then
+                    merge_source=closed_unmerged
+                else
+                    detail="$(base_gh_branch_pr_detail "$state" "$pr_numbers" "$closed_at" "$closed_unix")"
+                    printf 'SKIP   origin/%s  %s\n' "$branch" "$detail"
+                    skipped_unmerged=$((skipped_unmerged + 1))
+                    case "$state" in
+                        closed_unmerged) closed_review=$((closed_review + 1)) ;;
+                        open) open_review=$((open_review + 1)) ;;
+                        no_pr) no_pr_review=$((no_pr_review + 1)) ;;
+                    esac
+                    continue
+                fi
+            else
+                merge_source=github
+            fi
         else
             merge_status=$?
-        fi
-        if ((merge_status == 1)); then
-            printf 'SKIP   origin/%s  no merged GitHub PR found for this branch; remote branch retained\n' \
-                "$branch"
-            skipped_unmerged=$((skipped_unmerged + 1))
-            continue
         fi
         if ((merge_status != 0)); then
             printf 'SKIP   origin/%s  GitHub merge verification unavailable; remote branch retained\n' "$branch"
@@ -379,7 +525,11 @@ base_gh_branch_prune_github_branches() {
         fi
 
         if ((dry_run)); then
-            printf '[DRY-RUN] DELETE-REMOTE origin/%s  merged GitHub PR\n' "$branch"
+            if [[ "$merge_source" == closed_unmerged ]]; then
+                printf '[DRY-RUN] DELETE-REMOTE origin/%s  closed unmerged GitHub PR #%s\n' "$branch" "$pr_numbers"
+            else
+                printf '[DRY-RUN] DELETE-REMOTE origin/%s  merged GitHub PR\n' "$branch"
+            fi
             deleted=$((deleted + 1))
         elif base_gh_branch_delete_remote "$branch"; then
             printf 'DELETE-REMOTE origin/%s\n' "$branch"
@@ -398,6 +548,8 @@ base_gh_branch_prune_github_branches() {
     printf 'Summary: %s %s, %s skipped current/default, %s skipped worktree, %s skipped unmerged, %s failed.\n' \
         "$deleted" "$([[ "$dry_run" -eq 1 ]] && printf 'would delete remotely' || printf 'deleted remotely')" \
         "$skipped_current" "$skipped_worktree" "$skipped_unmerged" "$failed"
+    printf 'Classification: %s closed-unmerged review, %s open PR, %s no PR.\n' \
+        "$closed_review" "$open_review" "$no_pr_review"
     if ((failed > 0)); then
         return 1
     fi
@@ -445,9 +597,10 @@ base_gh_branch_prune_remote_tracking_refs() {
 }
 
 base_gh_branch_prune() {
-    local dry_run=1 remote=0 default_branch status=0
+    local dry_run=1 remote=0 include_closed_unmerged=0 default_branch status=0
     local dry_run_requested=0 yes_requested=0
 
+    BASE_GH_BRANCH_PR_STATE_CACHE=()
     while (($#)); do
         case "$1" in
             --dry-run)
@@ -458,6 +611,9 @@ base_gh_branch_prune() {
                 ;;
             --remote)
                 remote=1
+                ;;
+            --closed-unmerged)
+                include_closed_unmerged=1
                 ;;
             -h|--help)
                 base_gh_branch_leaf_usage prune
@@ -479,10 +635,10 @@ base_gh_branch_prune() {
     if ((dry_run)); then
         printf '[DRY-RUN] Branch prune preview for default branch %s.\n' "$default_branch"
     fi
-    base_gh_branch_prune_local "$dry_run" "$default_branch" || status=$?
+    base_gh_branch_prune_local "$dry_run" "$default_branch" "$include_closed_unmerged" || status=$?
 
     if ((remote)); then
-        base_gh_branch_prune_github_branches "$dry_run" "$default_branch" || status=$?
+        base_gh_branch_prune_github_branches "$dry_run" "$default_branch" "$include_closed_unmerged" || status=$?
         base_gh_branch_prune_remote_tracking_refs "$dry_run" || status=$?
     fi
     if ((dry_run)); then
@@ -515,7 +671,7 @@ base_gh_worktree_prune_delete_branch() {
     local upstream
 
     upstream="$(base_gh_branch_upstream "$branch")"
-    if [[ "$merge_source" != github && -n "$upstream" ]] && ! base_gh_branch_merged_to_ref "$branch" "$upstream"; then
+    if [[ "$merge_source" != github && "$merge_source" != closed_unmerged && -n "$upstream" ]] && ! base_gh_branch_merged_to_ref "$branch" "$upstream"; then
         printf 'SKIP-BRANCH %s  not fully merged to upstream %s\n' "$branch" "$upstream"
         return 1
     fi
@@ -531,9 +687,12 @@ base_gh_worktree_prune_delete_branch() {
 base_gh_worktree_prune() {
     local dry_run=1 default_branch current_worktree
     local path branch merge_source merge_status physical_path
+    local include_closed_unmerged=0 state pr_numbers closed_at closed_unix detail
     local removed=0 skipped_current=0 skipped_dirty=0 skipped_unmerged=0 failed=0 candidates=0
+    local closed_review=0 open_review=0 no_pr_review=0
     local dry_run_requested=0 yes_requested=0
 
+    BASE_GH_BRANCH_PR_STATE_CACHE=()
     while (($#)); do
         case "$1" in
             --dry-run)
@@ -541,6 +700,9 @@ base_gh_worktree_prune() {
                 ;;
             --yes)
                 yes_requested=1
+                ;;
+            --closed-unmerged)
+                include_closed_unmerged=1
                 ;;
             --remote)
                 base_gh_usage_error base_gh_worktree_usage \
@@ -596,15 +758,26 @@ base_gh_worktree_prune() {
             continue
         fi
         merge_source=""
-        if base_gh_branch_cleanup_merged "$branch" "$default_branch" merge_source; then
+        if base_gh_branch_cleanup_state "$branch" "$default_branch" state merge_source pr_numbers closed_at closed_unix; then
             merge_status=0
         else
             merge_status=$?
         fi
         if ((merge_status == 1)); then
-            printf 'SKIP   %s (%s)  branch is not merged into %s or a merged GitHub PR\n' "$path" "$branch" "$default_branch"
-            skipped_unmerged=$((skipped_unmerged + 1))
-            continue
+            if [[ "$state" == closed_unmerged && "$include_closed_unmerged" == 1 ]]; then
+                merge_source=closed_unmerged
+                merge_status=0
+            else
+                detail="$(base_gh_branch_pr_detail "$state" "$pr_numbers" "$closed_at" "$closed_unix")"
+                printf 'SKIP   %s (%s)  %s\n' "$path" "$branch" "$detail"
+                skipped_unmerged=$((skipped_unmerged + 1))
+                case "$state" in
+                    closed_unmerged) closed_review=$((closed_review + 1)) ;;
+                    open) open_review=$((open_review + 1)) ;;
+                    no_pr) no_pr_review=$((no_pr_review + 1)) ;;
+                esac
+                continue
+            fi
         fi
         if ((merge_status != 0)); then
             printf 'SKIP   %s (%s)  GitHub merge verification unavailable; worktree retained\n' "$path" "$branch"
@@ -613,14 +786,21 @@ base_gh_worktree_prune() {
         fi
 
         if ((dry_run)); then
-            if [[ "$merge_source" == github ]]; then
+            if [[ "$merge_source" == closed_unmerged ]]; then
+                printf '[DRY-RUN] REMOVE %s (%s) and delete local branch; closed unmerged GitHub PR #%s; remote branch retained\n' \
+                    "$path" "$branch" "$pr_numbers"
+            elif [[ "$merge_source" == github ]]; then
                 printf '[DRY-RUN] REMOVE %s (%s) and delete local branch; merged GitHub PR\n' "$path" "$branch"
             else
                 printf '[DRY-RUN] REMOVE %s (%s) and delete local branch\n' "$path" "$branch"
             fi
             removed=$((removed + 1))
         elif git worktree remove "$path" >/dev/null 2>&1; then
-            printf 'REMOVE %s (%s)\n' "$path" "$branch"
+            if [[ "$merge_source" == closed_unmerged ]]; then
+                printf 'REMOVE %s (%s); remote branch retained\n' "$path" "$branch"
+            else
+                printf 'REMOVE %s (%s)\n' "$path" "$branch"
+            fi
             removed=$((removed + 1))
             if ! base_gh_worktree_prune_delete_branch "$branch" "$merge_source"; then
                 failed=$((failed + 1))
@@ -637,6 +817,8 @@ base_gh_worktree_prune() {
     printf 'Summary: %s %s, %s skipped current/default, %s skipped dirty, %s skipped unmerged, %s failed.\n' \
         "$removed" "$([[ "$dry_run" -eq 1 ]] && printf 'would remove' || printf 'removed')" \
         "$skipped_current" "$skipped_dirty" "$skipped_unmerged" "$failed"
+    printf 'Classification: %s closed-unmerged review, %s open PR, %s no PR.\n' \
+        "$closed_review" "$open_review" "$no_pr_review"
     if ((dry_run)); then
         if ((failed == 0)); then
             printf 'Run with --yes to apply these changes.\n'

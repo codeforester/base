@@ -60,10 +60,10 @@ load ./basectl_helpers.bash
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"basectl gh worktree prune [--dry-run] [--yes]"* ]]
-    [[ "$output" == *"Prune safe, merged Git worktrees and their local branches."* ]]
+    [[ "$output" == *"Prune safe merged worktrees and explicitly selected closed-unmerged worktrees."* ]]
     [[ "$output" == *"Runs in dry-run mode by default. Pass --yes to apply changes."* ]]
-    [[ "$output" == *"--dry-run      Preview worktrees that would be removed (default)."* ]]
-    [[ "$output" == *"-h, --help     Show this help text."* ]]
+    [[ "$output" == *"--dry-run          Preview worktrees that would be removed (default)."* ]]
+    [[ "$output" == *"-h, --help         Show this help text."* ]]
     [[ "$output" != *"basectl gh branch prune"* ]]
     [[ "$output" != *"basectl gh issue create"* ]]
 }
@@ -298,8 +298,8 @@ load ./basectl_helpers.bash
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head unmerged-work --state merged --json number --jq length" ]]; then
-    printf '0\n'
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "unmerged-work" ]]; then
+    printf 'no_pr\t-\t-\t0\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -319,9 +319,10 @@ EOF
         ' bash "$repo"
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"SKIP   unmerged-work  not confirmed merged into master or through a merged GitHub PR; local branch retained"* ]]
-    [[ "$output" == *"SKIP   origin/unmerged-work  no merged GitHub PR found for this branch; remote branch retained"* ]]
+    [[ "$output" == *"SKIP   unmerged-work  no GitHub PR found; branch retained"* ]]
+    [[ "$output" == *"SKIP   origin/unmerged-work  no GitHub PR found; branch retained"* ]]
     [[ "$output" == *"Summary: 0 deleted remotely, 1 skipped current/default, 0 skipped worktree, 1 skipped unmerged, 0 failed."* ]]
+    [[ "$output" == *"Classification: 0 closed-unmerged review, 0 open PR, 1 no PR."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/unmerged-work
     git -C "$repo" ls-remote --exit-code --heads origin unmerged-work >/dev/null
 }
@@ -441,8 +442,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head squash-remote --state merged --json number --jq length" ]]; then
-    printf '1\n'
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-remote" ]]; then
+    printf 'merged\t1\t-\t0\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -488,8 +489,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head squash-remote --state merged --json number --jq length" ]]; then
-    printf '1\n'
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-remote" ]]; then
+    printf 'merged\t1\t-\t0\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -533,7 +534,7 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head lookup-failure --state merged --json number --jq length" ]]; then
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "lookup-failure" ]]; then
     printf 'failed to connect to api.github.com\n' >&2
     exit 1
 fi
@@ -613,8 +614,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head squash-work --state merged --json number --jq length" ]]; then
-    printf '1\n'
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-work" ]]; then
+    printf 'merged\t1\t-\t0\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -657,8 +658,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head squash-work --state merged --json number --jq length" ]]; then
-    printf '1\n'
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-work" ]]; then
+    printf 'merged\t1\t-\t0\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -700,7 +701,7 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head lookup-failure --state merged --json number --jq length" ]]; then
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "lookup-failure" ]]; then
     printf 'failed to connect to api.github.com\n' >&2
     exit 1
 fi
@@ -866,8 +867,8 @@ EOF
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$*" == "pr list --head unmerged-work --state merged --json number --jq length" ]]; then
-    printf '0\n'
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "unmerged-work" ]]; then
+    printf 'no_pr\t-\t-\t0\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -887,8 +888,9 @@ EOF
         ' bash "$repo"
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"SKIP   "*"/unmerged-worktree (unmerged-work)  branch is not merged into master or a merged GitHub PR"* ]]
+    [[ "$output" == *"SKIP   "*"/unmerged-worktree (unmerged-work)  no GitHub PR found; branch retained"* ]]
     [[ "$output" == *"Summary: 0 removed, 1 skipped current/default, 0 skipped dirty, 1 skipped unmerged, 0 failed."* ]]
+    [[ "$output" == *"Classification: 0 closed-unmerged review, 0 open PR, 1 no PR."* ]]
     [ -d "$worktree" ]
     git -C "$repo" show-ref --verify --quiet refs/heads/unmerged-work
 }
@@ -912,7 +914,7 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head lookup-failure --state merged --json number --jq length" ]]; then
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "lookup-failure" ]]; then
     printf 'failed to connect to api.github.com\n' >&2
     exit 1
 fi
@@ -959,8 +961,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$*" == "pr list --head squash-work --state merged --json number --jq length" ]]; then
-    printf '1\n'
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-work" ]]; then
+    printf 'merged\t1\t-\t0\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -985,4 +987,210 @@ EOF
     [[ "$output" == *"Summary: 1 removed, 1 skipped current/default, 0 skipped dirty, 0 skipped unmerged, 0 failed."* ]]
     [ ! -e "$worktree" ]
     ! git -C "$repo" show-ref --verify --quiet refs/heads/squash-work
+}
+
+@test "basectl gh branch prune retains closed-unmerged branches by default" {
+    local repo remote
+
+    repo="$TEST_TMPDIR/repo"
+    remote="$TEST_TMPDIR/remote.git"
+    create_tracked_repo_with_upstream "$repo" "$remote" "README.md" "hello"
+    git -C "$repo" switch -c closed-remote >/dev/null
+    printf 'topic\n' > "$repo/topic.txt"
+    commit_all "$repo" "Closed topic"
+    git -C "$repo" push -u origin closed-remote >/dev/null 2>&1
+    git -C "$repo" switch master >/dev/null
+    git -C "$repo" branch -D closed-remote >/dev/null
+
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-remote" ]]; then
+    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+    exit 0
+fi
+printf 'unexpected gh args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        PATH="$TEST_MOCKBIN:$PATH" \
+        bash -c '
+            cd "$1"
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            base_gh_subcommand_main branch prune --remote --yes
+        ' bash "$repo"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"SKIP   origin/closed-remote  closed GitHub PR #1939 without merge ("*" days ago, 2026-08-08); branch retained"* ]]
+    [[ "$output" == *"Classification: 1 closed-unmerged review, 0 open PR, 0 no PR."* ]]
+    git -C "$repo" ls-remote --exit-code --heads origin closed-remote >/dev/null
+}
+
+@test "basectl gh branch prune --remote --closed-unmerged deletes opted-in branches" {
+    local repo remote
+
+    repo="$TEST_TMPDIR/repo"
+    remote="$TEST_TMPDIR/remote.git"
+    create_tracked_repo_with_upstream "$repo" "$remote" "README.md" "hello"
+    git -C "$repo" switch -c closed-remote >/dev/null
+    printf 'topic\n' > "$repo/topic.txt"
+    commit_all "$repo" "Closed topic"
+    git -C "$repo" push -u origin closed-remote >/dev/null 2>&1
+    git -C "$repo" switch master >/dev/null
+    git -C "$repo" branch -D closed-remote >/dev/null
+
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-remote" ]]; then
+    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+    exit 0
+fi
+printf 'unexpected gh args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        PATH="$TEST_MOCKBIN:$PATH" \
+        bash -c '
+            cd "$1"
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            base_gh_subcommand_main branch prune --remote --closed-unmerged --yes
+        ' bash "$repo"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE-REMOTE origin/closed-remote"* ]]
+    [[ "$output" == *"Summary: 1 deleted remotely,"* ]]
+    ! git -C "$repo" ls-remote --exit-code --heads origin closed-remote >/dev/null
+}
+
+@test "basectl gh branch prune --closed-unmerged never deletes open PR branches" {
+    local repo remote
+
+    repo="$TEST_TMPDIR/repo"
+    remote="$TEST_TMPDIR/remote.git"
+    create_tracked_repo_with_upstream "$repo" "$remote" "README.md" "hello"
+    git -C "$repo" switch -c open-remote >/dev/null
+    printf 'topic\n' > "$repo/topic.txt"
+    commit_all "$repo" "Open topic"
+    git -C "$repo" push -u origin open-remote >/dev/null 2>&1
+    git -C "$repo" switch master >/dev/null
+    git -C "$repo" branch -D open-remote >/dev/null
+
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "open-remote" ]]; then
+    printf 'open\t2020\t-\t0\n'
+    exit 0
+fi
+printf 'unexpected gh args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        PATH="$TEST_MOCKBIN:$PATH" \
+        bash -c '
+            cd "$1"
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            base_gh_subcommand_main branch prune --remote --closed-unmerged --yes
+        ' bash "$repo"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"SKIP   origin/open-remote  open GitHub PR #2020; branch retained"* ]]
+    [[ "$output" != *"DELETE-REMOTE origin/open-remote"* ]]
+    git -C "$repo" ls-remote --exit-code --heads origin open-remote >/dev/null
+}
+
+@test "basectl gh branch prune --closed-unmerged deletes opted-in local branches" {
+    local repo
+
+    repo="$TEST_TMPDIR/repo"
+    init_git_repo "$repo"
+    printf 'hello\n' > "$repo/README.md"
+    commit_all "$repo" "Initial commit"
+    git -C "$repo" switch -c closed-local >/dev/null
+    printf 'topic\n' > "$repo/topic.txt"
+    commit_all "$repo" "Closed topic"
+    git -C "$repo" switch master >/dev/null
+
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-local" ]]; then
+    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+    exit 0
+fi
+printf 'unexpected gh args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        PATH="$TEST_MOCKBIN:$PATH" \
+        bash -c '
+            cd "$1"
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            base_gh_subcommand_main branch prune --closed-unmerged --yes
+        ' bash "$repo"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE closed-local"* ]]
+    [[ "$output" == *"Summary: 1 deleted,"* ]]
+    ! git -C "$repo" show-ref --verify --quiet refs/heads/closed-local
+}
+
+@test "basectl gh worktree prune --closed-unmerged removes only local state" {
+    local repo worktree
+
+    repo="$TEST_TMPDIR/repo"
+    worktree="$TEST_TMPDIR/closed-worktree"
+    init_git_repo "$repo"
+    printf 'hello\n' > "$repo/README.md"
+    commit_all "$repo" "Initial commit"
+    git -C "$repo" switch -c closed-work >/dev/null
+    printf 'topic\n' > "$repo/topic.txt"
+    commit_all "$repo" "Closed topic"
+    git -C "$repo" switch master >/dev/null
+    git -C "$repo" worktree add "$worktree" closed-work >/dev/null 2>&1
+
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-work" ]]; then
+    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+    exit 0
+fi
+printf 'unexpected gh args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        PATH="$TEST_MOCKBIN:$PATH" \
+        bash -c '
+            cd "$1"
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            base_gh_subcommand_main worktree prune --closed-unmerged --yes
+        ' bash "$repo"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"REMOVE "*"/closed-worktree (closed-work); remote branch retained"* ]]
+    [[ "$output" == *"DELETE closed-work"* ]]
+    ! [ -e "$worktree" ]
+    ! git -C "$repo" show-ref --verify --quiet refs/heads/closed-work
 }
