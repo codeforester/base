@@ -628,7 +628,7 @@ def test_reusable_base_check_workflow_contract() -> None:
     assert "args=(check --ci \"$BASE_CHECK_PROJECT\" --format \"$BASE_CHECK_OUTPUT_FORMAT\")" in run_commands
     assert "BASE_BASH_LIBS_DIR" in run_commands
     assert "basefoundry/base-bash-libs" in str(steps)
-    assert "c134fb8a3397e2cfee1d90845cec44f56dacae7b" in str(steps)
+    assert "b4243765726c133499feeabdc50154f99c0fec12" in str(steps)
     assert "${{ inputs.base-ref || github.workflow_sha }}" in str(steps)
     assert "uses: basefoundry/base/.github/workflows/base-check.yml@<base-ref-or-sha>" in ci_docs
     assert "| `setup-mode` | `source-checkout` |" in ci_docs
