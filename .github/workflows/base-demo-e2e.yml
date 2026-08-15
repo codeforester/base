@@ -1,0 +1,150 @@
+name: Base Demo E2E
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      base_demo_ref:
+        description: "base-demo branch, tag, or commit to validate"
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  base-demo-e2e:
+    name: Base demo end-to-end loop
+    runs-on: macos-14
+    timeout-minutes: 45
+    env:
+      BASE_CACHE_DIR: ${{ github.workspace }}/.base-cache
+      BASE_BASH_LIBS_DIR: ${{ github.workspace }}/.dependencies/base-bash-libs/lib/bash
+      BASE_CLI_SOURCE_DIR: ${{ github.workspace }}/.dependencies/base-cli/lib/python
+      BASE_SETUP_NOTIFY: "false"
+      BASE_DEMO_ENV: baseline
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Check out Base
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Check out base-cli
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: basefoundry/base-cli
+          ref: v0.4.2
+          path: .dependencies/base-cli
+
+      - name: Check out base-bash-libs
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          repository: basefoundry/base-bash-libs
+          ref: b4243765726c133499feeabdc50154f99c0fec12
+          path: .dependencies/base-bash-libs
+
+      - name: Expose dependency checkouts as Base siblings
+        run: |
+          ln -s "$GITHUB_WORKSPACE/.dependencies/base-cli" "$GITHUB_WORKSPACE/../base-cli"
+          ln -s "$GITHUB_WORKSPACE/.dependencies/base-bash-libs" "$GITHUB_WORKSPACE/../base-bash-libs"
+
+      - name: Check out base-demo
+        env:
+          BASE_DEMO_REF: ${{ inputs.base_demo_ref || 'main' }}
+        run: |
+          if [[ ! "$BASE_DEMO_REF" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::base_demo_ref contains unsupported characters."
+            exit 2
+          fi
+          git init "$GITHUB_WORKSPACE/../base-demo"
+          git -C "$GITHUB_WORKSPACE/../base-demo" remote add origin \
+            https://github.com/basefoundry/base-demo.git
+          git -C "$GITHUB_WORKSPACE/../base-demo" fetch --depth 1 origin "$BASE_DEMO_REF"
+          git -C "$GITHUB_WORKSPACE/../base-demo" checkout --detach FETCH_HEAD
+          git -C "$GITHUB_WORKSPACE/../base-demo" log -1 --oneline
+
+      - name: Install Bash and BATS
+        run: brew install bash bats-core
+
+      - name: Set up Base
+        run: ./bin/basectl setup --ci base --format json
+
+      - name: Disable IDE setup in CI
+        run: |
+          mkdir -p "$HOME/.base.d"
+          {
+            printf '\nide:\n'
+            printf '  enabled: false\n'
+          } >> "$HOME/.base.d/config.yaml"
+
+      - name: Run Base demo end-to-end loop
+        env:
+          BASE_DEMO_ROOT: ${{ github.workspace }}/../base-demo
+          BASE_DEMO_WORKSPACE: ${{ github.workspace }}/..
+        run: |
+          set -o pipefail
+          log_dir="$RUNNER_TEMP/base-demo-e2e"
+          mkdir -p "$log_dir"
+
+          run_base_demo_command() {
+            local label="$1"
+            shift
+            local log_path="$log_dir/${label// /-}.log"
+            local status
+            local owner
+
+            printf '::group::%s\n' "$label"
+            if "$@" 2>&1 | tee "$log_path"; then
+              status=0
+            else
+              status="${PIPESTATUS[0]}"
+            fi
+            printf '::endgroup::\n'
+
+            if ((status == 0)); then
+              return 0
+            fi
+
+            if grep -Eiq 'base_manifest\.yaml|manifest|artifact|test\.command|demo\.script|BASE-[A-Z0-9-]+' "$log_path"; then
+              owner="base-demo manifest needs updating"
+            else
+              owner="Base bug"
+            fi
+            printf '::error title=Base demo E2E failure::%s failed with exit %s. Owner triage: %s. Full output: %s\n' \
+              "$label" "$status" "$owner" "$log_path"
+            return "$status"
+          }
+
+          run_base_demo_command \
+            "basectl setup base-demo" \
+            ./bin/basectl setup --ci base-demo \
+              --manifest "$BASE_DEMO_ROOT/base_manifest.yaml" \
+              --format json --no-notify
+
+          run_base_demo_command \
+            "basectl check base-demo" \
+            ./bin/basectl check --ci base-demo \
+              --manifest "$BASE_DEMO_ROOT/base_manifest.yaml" \
+              --format json
+
+          run_base_demo_command \
+            "uv sync base-demo" \
+            bash -c 'cd "$BASE_DEMO_ROOT" && uv sync --locked'
+
+          run_base_demo_command \
+            "basectl trust allow base-demo" \
+            ./bin/basectl trust allow base-demo --workspace "$BASE_DEMO_WORKSPACE"
+
+          run_base_demo_command \
+            "basectl test base-demo" \
+            ./bin/basectl test base-demo --workspace "$BASE_DEMO_WORKSPACE"
+
+          run_base_demo_command \
+            "basectl demo base-demo" \
+            ./bin/basectl demo base-demo --workspace "$BASE_DEMO_WORKSPACE" -- --non-interactive

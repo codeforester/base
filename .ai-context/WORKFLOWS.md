@@ -163,6 +163,12 @@ repository. Source-checkout tests resolve it from `BASE_CLI_SOURCE_DIR`, a
 sibling `../base-cli/lib/python` checkout, or the installed `base-cli`
 development dependency; Base no longer provides an in-tree copy.
 
+The scheduled/manual `Base Demo E2E` workflow runs the macOS setup, check, test,
+and non-interactive demo loop against the external `basefoundry/base-demo`
+repository. Keep its failure ownership visible: `Base bug` covers Base
+dispatch/runtime failures, while `base-demo manifest needs updating` covers
+manifest, artifact, or declared-command drift.
+
 Integration tests live under `tests/integration/` and run against temporary
 homes, workspaces, and fake projects. Add integration coverage for
 cross-command workflows, setup/check/doctor interactions, shell profile

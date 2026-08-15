@@ -168,6 +168,21 @@ The default integration suite should not install real Homebrew packages, edit
 real shell startup files, depend on network access, or mutate repositories
 outside the temporary BATS workspace.
 
+## External Base Demo E2E
+
+The [Base Demo E2E workflow](../.github/workflows/base-demo-e2e.yml) runs the
+macOS product loop against the real `basefoundry/base-demo` repository on a
+nightly schedule and through `workflow_dispatch`. It sets up and checks the
+demo, approves its reviewed manifest, then runs the declared test and
+non-interactive demo commands. Use the workflow input to validate a specific
+`base-demo` branch, tag, or commit.
+
+This job is intentionally separate from Base's own test matrix because it
+validates an external manifest and project contract. Its grouped CI output
+labels the likely owner as either `Base bug` or `base-demo manifest needs
+updating`, while keeping a per-command temporary log path available during the
+runner for triage.
+
 Run only integration tests with:
 
 ```bash
