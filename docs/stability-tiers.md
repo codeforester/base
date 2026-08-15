@@ -30,9 +30,9 @@ Stable command contracts include:
 - `--ci` behavior for setup, check, and doctor;
 - documented `--format json` payload families.
 
-The former `basectl ci setup|check|doctor` compatibility alias was removed.
-Automation should use the primary command form documented in the quick
-reference.
+The `basectl ci setup|check|doctor` compatibility alias remains deprecated
+through the v1.x compatibility window. New automation should use the primary
+command form documented in the quick reference.
 
 Experimental command surfaces must say so in their feature document before
 teams depend on them for CI or cross-repository automation. Report-only

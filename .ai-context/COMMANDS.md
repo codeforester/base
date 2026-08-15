@@ -14,8 +14,8 @@ package standard options such as `--debug`, `--quiet`, `--log-file`,
 `--config`, `--environment`, and `--keep-temp` are not public `basectl`
 options. Pre-runtime diagnostics use `--debug-wrapper`, and
 `--utc-wrapper` switches wrapper/runtime log presentation to UTC.
-`--verbose-wrapper` has been removed; use `--debug-wrapper` for startup and
-reusable-layer DEBUG diagnostics.
+`--verbose-wrapper` remains a deprecated alias for `--debug-wrapper` through
+the v1.x compatibility window; new automation should use `--debug-wrapper`.
 
 ## Current Public Commands
 
@@ -117,7 +117,8 @@ reusable-layer DEBUG diagnostics.
   with CI-safe defaults. It does not run project tests or create CI runners/VMs.
   `setup --ci --format json` uses `output` for the compact final status and
   adds `output_lines` on failures for intermediate context. The former
-  `basectl ci` compatibility alias was removed.
+  `basectl ci setup|check|doctor` remains a deprecated compatibility alias for
+  the canonical lifecycle command with `--ci`.
 - `basectl release <check|plan|notes|publish>` - inspect release readiness,
   print plans/notes, and publish guarded GitHub-side release artifacts.
 - `basectl gh <area> <command>` - manage GitHub issues, PRs, branches, repo

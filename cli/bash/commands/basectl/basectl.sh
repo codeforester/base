@@ -63,6 +63,10 @@ Daily project loop:
   trust <status|allow|revoke> [project] [options]
     Inspect trust across projects, or manage one project's local approval.
 
+Compatibility:
+  ci <setup|check|doctor> [project] [options]
+    Deprecated alias for the corresponding lifecycle command with --ci.
+
 Workspace and repositories:
   workspace <status|check|doctor|onboarding|agent-brief|clone|pull|update|init|configure|setup> [options]
     Show workspace status, onboarding, agent readiness, checks, or explicit workspace mutations.
@@ -115,6 +119,7 @@ Options:
 Wrapper options:
   Advanced startup diagnostics; normal command flags are documented by leaf help.
   --debug-wrapper    Enable DEBUG logging before the Base runtime is loaded.
+  --verbose-wrapper  Deprecated alias for --debug-wrapper; retained for v1.x compatibility.
   --utc-wrapper      Print wrapper/runtime log timestamps in UTC.
   --keep-temp        Preserve temporary run files after the command completes.
   --color            Preserve color-aware wrapper argument handling.
@@ -346,6 +351,11 @@ basectl_do_repo() {
     base_repo_subcommand_main "$@"
 }
 
+basectl_do_ci() {
+    basectl_source_subcommand_module ci || return 1
+    base_ci_subcommand_main "$@"
+}
+
 basectl_do_release() {
     basectl_source_subcommand_module release || return 1
     base_release_subcommand_main "$@"
@@ -503,7 +513,7 @@ basectl_validate_command() {
     local command="${1:-}"
 
     case "$command" in
-        ""|activate|check|test|export-context|devcontainer|devenv-report|build|demo|run|repo|release|prompt|docs|clean|logs|history|config|trust|doctor|gh|onboard|setup|help|projects|workspace|update|update-profile|version)
+        ""|activate|check|test|export-context|devcontainer|devenv-report|build|demo|run|repo|ci|release|prompt|docs|clean|logs|history|config|trust|doctor|gh|onboard|setup|help|projects|workspace|update|update-profile|version)
             return 0
             ;;
         *)
@@ -810,6 +820,7 @@ basectl_main() {
         demo)             basectl_do_demo "$@"; command_status=$? ;;
         run)              basectl_do_run "$@"; command_status=$? ;;
         repo)             basectl_do_repo "$@"; command_status=$? ;;
+        ci)               basectl_do_ci "$@"; command_status=$? ;;
         release)          basectl_do_release "$@"; command_status=$? ;;
         prompt)           basectl_do_prompt "$@"; command_status=$? ;;
         docs)             basectl_do_docs "$@"; command_status=$? ;;

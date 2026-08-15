@@ -34,9 +34,9 @@ environments are reported and left unchanged.
 The default mode is non-interactive. If a required action cannot be performed
 without prompting, the command fails with a clear fix message.
 
-The former top-level `basectl ci setup|check|doctor` compatibility alias was
-removed. Migrate scripts and documentation to the `--ci` flag on the
-underlying command; no CI behavior changed.
+The top-level `basectl ci setup|check|doctor` compatibility alias remains
+deprecated for v1.x consumers. Prefer the `--ci` flag on the underlying
+command; no CI behavior changes between the two forms.
 
 ## Behavior
 

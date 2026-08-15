@@ -7,6 +7,14 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-15
+
+### Added
+
+- Restored the deprecated `basectl ci setup|check|doctor` and
+  `--verbose-wrapper` compatibility aliases for the v1.x contract; new
+  automation should use the canonical `--ci` and `--debug-wrapper` forms.
+
 ### Changed
 
 - Align the published Base CLI provider used by development dependencies and
@@ -16,18 +24,11 @@ and Base versions are tracked in the repo-root `VERSION` file.
   warning during `basectl repo configure`, preserving the issue-branch policy
   workflow fallback instead of failing the whole repository configuration.
 - Updated Base CI and source-checkout contract coverage to consume the
-  published `base-bash-libs` v1.4.0 release commit.
+  published `base-bash-libs` v2.0.0 GA release commit.
 - Refined basectl logs with comma-separated --command filters, the
   --latest path action, and the explicit last-failed report command.
 - Clarified basectl logs action conflicts and help for --latest, --tail, and
   --open.
-
-### Removed
-
-- Removed the redundant `basectl --verbose-wrapper` compatibility option; use
-  `--debug-wrapper` for startup and reusable-layer DEBUG diagnostics.
-- Removed the legacy top-level `basectl ci` compatibility alias; use
-  `basectl setup --ci`, `basectl check --ci`, or `basectl doctor --ci`.
 
 ### Fixed
 

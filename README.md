@@ -3,7 +3,7 @@
 ![Tests](https://github.com/basefoundry/base/actions/workflows/tests.yml/badge.svg)
 ![Lint](https://github.com/basefoundry/base/actions/workflows/pylint.yml/badge.svg)
 ![Platform: macOS + Ubuntu/Debian](https://img.shields.io/badge/platform-macOS%20%2B%20Ubuntu%2FDebian-lightgrey)
-![Version](https://img.shields.io/badge/version-1.7.0-blue)
+![Version](https://img.shields.io/badge/version-1.8.0-blue)
 
 Base is a local operating contract for developers and platform engineers who
 need a repeatable way to prepare, verify, test, build, and hand off a project,
@@ -385,8 +385,9 @@ Use `basectl --help` for the journey-oriented command map. For a group or leaf,
 public usage without exposing private Python runtime options.
 
 `--ci` runs setup, check, and doctor with CI-safe defaults such as
-non-interactive behavior and JSON-capable output. The former `basectl ci`
-compatibility alias was removed; use the flag on the underlying command.
+non-interactive behavior and JSON-capable output. The deprecated `basectl ci`
+compatibility alias remains available for v1.x consumers; use the flag on the
+underlying command for new scripts.
 The CI-safe lifecycle commands do not run project tests, launch GitHub Actions
 locally, or create Ubuntu/Multipass VMs. Use `basectl test` for a project's
 declared test command and `bin/base-test` for Base's full source-checkout
@@ -1189,12 +1190,12 @@ See [docs/local-config.md](docs/local-config.md).
 Inspect release readiness for a Base-managed repository with:
 
 ```bash
-basectl release check --version 1.7.0
-basectl release check --version 1.7.0 --format json
-basectl release plan --version 1.7.0
-basectl release notes --version 1.7.0
-basectl release publish --version 1.7.0 --dry-run
-basectl release publish --version 1.7.0 --yes
+basectl release check --version 1.8.0
+basectl release check --version 1.8.0 --format json
+basectl release plan --version 1.8.0
+basectl release notes --version 1.8.0
+basectl release publish --version 1.8.0 --dry-run
+basectl release publish --version 1.8.0 --yes
 ```
 
 `basectl release check|plan|notes` are read-only. They validate the manifest
@@ -1925,7 +1926,7 @@ Base follows a few simple principles.
 
 ## Current Status
 
-Base `1.7.0` is the current release. The implemented command surface covers
+Base `1.8.0` is the current release. The implemented command surface covers
 setup, checks, diagnostics, project discovery, project activation, project test
 execution, manifest-declared mise trust/missing-tool checks plus `mise install`
 and `mise run` delegation, cleanup, updates, onboarding, repository baseline

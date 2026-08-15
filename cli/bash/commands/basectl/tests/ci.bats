@@ -33,6 +33,26 @@ prepare_ci_runtime() {
     BASE_SETUP_TEST_WORKSPACE="$workspace" create_project_setup_venv_stub "$workspace/demo/.venv"
 }
 
+@test "basectl ci remains a deprecated compatibility alias" {
+    run_base_command ci --help
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"basectl ci setup [project] [options]"* ]]
+    [[ "$output" == *"Deprecated compatibility alias"* ]]
+}
+
+@test "basectl ci delegates setup with the canonical CI flag" {
+    local workspace="$TEST_TMPDIR/workspace"
+
+    prepare_ci_runtime "$workspace"
+
+    run_base_command BASE_SETUP_TEST_WORKSPACE="$workspace" ci setup demo --dry-run --yes --no-notify
+
+    [ "$status" -eq 0 ]
+    [ "$(cat "$TEST_STATE_DIR/project-setup-base-ci")" = "true" ]
+    [ "$(cat "$TEST_STATE_DIR/project-setup-ci")" = "true" ]
+}
+
 @test "basectl check --ci delegates with CI defaults and JSON output" {
     local workspace="$TEST_TMPDIR/workspace"
 
