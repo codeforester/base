@@ -31,8 +31,8 @@ Usage:
   basectl gh project configure --project <title> [--owner <login>] [--repo <owner/name>] [--schema base-project] [--config <path>] [--copy-fields-from <title>] [--replace-project] [--initiative-option <name>] [--dry-run]
   basectl gh project issue set-fields <number> --project <title> [--owner <login>] [--repo <owner/name>] [--allow-cross-repo] [field options...]
   basectl gh branch stale [--days <days>] [--format <text|json>]
-  basectl gh branch prune [--dry-run] [--yes] [--remote]
-  basectl gh worktree prune [--dry-run] [--yes]
+  basectl gh branch prune [--dry-run] [--yes] [--remote] [--closed-unmerged]
+  basectl gh worktree prune [--dry-run] [--yes] [--closed-unmerged]
 
 Purpose:
   Manage GitHub issues, pull requests, Project metadata, branch naming, and
@@ -540,7 +540,7 @@ base_gh_branch_usage() {
     cat <<'EOF'
 Usage:
   basectl gh branch stale [--days <days>] [--format <text|json>]
-  basectl gh branch prune [--dry-run] [--yes] [--remote]
+  basectl gh branch prune [--dry-run] [--yes] [--remote] [--closed-unmerged]
 
 Purpose:
   Inspect stale branches and prune merged local or GitHub branches.
@@ -551,7 +551,7 @@ Note:
 
 Options:
   stale: --days <days>, --format <text|json>
-  prune: --dry-run, --yes, --remote
+  prune: --dry-run, --yes, --remote, --closed-unmerged
   -h, --help     Show this help text.
 EOF
 }
@@ -583,10 +583,11 @@ Purpose:
   Preview or remove safely merged local and GitHub branches.
 
 Options:
-  --dry-run   Preview branches that would be deleted (default).
-  --yes       Delete safely merged branches after preview.
-  --remote    Also clean merged GitHub branches and stale origin refs.
-  -h, --help  Show this help text.
+  --dry-run          Preview branches that would be deleted (default).
+  --yes              Delete selected branches after preview.
+  --remote           Also clean selected GitHub branches and stale origin refs.
+  --closed-unmerged  Include branches whose PRs were closed without merging.
+  -h, --help         Show this help text.
 EOF
             ;;
         *)
@@ -598,19 +599,20 @@ EOF
 base_gh_worktree_usage() {
     cat <<'EOF'
 Usage:
-  basectl gh worktree prune [--dry-run] [--yes]
+  basectl gh worktree prune [--dry-run] [--yes] [--closed-unmerged]
 
 Purpose:
-  Prune safe, merged Git worktrees and their local branches.
+  Prune safe merged worktrees and explicitly selected closed-unmerged worktrees.
 
 Note:
   Runs in dry-run mode by default. Pass --yes to apply changes.
   --dry-run and --yes are mutually exclusive; choose one when overriding the default.
 
 Options:
-  --dry-run      Preview worktrees that would be removed (default).
-  --yes          Remove safe merged worktrees after preview.
-  -h, --help     Show this help text.
+  --dry-run          Preview worktrees that would be removed (default).
+  --yes              Remove selected worktrees after preview.
+  --closed-unmerged  Include clean worktrees tied to closed, unmerged PRs.
+  -h, --help         Show this help text.
 EOF
 }
 
