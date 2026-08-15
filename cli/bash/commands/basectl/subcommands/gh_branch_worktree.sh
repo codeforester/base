@@ -5,6 +5,8 @@ _base_gh_branch_worktree_sourced=1
 readonly _base_gh_branch_worktree_sourced
 
 declare -gA BASE_GH_BRANCH_PR_STATE_CACHE=()
+declare -g BASE_GH_BRANCH_PR_STATE_CACHE_LOADED=0
+declare -g BASE_GH_BRANCH_PR_STATE_CACHE_LOAD_STATUS=0
 
 base_gh_branch_stale() {
     local days=30 now ref name timestamp age
@@ -227,59 +229,163 @@ base_gh_prune_github_ready() {
     [[ "$_base_gh_prune_github_ready" == 1 ]]
 }
 
-base_gh_branch_github_pr_state() {
-    local branch="$1"
-    local result state pr_numbers closed_at closed_unix
+base_gh_branch_pr_state_cache_reset() {
+    BASE_GH_BRANCH_PR_STATE_CACHE=()
+    BASE_GH_BRANCH_PR_STATE_CACHE_LOADED=0
+    BASE_GH_BRANCH_PR_STATE_CACHE_LOAD_STATUS=0
+}
 
-    if [[ ${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]+cached} ]]; then
-        printf '%s\n' "${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]}"
-        return 0
+base_gh_branch_github_pr_state_load() {
+    local result status branch pr_state pr_number closed_at closed_unix merged_at
+    local current_state current_numbers
+    local -A state_by_branch=() numbers_by_branch=() closed_at_by_branch=() closed_unix_by_branch=()
+
+    if ((BASE_GH_BRANCH_PR_STATE_CACHE_LOADED)); then
+        return "$BASE_GH_BRANCH_PR_STATE_CACHE_LOAD_STATUS"
     fi
+    BASE_GH_BRANCH_PR_STATE_CACHE_LOADED=1
+
     if ! base_gh_prune_github_ready; then
         base_gh_error "GitHub merge verification requires the GitHub CLI 'gh' on PATH."
+        BASE_GH_BRANCH_PR_STATE_CACHE_LOAD_STATUS=2
         return 2
     fi
 
-    result="$(base_cli_gh_run pr list --head "$branch" --state all \
-        --json number,state,closedAt,mergedAt \
+    # `gh pr list --json` uses GitHub's GraphQL API and costs one query per
+    # branch. Fetch all pull requests through the paginated REST API so a large
+    # repository cannot exhaust the GraphQL budget during a prune scan. Keep
+    # `--jq` on the paginated request and aggregate pages here because some gh
+    # versions reject combining `--slurp` with `--jq`.
+    result="$(base_cli_gh_run api 'repos/{owner}/{repo}/pulls' \
+        --method GET \
+        --paginate \
+        --raw-field state=all \
+        --raw-field per_page=100 \
         --jq '
-            if any(.[]; .state == "OPEN") then
-                ["open", ([.[] | select(.state == "OPEN") | .number] | map(tostring) | join(",")), "-", 0]
-            elif any(.[]; .state == "MERGED") then
-                ["merged", ([.[] | select(.state == "MERGED") | .number] | map(tostring) | join(",")), "-", 0]
-            elif any(.[]; .state == "CLOSED" and .mergedAt == null) then
-                [
-                    "closed_unmerged",
-                    ([.[] | select(.state == "CLOSED" and .mergedAt == null) | .number] | map(tostring) | join(",")),
-                    ([.[] | select(.state == "CLOSED" and .mergedAt == null and .closedAt != null) | .closedAt] | sort | last // "-"),
-                    (([.[] | select(.state == "CLOSED" and .mergedAt == null and .closedAt != null) | (.closedAt | fromdateiso8601)] | sort | last) // 0)
-                ]
-            else
-                ["no_pr", "-", "-", 0]
-            end | @tsv')" || return 2
-    IFS=$'\t' read -r state pr_numbers closed_at closed_unix <<< "$result"
-    case "$state" in
-        open|merged|closed_unmerged|no_pr)
-            ;;
-        *)
-            base_gh_error "GitHub PR state verification returned an invalid result for branch '$branch'."
-            return 2
-            ;;
-    esac
-    if [[ ! "$closed_unix" =~ ^[0-9]+$ ]]; then
-        base_gh_error "GitHub PR state verification returned an invalid close time for branch '$branch'."
+            .[]
+            | select(.head.ref != null)
+            | [
+                .head.ref,
+                .state,
+                (.number | tostring),
+                (.closed_at // "-"),
+                (if .closed_at == null then 0 else (.closed_at | fromdateiso8601) end),
+                (.merged_at // "-")
+            ]
+            | @tsv')"
+    status=$?
+    if ((status != 0)); then
+        BASE_GH_BRANCH_PR_STATE_CACHE_LOAD_STATUS=2
         return 2
     fi
 
-    BASE_GH_BRANCH_PR_STATE_CACHE["$branch"]="$result"
-    printf '%s\n' "$result"
+    while IFS=$'\t' read -r branch pr_state pr_number closed_at closed_unix merged_at; do
+        [[ -n "$branch" ]] || continue
+        if [[ "$pr_state" != open && "$pr_state" != closed ]]; then
+            base_gh_error "GitHub PR state verification returned an invalid state for branch '$branch'."
+            BASE_GH_BRANCH_PR_STATE_CACHE_LOAD_STATUS=2
+            return 2
+        fi
+
+        current_state="${state_by_branch[$branch]-}"
+        current_numbers="${numbers_by_branch[$branch]-}"
+        case "$pr_state:$merged_at:$current_state" in
+            open:*:*)
+                if [[ "$current_state" == open ]]; then
+                    current_numbers+="${current_numbers:+,}$pr_number"
+                else
+                    current_state=open
+                    current_numbers="$pr_number"
+                fi
+                state_by_branch["$branch"]="$current_state"
+                numbers_by_branch["$branch"]="$current_numbers"
+                ;;
+            closed:-:open|closed:-:merged)
+                ;;
+            closed:-:closed_unmerged)
+                current_numbers+="${current_numbers:+,}$pr_number"
+                numbers_by_branch["$branch"]="$current_numbers"
+                if ((closed_unix > ${closed_unix_by_branch[$branch]:-0})); then
+                    closed_at_by_branch["$branch"]="$closed_at"
+                    closed_unix_by_branch["$branch"]="$closed_unix"
+                fi
+                ;;
+            closed:-:*)
+                current_state=closed_unmerged
+                state_by_branch["$branch"]="$current_state"
+                numbers_by_branch["$branch"]="$pr_number"
+                closed_at_by_branch["$branch"]="$closed_at"
+                closed_unix_by_branch["$branch"]="$closed_unix"
+                ;;
+            closed:*:open)
+                ;;
+            closed:*:merged)
+                current_numbers+="${current_numbers:+,}$pr_number"
+                numbers_by_branch["$branch"]="$current_numbers"
+                ;;
+            closed:*:closed_unmerged)
+                current_state=merged
+                state_by_branch["$branch"]="$current_state"
+                numbers_by_branch["$branch"]="$pr_number"
+                closed_at_by_branch["$branch"]=""
+                closed_unix_by_branch["$branch"]=0
+                ;;
+            closed:*:*)
+                current_state=merged
+                state_by_branch["$branch"]="$current_state"
+                numbers_by_branch["$branch"]="$pr_number"
+                ;;
+        esac
+    done <<< "$result"
+
+    for branch in "${!state_by_branch[@]}"; do
+        BASE_GH_BRANCH_PR_STATE_CACHE["$branch"]="${state_by_branch[$branch]}"$'\t'"${numbers_by_branch[$branch]}"$'\t'"${closed_at_by_branch[$branch]:--}"$'\t'"${closed_unix_by_branch[$branch]:-0}"
+    done
+
+    BASE_GH_BRANCH_PR_STATE_CACHE_LOAD_STATUS=0
+    return 0
+}
+
+base_gh_branch_github_pr_state() {
+    local branch="$1"
+    local output_var="${2:-}"
+    local state_result
+
+    if [[ ${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]+cached} ]]; then
+        state_result="${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]}"
+        if [[ -n "$output_var" ]]; then
+            printf -v "$output_var" '%s' "$state_result"
+        else
+            printf '%s\n' "$state_result"
+        fi
+        return 0
+    fi
+
+    base_gh_branch_github_pr_state_load || return $?
+    if [[ ${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]+cached} ]]; then
+        state_result="${BASE_GH_BRANCH_PR_STATE_CACHE[$branch]}"
+        if [[ -n "$output_var" ]]; then
+            printf -v "$output_var" '%s' "$state_result"
+        else
+            printf '%s\n' "$state_result"
+        fi
+        return 0
+    fi
+
+    state_result=$'no_pr\t-\t-\t0'
+    BASE_GH_BRANCH_PR_STATE_CACHE["$branch"]="$state_result"
+    if [[ -n "$output_var" ]]; then
+        printf -v "$output_var" '%s' "$state_result"
+    else
+        printf '%s\n' "$state_result"
+    fi
 }
 
 base_gh_branch_github_merged() {
     local branch="$1"
     local result state pr_numbers closed_at closed_unix
 
-    result="$(base_gh_branch_github_pr_state "$branch")" || return $?
+    base_gh_branch_github_pr_state "$branch" result || return $?
     IFS=$'\t' read -r state pr_numbers closed_at closed_unix <<< "$result"
     [[ "$state" == merged ]]
 }
@@ -303,7 +409,7 @@ base_gh_branch_cleanup_state() {
         return 0
     fi
 
-    result="$(base_gh_branch_github_pr_state "$branch")" || return $?
+    base_gh_branch_github_pr_state "$branch" result || return $?
     IFS=$'\t' read -r resolved_state resolved_pr_numbers resolved_closed_at resolved_closed_unix <<< "$result"
     [[ "$resolved_pr_numbers" == - ]] && resolved_pr_numbers=""
     [[ "$resolved_closed_at" == - ]] && resolved_closed_at=""
@@ -485,7 +591,7 @@ base_gh_branch_prune_github_branches() {
         fi
 
         merge_source=""
-        if result="$(base_gh_branch_github_pr_state "$branch")"; then
+        if base_gh_branch_github_pr_state "$branch" result; then
             merge_status=0
             IFS=$'\t' read -r state pr_numbers closed_at closed_unix <<< "$result"
             [[ "$pr_numbers" == - ]] && pr_numbers=""
@@ -600,7 +706,7 @@ base_gh_branch_prune() {
     local dry_run=1 remote=0 include_closed_unmerged=0 default_branch status=0
     local dry_run_requested=0 yes_requested=0
 
-    BASE_GH_BRANCH_PR_STATE_CACHE=()
+    base_gh_branch_pr_state_cache_reset
     while (($#)); do
         case "$1" in
             --dry-run)
@@ -692,7 +798,7 @@ base_gh_worktree_prune() {
     local closed_review=0 open_review=0 no_pr_review=0
     local dry_run_requested=0 yes_requested=0
 
-    BASE_GH_BRANCH_PR_STATE_CACHE=()
+    base_gh_branch_pr_state_cache_reset
     while (($#)); do
         case "$1" in
             --dry-run)
