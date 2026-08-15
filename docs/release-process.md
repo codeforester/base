@@ -91,6 +91,8 @@ Complete these steps in `basefoundry/base`:
    - `.ai-context/STATUS.md` `Current Release` section
    - `CHANGELOG.md`, moving relevant `Unreleased` entries into the new release
      section
+   - maintained product and context docs: reconcile `Last reviewed`, `Base era
+     reviewed`, and `Current release` claims with `VERSION` and `CHANGELOG.md`
 4. Validate the release-prep PR:
 
    ```bash

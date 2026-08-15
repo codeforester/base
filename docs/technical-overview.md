@@ -1,7 +1,7 @@
 # Base — Technical and Product Overview
 
 Status: maintained product and technical reference
-Last reviewed: 2026-07-25
+Last reviewed: 2026-08-15
 
 ## What It Is
 

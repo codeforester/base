@@ -1,8 +1,8 @@
 # Base Product Requirements
 
 Status: maintained product requirements document
-Last reviewed: 2026-07-25
-Base era reviewed: 1.7.0 + Unreleased
+Last reviewed: 2026-08-15
+Base era reviewed: 1.8.0 + Unreleased
 
 This document is the product-facing source of truth for what Base is trying to
 be, who it serves, which outcomes matter, and what boundaries should guide
@@ -319,6 +319,11 @@ repositioning, and after meaningful external user feedback.
 
 ## Decision Log
 
+- 2026-08-15: Reviewed for the 1.8.0 release line and current Unreleased
+  changes. Compatibility aliases, stable diagnostic separation, resilient
+  onboarding, clearer logs/history, and branch/worktree safety strengthen the
+  execution contract without changing Base's target user, product thesis, or
+  supported platform boundary.
 - 2026-07-25: Reviewed for the 1.7.0 release line and current Unreleased
   changes. Stable inspection envelopes, workspace onboarding and agent-brief
   evidence, local history reports, explicit execution trust, and issue-readiness
