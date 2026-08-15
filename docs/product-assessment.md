@@ -1,8 +1,8 @@
 # Base Product Assessment
 
 Status: maintained product review artifact
-Last reviewed: 2026-07-30
-Base era reviewed: 1.7.0 + Unreleased
+Last reviewed: 2026-08-15
+Base era reviewed: 1.8.0 + Unreleased
 
 This document records a candid assessment of Base as a product and engineering
 effort. It is not marketing copy, and it should not drift into aspiration. When
@@ -17,6 +17,8 @@ ecosystem boundary model, see [Tool Boundaries](tool-boundaries.md).
 Review this assessment:
 
 - during each minor release line, such as `1.1.0`, `1.2.0`, and later;
+- immediately after a release, update the review header and dated delta from
+  `VERSION` and the matching `CHANGELOG.md` section;
 - by running `basectl prompt product-self-review` to generate the current
   review prompt before revising this document;
 - before any major repositioning of Base's product scope;
@@ -495,7 +497,7 @@ preserve the external tool as the repository-set authority and be tracked in
 separate issues. The detailed dated decisions and maintenance cadence live in
 [Tool Boundaries](tool-boundaries.md).
 
-### 2026-07-25 / 1.7.0 + Unreleased Product Review Delta
+### 2026-07-25 / 1.7.0 Product Review Delta
 
 The 1.7.0 release strengthens Base's evidence for deterministic local readiness
 and handoff without changing its target user, product thesis, or supported
@@ -519,16 +521,16 @@ The strongest shipped signals are:
   adjacent tools in adapter or export lanes rather than absorbing their
   configuration models.
 
-The current Unreleased work further hardens logs, history, doctor output, and
-branch/worktree hygiene. Those changes improve operational trust but should not
-be counted as a new product category or as evidence of external adoption.
+The pre-1.8.0 Unreleased work further hardened logs, history, doctor output,
+and branch/worktree hygiene. Those changes improved operational trust but did
+not establish a new product category or provide evidence of external adoption.
 
 The working ratings remain unchanged. 1.7.0 provides stronger proof of local
 contract quality, diagnosability, and handoff support, but it does not yet
 provide enough external adoption, contributor independence, support-load, or
 organizational-impact evidence to raise the adoption or engineering assessment.
 
-Current watchlist for the next release line:
+Watchlist recorded at the 1.7.0 review:
 
 - Finish the coordinated documentation positioning migration and add a narrow
   retired-terminology guard so the product thesis stays consistent across
@@ -541,6 +543,57 @@ Current watchlist for the next release line:
   separate support-contract decisions.
 - Continue issue-backed ownership reduction and preserve adapter boundaries as
   new IDE, container, AI, and environment requests arrive.
+
+### 2026-08-15 / 1.8.0 + Unreleased Product Review Delta
+
+The 1.8.0 release strengthens Base's compatibility, diagnostics, and
+operational-trust story without changing its target user, product thesis, or
+supported platform contract. It is a hardening release: the product is more
+predictable to upgrade, inspect, and recover, but it is not a new category or
+evidence of external adoption.
+
+The strongest shipped signals are:
+
+- v1.x compatibility aliases restore the deprecated `basectl ci` and
+  `--verbose-wrapper` forms while directing new automation to `--ci` and
+  `--debug-wrapper`. The compatibility boundary is explicit instead of
+  forcing users to choose between old scripts and the current command model.
+- The release aligns the published `base-cli` provider at 0.4.2 and consumes
+  the `base-bash-libs` v2.0.0 GA release in CI and source-checkout coverage.
+  That makes the shared framework boundary more reproducible without moving
+  generic framework policy into Base.
+- `workspace check` and `workspace doctor` now have distinct readiness and
+  remediation renderers while preserving the shared checks and JSON shape.
+  `check`, `doctor`, onboarding, and the last-check record also behave more
+  usefully when optional state is unwritable or findings remain, which
+  strengthens the verify/trust boundary.
+- Logs and history now expose clearer command filters, latest and last-failed
+  paths, complete log locations, aligned tables, stable invocation bundles,
+  and explicit local-time versus persisted-UTC behavior. This improves local
+  diagnosis and handoff evidence without introducing hosted telemetry.
+- GitHub and runtime workflows are more resilient: unsupported branch-rule
+  capabilities become warnings with the issue-branch workflow retained,
+  branch/worktree pruning reports merge-verification failures separately, and
+  activation no longer reuses another project's virtual-environment override.
+  The current Unreleased cleanup work adds explicit opt-in treatment for
+  closed-but-unmerged branches.
+
+The working ratings remain unchanged. 1.8.0 provides stronger proof of
+compatibility, diagnosability, and operational discipline, but it still does
+not provide enough external adoption, contributor independence, support-load,
+or organizational-impact evidence to raise the adoption or engineering
+assessment.
+
+Current watchlist for the next release line:
+
+- Keep `workspace agent-brief` and the issue-oriented handoff artifact in
+  #1562 explicitly separate until the latter is actually shipped.
+- Validate the readiness and handoff wedge with external polyrepo design
+  partners before expanding Base's feature surface (#1616).
+- Keep Ubuntu/Debian claims precise and treat broader Linux, WSL, and Windows
+  as separate support-contract decisions.
+- Continue issue-backed ownership reduction and preserve adapter boundaries as
+  new IDE, container, AI, environment, and repository-workflow requests arrive.
 
 ## 4. Creator And Engineering Skill Assessment
 
@@ -614,6 +667,10 @@ the system without needing the creator in the loop.
 
 ## Assessment History
 
+- 2026-08-15: Reviewed the 1.8.0 release line and current Unreleased changes;
+  recorded stronger compatibility, diagnostics, observability, runtime, and
+  GitHub workflow evidence while keeping ratings and the #1562 handoff boundary
+  unchanged.
 - 2026-07-25: Reviewed the 1.7.0 release line and current Unreleased changes;
   recorded stronger local readiness, handoff, inspection, trust, and agentic
   workflow evidence while keeping ratings and the #1562 handoff boundary

@@ -49,10 +49,10 @@ The current command surface covers:
 
 ## Active Development Direction
 
-The `v1.8.0` release is the current stabilization target. Future work is tracked in GitHub Issues,
+The `v1.8.0` release is complete. Future work is tracked in GitHub Issues,
 with GitHub CLI install/auth polish for Ubuntu, Docker/service artifacts,
 broader prompt ergonomics, broader Linux distribution support, and broader
-setup policy work remaining outside the 1.7 release contract.
+setup policy work remaining outside the shipped 1.8.0 release contract.
 
 The accepted product position is now a local operating contract for
 deterministic readiness and handoff within a project, from a single repository
