@@ -230,24 +230,6 @@ basectl_normalize_script_name() {
     printf '%s\n' "$script_name"
 }
 
-basectl_reject_removed_wrapper_options() {
-    local argument
-    local parse_options=1
-
-    for argument in "$@"; do
-        if ((parse_options)) && [[ "$argument" == "--" ]]; then
-            parse_options=0
-            continue
-        fi
-        if ((parse_options)) && [[ "$argument" == "--verbose-wrapper" ]]; then
-            printf "ERROR: Option '--verbose-wrapper' has been removed. Use '--debug-wrapper' for startup diagnostics.\n" >&2
-            return 2
-        fi
-    done
-
-    return 0
-}
-
 basectl_filter_runtime_args() {
     local parse_options=1
 
@@ -259,7 +241,7 @@ basectl_filter_runtime_args() {
             parse_options=0
         elif ((parse_options)); then
             case "$1" in
-                --debug-wrapper)
+                --debug-wrapper|--verbose-wrapper)
                     export BASE_BASH_LIBS_LOG_DEBUG=1
                     ;;
                 --utc-wrapper)
@@ -360,7 +342,6 @@ main() {
     local command_name
 
     basectl_ensure_supported_bash "$@"
-    basectl_reject_removed_wrapper_options "$@" || return $?
     base_home="$(basectl_base_home)" || basectl_die "Unable to resolve Base home."
 
     if [[ "${1:-}" == "--version" ]]; then

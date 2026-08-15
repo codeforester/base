@@ -599,7 +599,7 @@ _base_basectl_completion_help() {
 
 _base_basectl_completion() {
     local command cur
-    local commands="activate setup check test export-context devcontainer devenv-report build demo run repo release prompt docs clean logs history config trust doctor gh onboard update-profile update projects workspace version help"
+    local commands="activate setup check test export-context devcontainer devenv-report build demo run repo ci release prompt docs clean logs history config trust doctor gh onboard update-profile update projects workspace version help"
     local setup_options="--ci --format --profile --dry-run --manifest --notify --no-notify --recreate-venv --upgrade-pip --yes -v -h --help"
     local check_options="--ci --profile --format --manifest --remote-network -v -h --help"
     local doctor_options="--ci --profile --format --manifest --remote-network --no-color -v -h --help"
@@ -743,6 +743,26 @@ _base_basectl_completion() {
                 installer-template)
                     _base_basectl_completion_compgen "--print --stdout --repo --issue --category --pr --dry-run -v -h --help" "$cur"
                     ;;
+                esac
+            fi
+            ;;
+        ci)
+            if ((COMP_CWORD == 2)); then
+                _base_basectl_completion_compgen "setup check doctor" "$cur"
+            else
+                case "${COMP_WORDS[2]:-}" in
+                    setup)
+                        _base_basectl_completion_project_profiles_or_options \
+                            "$cur" "$setup_options" 3 "--format --manifest"
+                        ;;
+                    check)
+                        _base_basectl_completion_project_profiles_or_options \
+                            "$cur" "$check_options" 3 "--format --manifest"
+                        ;;
+                    doctor)
+                        _base_basectl_completion_project_profiles_or_options \
+                            "$cur" "$doctor_options" 3 "--format --manifest"
+                        ;;
                 esac
             fi
             ;;

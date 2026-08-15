@@ -466,6 +466,7 @@ _base_basectl_completion() {
         'demo:Run a project interactive demo'
         'run:Run a project command'
         'repo:Create, check, and configure repository baseline'
+        'ci:Deprecated compatibility aliases for setup, check, and doctor'
         'release:Inspect release readiness, notes, and publishing'
         'prompt:Print repo-owned Markdown prompts'
         'docs:Open the Base documentation home page on GitHub'
@@ -821,6 +822,38 @@ _base_basectl_completion() {
                     ;;
                 *)
                     _arguments '2:repo command:(init clone check configure agent-guidance installer-template)'
+                    ;;
+            esac
+            ;;
+        ci)
+            case "${words[3]:-}" in
+                setup)
+                    _arguments '3:ci command:(setup check doctor)' \
+                        '--ci[Run setup with CI-safe defaults]' \
+                        '--format[Output format]:format:(text json)' \
+                        '--manifest[Use a specific manifest]:path:_files' \
+                        '--dry-run[Preview changes without applying them]' \
+                        '--yes[Accept mutating setup actions]' \
+                        '(-h --help)'{-h,--help}'[Show help text]'
+                    ;;
+                check)
+                    _arguments '3:ci command:(setup check doctor)' \
+                        '--ci[Run check with CI-safe defaults]' \
+                        '--format[Output format]:format:(text json)' \
+                        '--manifest[Use a specific manifest]:path:_files' \
+                        '--remote-network[Opt in to bounded project Git origin reachability diagnostics]' \
+                        '(-h --help)'{-h,--help}'[Show help text]'
+                    ;;
+                doctor)
+                    _arguments '3:ci command:(setup check doctor)' \
+                        '--ci[Run doctor with CI-safe defaults]' \
+                        '--format[Output format]:format:(text json)' \
+                        '--manifest[Use a specific manifest]:path:_files' \
+                        '--remote-network[Opt in to bounded project Git origin reachability diagnostics]' \
+                        '(-h --help)'{-h,--help}'[Show help text]'
+                    ;;
+                *)
+                    _arguments '3:ci command:(setup check doctor)'
                     ;;
             esac
             ;;
