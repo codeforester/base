@@ -23,17 +23,27 @@ project contract to be useful.
 
 ## First-Time Installation
 
-### What should I run on a blank macOS machine?
+### What should I run on a blank macOS or Ubuntu/Debian machine?
 
-Use `bootstrap.sh`:
+On macOS, use `bootstrap.sh`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
 ```
 
-The bootstrapper verifies macOS, ensures Homebrew is available, installs Git and
-a supported Bash when needed, installs or updates Base, and then prints the
-exact `basectl` commands needed to finish setup.
+The macOS path verifies the host, ensures Homebrew is available, installs Git
+and a supported Bash when needed, installs or updates Base, and then prints the
+exact `basectl` commands needed to finish setup. On Ubuntu/Debian, preview the
+manual source-checkout path instead:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --source --dry-run
+```
+
+That path prints the apt prerequisites, sibling `base-bash-libs` checkout, and
+Base source setup commands; it does not run `sudo apt` from a piped script.
+Follow [Linux Support](docs/linux-support.md) for the supported Ubuntu/Debian
+runtime and apply-mode contract.
 
 If Base is already present but `basectl` cannot start because the current Bash
 is too old, use the narrower Bash repair path:
@@ -66,7 +76,9 @@ bootstrap prints, typically:
 ### When should I use bootstrap.sh, install.sh, Homebrew, or a source checkout?
 
 Use `bootstrap.sh` on a new or uncertain macOS machine. It handles missing
-first-mile prerequisites and then hands off to Base.
+first-mile prerequisites and then hands off to Base. On Ubuntu/Debian, use
+`bootstrap.sh --source --dry-run` to inspect the manual checkout path, then
+follow the printed apt-backed setup commands.
 
 Use `bootstrap.sh --ensure-bash` when the machine only needs a supported Bash
 before Base can continue. It does not clone Base, install Python, create virtual
@@ -386,7 +398,8 @@ follow the newest log in real time. Filter by command name with
 `basectl logs --command setup,check`, print only the newest matching path with
 `basectl logs --latest`, or open the newest matching log with
 `basectl logs --open`. Base stores logs under the Base cache root, normally
-`~/Library/Caches/base` on macOS, so they do not accumulate under `~/.base.d`.
+`~/Library/Caches/base` on macOS or `~/.cache/base` on Ubuntu/Debian, so they do
+not accumulate under `~/.base.d`.
 Use command verbosity such as `basectl -v setup` when you want a new run to
 capture DEBUG details before inspecting it with `basectl logs`. See
 `basectl logs --help` for all options.

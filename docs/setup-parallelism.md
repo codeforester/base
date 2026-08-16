@@ -31,10 +31,10 @@ execution would actually help.
 The Base setup command currently runs in ordered phases:
 
 1. First-mile Base prerequisites:
-   - require macOS, except for CI runtime-only setup;
-   - install or find Homebrew;
-   - install Xcode Command Line Tools;
-   - install the configured Homebrew Python formula;
+   - on macOS, install or find Homebrew, install Xcode Command Line Tools, and
+     install the configured Homebrew Python formula;
+   - on Ubuntu/Debian, use the supported apt-backed prerequisite mappings shown
+     by `basectl setup --dry-run`;
    - create or recreate the Base virtual environment;
    - install Base bootstrap Python packages.
 2. Optional prerequisite profiles:
@@ -48,6 +48,10 @@ The Base setup command currently runs in ordered phases:
      settings, uv-managed projects, and Base-managed artifacts;
    - batch Python package artifacts into one pip command where possible.
 4. User-local Base config seeding.
+
+The first-mile prerequisites are platform-specific, but the ordered ownership
+and serialization boundaries are shared. See [Linux Support](linux-support.md)
+for the Ubuntu/Debian setup contract.
 
 The slowest likely operations are external tools: Homebrew installs and
 upgrades, Xcode Command Line Tools installation, `brew bundle`, `mise install`,

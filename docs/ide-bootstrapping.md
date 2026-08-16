@@ -1,8 +1,10 @@
 # IDE Bootstrapping
 
-Base can bootstrap supported IDEs for Base-managed projects on macOS. This is
-part of Base's workstation setup responsibility: a fresh machine should be able
-to install the tools a project expects, validate that they are present, and
+Base can bootstrap supported IDEs for Base-managed projects on macOS. On
+Ubuntu/Debian, Base does not install GUI IDEs, but `basectl check --profile dev`
+can validate declared IDE extensions when the relevant editor CLI is already
+available. This is part of Base's workstation setup responsibility: a fresh
+machine should be able to install or validate the tools a project expects and
 surface clear recovery guidance through `basectl check` and `basectl doctor`.
 
 Base does not try to become a general IDE preference manager. It orchestrates
@@ -10,9 +12,11 @@ IDE readiness for project work.
 
 ## Scope
 
-IDE bootstrapping is currently macOS-only. Linux IDE setup is not implemented
-yet; see [Linux Support](linux-support.md) for the current Linux runtime-support
-status and boundaries.
+IDE application and extension installation is currently macOS-only. Ubuntu/Debian
+runtime support does not include GUI IDE setup, while the developer profile can
+inspect declared IDE extensions through an installed editor CLI. See [Linux
+Support](linux-support.md) for the current Linux runtime-support status and
+boundaries.
 
 Base owns:
 
