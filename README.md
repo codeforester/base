@@ -808,7 +808,7 @@ basectl repo init example --repo basefoundry/example
 ```
 
 This creates the local repository baseline: README, version, changelog,
-contributing guide, AGPL-3.0-or-later license, `.gitignore`, `base_manifest.yaml`, a
+contributing guide, Apache-2.0 license, `.gitignore`, `base_manifest.yaml`, a
 `tests/validate.sh` contract, and a GitHub Actions workflow that runs it.
 By default, `repo init` creates the repository under `workspace.root` from
 `~/.base.d/config.yaml`; if that is not configured, it falls back to the parent
@@ -825,7 +825,7 @@ the current branch. Existing remotes are never implicitly pushed. Use
 changes on a canonical issue-backed branch, push that branch to `origin`, and
 open a pull request. Use `--no-configure` to skip the GitHub step, or rerun it
 later with `basectl repo configure`. The generated license defaults to
-`AGPL-3.0-or-later`; pass `--license Apache-2.0` for standalone package repos.
+`Apache-2.0`, matching Base.
 Real PR runs derive and verify the issue category;
 offline `--pr --dry-run` previews also require `--category <name>`. Add
 `--agent-ready` when a new baseline should also include `AGENTS.md` and
@@ -1997,7 +1997,8 @@ memory.
 
 ## License
 
-Base is licensed under AGPL-3.0-or-later starting with v1.0.1.
+Base is licensed under Apache-2.0 starting with v1.9.0.
 
-Versions through v1.0.0 remain available under the MIT License as originally
+Versions v1.0.1 through v1.8.0 remain available under AGPL-3.0-or-later, and
+versions through v1.0.0 remain available under the MIT License as originally
 published. See [LICENSE](LICENSE) for the current license terms.

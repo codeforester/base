@@ -726,7 +726,7 @@ _base_basectl_completion() {
             else
                 case "${COMP_WORDS[2]:-}" in
                 init)
-                    _base_basectl_completion_compgen "--path --repo --issue --category --pr --agent-ready --release --language --description --license --copyright-holder --private --public --no-configure --no-protect-default-branch --project --project-owner --project-schema --initiative-option --copy-project-fields-from --no-project --dry-run -v -h --help" "$cur"
+                    _base_basectl_completion_compgen "--path --repo --issue --category --pr --agent-ready --release --language --description --license --private --public --no-configure --no-protect-default-branch --project --project-owner --project-schema --initiative-option --copy-project-fields-from --no-project --dry-run -v -h --help" "$cur"
                     ;;
                 clone)
                     _base_basectl_completion_compgen "--owner --path --dry-run -v -h --help" "$cur"

@@ -13,6 +13,14 @@ and Base versions are tracked in the repo-root `VERSION` file.
   `basectl gh worktree prune`, with explicit PR-state classification and
   retention details for open, closed-unmerged, and no-PR branches.
 
+### Changed
+
+- Relicensed Base prospectively under Apache-2.0 starting with v1.9.0 to reduce
+  adoption friction for companies with copyleft-averse license review. Existing
+  MIT and AGPL releases retain their original licenses.
+- Made `basectl repo init` generate Apache-2.0 licenses by default for new
+  repositories.
+
 ### Fixed
 
 - Batched branch and worktree GitHub PR-state verification through one
