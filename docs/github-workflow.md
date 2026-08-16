@@ -440,7 +440,9 @@ retention reason. Closed-unmerged branches remain review-only by default. Pass
 applies that explicitly selected cleanup scope. If the GitHub query cannot
 complete, pruning retains the branch or worktree, reports the underlying
 verification error, counts the incomplete check as a failure, and exits nonzero
-instead of classifying it as unmerged.
+instead of classifying it as unmerged. The PR-state lookup is one paginated REST
+read per prune invocation, shared by local, remote, and worktree checks; it does
+not issue one GraphQL query per branch.
 
 Remote branch pruning is deliberately conservative. Without
 `--closed-unmerged`, Base deletes a GitHub branch only when GitHub confirms a

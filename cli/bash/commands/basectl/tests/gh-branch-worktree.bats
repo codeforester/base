@@ -298,8 +298,8 @@ load ./basectl_helpers.bash
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "unmerged-work" ]]; then
-    printf 'no_pr\t-\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    :
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -325,6 +325,52 @@ EOF
     [[ "$output" == *"Classification: 0 closed-unmerged review, 0 open PR, 1 no PR."* ]]
     git -C "$repo" show-ref --verify --quiet refs/heads/unmerged-work
     git -C "$repo" ls-remote --exit-code --heads origin unmerged-work >/dev/null
+}
+
+@test "basectl gh branch prune batches GitHub pull-request state across branches" {
+    local repo calls
+
+    repo="$TEST_TMPDIR/repo"
+    calls="$TEST_TMPDIR/gh-calls"
+    init_git_repo "$repo"
+    printf 'hello\n' > "$repo/README.md"
+    commit_all "$repo" "Initial commit"
+    for branch in merged-one closed-two; do
+        git -C "$repo" switch -c "$branch" >/dev/null
+        printf '%s\n' "$branch" > "$repo/$branch.txt"
+        commit_all "$repo" "$branch"
+        git -C "$repo" switch master >/dev/null
+    done
+
+    cat > "$TEST_MOCKBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf x >> "$MOCK_GH_CALLS"
+    printf 'merged-one\tclosed\t1\t-\t0\t2026-08-09T20:44:31Z\n'
+    printf 'closed-two\tclosed\t2\t2026-08-08T20:44:31Z\t1786221871\t-\n'
+    exit 0
+fi
+printf 'unexpected gh args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$TEST_MOCKBIN/gh"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        PATH="$TEST_MOCKBIN:$PATH" \
+        MOCK_GH_CALLS="$calls" \
+        bash -c '
+            cd "$1"
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            base_gh_subcommand_main branch prune --closed-unmerged
+        ' bash "$repo"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"[DRY-RUN] DELETE merged-one  merged GitHub PR"* ]]
+    [[ "$output" == *"[DRY-RUN] DELETE closed-two  closed unmerged GitHub PR #2"* ]]
+    [ "$(wc -c < "$calls")" -eq 1 ]
 }
 
 @test "basectl gh branch prune --remote prints remote tracking refs separately" {
@@ -442,8 +488,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-remote" ]]; then
-    printf 'merged\t1\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'squash-remote\tclosed\t1\t-\t0\t2026-08-09T20:44:31Z\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -489,8 +535,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-remote" ]]; then
-    printf 'merged\t1\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'squash-remote\tclosed\t1\t-\t0\t2026-08-09T20:44:31Z\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -534,7 +580,7 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "lookup-failure" ]]; then
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
     printf 'failed to connect to api.github.com\n' >&2
     exit 1
 fi
@@ -614,8 +660,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-work" ]]; then
-    printf 'merged\t1\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'squash-work\tclosed\t1\t-\t0\t2026-08-09T20:44:31Z\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -658,8 +704,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-work" ]]; then
-    printf 'merged\t1\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'squash-work\tclosed\t1\t-\t0\t2026-08-09T20:44:31Z\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -701,7 +747,7 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "lookup-failure" ]]; then
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
     printf 'failed to connect to api.github.com\n' >&2
     exit 1
 fi
@@ -867,8 +913,8 @@ EOF
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "unmerged-work" ]]; then
-    printf 'no_pr\t-\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    :
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -914,7 +960,7 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "lookup-failure" ]]; then
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
     printf 'failed to connect to api.github.com\n' >&2
     exit 1
 fi
@@ -961,8 +1007,8 @@ EOF
 if [[ "$*" == "auth status -h github.com" ]]; then
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "squash-work" ]]; then
-    printf 'merged\t1\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'squash-work\tclosed\t1\t-\t0\t2026-08-09T20:44:31Z\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -1004,8 +1050,8 @@ EOF
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-remote" ]]; then
-    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'closed-remote\tclosed\t1939\t2026-08-08T20:44:31Z\t1786221871\t-\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -1045,8 +1091,8 @@ EOF
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-remote" ]]; then
-    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'closed-remote\tclosed\t1939\t2026-08-08T20:44:31Z\t1786221871\t-\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -1086,8 +1132,8 @@ EOF
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "open-remote" ]]; then
-    printf 'open\t2020\t-\t0\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'open-remote\topen\t2020\t-\t0\t-\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -1126,8 +1172,8 @@ EOF
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-local" ]]; then
-    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'closed-local\tclosed\t1939\t2026-08-08T20:44:31Z\t1786221871\t-\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2
@@ -1168,8 +1214,8 @@ EOF
 
     cat > "$TEST_MOCKBIN/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$1" == "pr" && "$2" == "list" && "$4" == "closed-work" ]]; then
-    printf 'closed_unmerged\t1939\t2026-08-08T20:44:31Z\t1786221871\n'
+if [[ "$1" == "api" && "$2" == "repos/{owner}/{repo}/pulls" ]]; then
+    printf 'closed-work\tclosed\t1939\t2026-08-08T20:44:31Z\t1786221871\t-\n'
     exit 0
 fi
 printf 'unexpected gh args: %s\n' "$*" >&2

@@ -13,6 +13,12 @@ and Base versions are tracked in the repo-root `VERSION` file.
   `basectl gh worktree prune`, with explicit PR-state classification and
   retention details for open, closed-unmerged, and no-PR branches.
 
+### Fixed
+
+- Batched branch and worktree GitHub PR-state verification through one
+  paginated REST read per prune invocation, avoiding one GraphQL query per
+  branch and failing the scan closed when that read is unavailable.
+
 ## [1.8.0] - 2026-08-15
 
 ### Added
