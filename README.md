@@ -5,10 +5,11 @@
 ![Platform: macOS + Ubuntu/Debian](https://img.shields.io/badge/platform-macOS%20%2B%20Ubuntu%2FDebian-lightgrey)
 ![Version](https://img.shields.io/badge/version-1.8.0-blue)
 
-Base is a local operating contract for developers and platform engineers who
-need a repeatable way to prepare, verify, test, build, and hand off a project,
-whether that project lives in one repository or spans multiple independent Git
-repositories.
+Base is a local operating contract: a shared, explicit set of project setup,
+readiness, trusted-execution, and handoff rules for developers and platform
+engineers. It gives a repeatable way to prepare, verify, test, build, and hand
+off a project, whether that project lives in one repository or spans multiple
+independent Git repositories.
 
 It makes that project or repo set easier to inventory, prepare, verify, trust,
 onboard, and hand off without turning it into a monorepo or moving
@@ -17,6 +18,34 @@ project-specific logic into Base.
 ```text
 inventory -> prepare -> verify -> trust -> onboard -> hand off
 ```
+
+## Quickstart
+
+For the shortest complete source-checkout path:
+
+```bash
+git clone https://github.com/basefoundry/base.git ~/work/base
+~/work/base/bin/basectl setup --dry-run
+~/work/base/bin/basectl setup
+~/work/base/bin/basectl projects list --workspace ~/work
+~/work/base/bin/basectl trust status base
+```
+
+Review the manifest identity and digest printed by `trust status` before
+running the exact `basectl trust allow base --manifest-sha256 ...` command it
+provides. This path lets you inspect and verify Base before adding it to shell
+startup files. See [Start Here](#start-here) for the full trust-conscious proof,
+demo walkthrough, and install choices.
+
+## Contents
+
+- [Quickstart](#quickstart)
+- [Start Here](#start-here)
+- [How Base Fits](#how-base-fits)
+- [Product Layers And Shipped Commands](#product-layers-and-shipped-commands)
+- [Public Command Surface](#public-command-surface)
+- [Documentation](#documentation)
+- [Compatibility](#compatibility)
 
 ## Why Base Exists
 
@@ -61,9 +90,9 @@ for the command-by-command compatibility contract and non-GitHub Git workflow.
 
 ## Start Here
 
-### 90-Second Proof, No Dotfile Changes
+### Trust-Conscious Proof, No Dotfile Changes
 
-The fastest trust-conscious evaluation path is a source checkout. It lets you
+This trust-conscious evaluation path uses a source checkout. It lets you
 inspect the code, run setup explicitly, and prove the local project loop before
 Base touches shell startup files:
 
@@ -327,6 +356,12 @@ post-migration boundary are documented in
 [Base Bash Libraries](docs/base-bash-libs.md).
 
 ## Product Layers And Shipped Commands
+
+> **Deep reference:** This section is intentionally skippable on a first read.
+> It preserves the detailed command and runtime reference for contributors and
+> evaluators; start with [Quickstart](#quickstart), then use the focused
+> [Command Quick Reference](docs/command-reference.md) and
+> [Technical Overview](docs/technical-overview.md) when you need command detail.
 
 Base's primary product outcome is readiness and handoff. The command and runtime
 details below preserve discovery of the shipped execution contract, workflow

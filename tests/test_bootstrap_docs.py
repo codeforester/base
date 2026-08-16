@@ -38,9 +38,9 @@ def test_bootstrap_quick_start_surfaces_verified_homebrew_installer_path() -> No
     assert "BASE_HOMEBREW_INSTALLER_SHA256" in quick_start
 
 
-def test_readme_90_second_proof_reviews_manifest_trust_before_demo() -> None:
+def test_readme_trust_conscious_proof_reviews_manifest_trust_before_demo() -> None:
     text = README.read_text(encoding="utf-8")
-    proof = section(text, "### 90-Second Proof, No Dotfile Changes", "### Shell Startup Is Explicit")
+    proof = section(text, "### Trust-Conscious Proof, No Dotfile Changes", "### Shell Startup Is Explicit")
     normalized_proof = " ".join(proof.split())
 
     base_status = proof.index("basectl trust status base")
