@@ -88,22 +88,17 @@ and cloud sync.
 
 ## Config Precedence
 
-For Python commands built on `base_cli.App`, configuration is loaded in this
-order:
-
-1. user config: `~/.base.d/config.yaml`
-2. project config: `<project>/.base/config.yaml`
-3. explicit config from `--config`
-4. recognized environment variables
-5. direct command-line standard options
-
-Later layers override earlier layers for the same key.
+For Python commands built on `base_cli.App`, the canonical precedence contract
+is documented in [Base CLI Configuration](base-cli.md#configuration). This page
+describes the local config file and its supported settings; it does not define
+a second precedence order.
 
 Recognized environment variables include:
 
 - `BASE_CLI_ENVIRONMENT`
 - `BASE_CLI_LOG_LEVEL`
 - `BASE_CLI_KEEP_TEMP`
+- `BASE_CLI_TEMP_RETENTION_DAYS`
 
 `BASE_CACHE_DIR` separately controls the runtime cache/log/temp root; it is not
 stored in the user config.

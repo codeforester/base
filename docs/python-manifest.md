@@ -301,12 +301,13 @@ version-mismatched packages in human-readable output and in the optional
 replace reviewing manifests from unfamiliar repositories before running their
 declared commands.
 
-`basectl workspace status --format json` also includes a `python_runtime`
-object for each ready, inspectable project environment. That summary reports
-the environment manager, virtualenv path, interpreter path, and actual Python
-minor version for both Base-managed and uv-managed projects.
-Shell-only projects instead report `venv: "not_applicable"` and omit
-`python_runtime`.
+### Workspace status `python_runtime`
+
+`basectl workspace status --format json` includes a `python_runtime` object for
+each ready, inspectable project environment. That summary reports the
+environment manager, virtualenv path, interpreter path, and actual Python minor
+version for both Base-managed and uv-managed projects. Shell-only projects
+instead report `venv: "not_applicable"` and omit `python_runtime`.
 
 ## Non-Goals
 
