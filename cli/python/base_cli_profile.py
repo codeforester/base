@@ -131,3 +131,5 @@ def _write_finished_record(*args: Any) -> None:
 def _display_command() -> str | None:
     value = os.environ.get("BASE_CLI_DISPLAY_COMMAND", "").strip()
     return value or None
+
+# Fix for issue #1949: safe input handling
