@@ -741,8 +741,7 @@ _base_basectl_completion() {
                         '--release[Seed the generic release contract and process documentation]' \
                         '--language[Add project language metadata; may be repeated]:csv:' \
                         '--description[Repository description]:description:' \
-                        '--license[Repository license]:SPDX:(AGPL-3.0-or-later Apache-2.0)' \
-                        '--copyright-holder[Copyright holder]:name:' \
+                        '--license[Repository license]:SPDX:(Apache-2.0)' \
                         '--private[Create a private GitHub repository when needed]' \
                         '--public[Create a public GitHub repository when needed]' \
                         '--no-configure[Skip GitHub configuration]' \

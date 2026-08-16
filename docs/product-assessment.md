@@ -271,11 +271,11 @@ Other shipped improvements reduce earlier product objections:
   private shell snippets" story, while Homebrew/core packaging remains tracked
   separately in #909.
 
-AGPL-3.0-or-later is now an explicit adoption tradeoff. It improves the
-project's open-source reciprocity stance and is coherent for a control-plane
-tool, but it may slow adoption in companies with strict license review. This is
-a positioning and sales-friction risk, not a reason to reopen the license choice
-inside this assessment.
+Apache-2.0 is now Base's license starting with v1.9.0. This removes the
+strong-copyleft review friction identified in the earlier assessment while
+retaining attribution and an explicit patent grant. Versions v1.0.1 through
+v1.8.0 remain available under AGPL-3.0-or-later; this is a prospective change,
+not a rewrite of historical releases.
 
 Remaining risks should stay issue-backed rather than becoming a parallel
 backlog here:

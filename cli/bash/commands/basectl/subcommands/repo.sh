@@ -71,8 +71,7 @@ Options:
   --release                     Seed the generic release contract and process documentation.
   --language <csv>              Add project language metadata; may be repeated.
   --description <text>          Repository description for generated README.
-  --license <SPDX>              License for the generated repository (AGPL-3.0-or-later or Apache-2.0).
-  --copyright-holder <name>     Copyright holder for generated AGPL license. Defaults to git config user.name.
+  --license <SPDX>              License for the generated repository (Apache-2.0).
   --private                     Create a private GitHub repository when needed. This is the default.
   --public                      Create a public GitHub repository when needed.
   --no-configure                Skip GitHub configuration during repo init.
@@ -303,20 +302,6 @@ base_repo_default_description() {
     local name="$1"
 
     printf 'Base-managed project %s.\n' "$name"
-}
-
-base_repo_default_copyright_holder() {
-    local holder=""
-
-    holder="$(git config --global user.name 2>/dev/null || true)"
-    if [[ -z "$holder" ]]; then
-        holder="$(id -un 2>/dev/null || true)"
-    fi
-    if [[ -z "$holder" ]]; then
-        holder="Unknown"
-    fi
-
-    printf '%s\n' "$holder"
 }
 
 base_repo_validate_name() {
@@ -565,13 +550,6 @@ base_repo_clone_url() {
     esac
 }
 
-base_repo_baseline_year() {
-    local year
-
-    printf -v year '%(%Y)T' -1 || return 1
-    printf '%s\n' "$year"
-}
-
 base_repo_create_directory() {
     local target_dir="$1"
 
@@ -790,19 +768,9 @@ Closes #
 EOF
 }
 
-base_repo_agpl_license_text() {
-    local source_license="$1"
-
-    awk '
-        /^[[:space:]]*GNU AFFERO GENERAL PUBLIC LICENSE$/ { found = 1 }
-        found { print }
-        END { if (!found) exit 1 }
-    ' "$source_license"
-}
-
 base_repo_license_is_supported() {
     case "$1" in
-        AGPL-3.0-or-later|Apache-2.0)
+        Apache-2.0)
             return 0
             ;;
         *)
@@ -812,64 +780,24 @@ base_repo_license_is_supported() {
 }
 
 base_repo_license_display() {
-    printf 'AGPL-3.0-or-later or Apache-2.0\n'
+    printf 'Apache-2.0\n'
 }
 
 base_repo_write_license() {
-    local canonical_license
-    local copyright_holder="$2"
     local dry_run="$1"
-    local license_id="$3"
-    local root="$4"
-    local source_license="${BASE_HOME:-}/LICENSE"
+    local license_id="$2"
+    local root="$3"
     local license_template="${BASE_HOME:-}/templates/licenses/Apache-2.0"
-    local year
 
-    case "$license_id" in
-        AGPL-3.0-or-later)
-            [[ -f "$source_license" ]] || {
-                base_std_log_error "Base AGPL license text '$source_license' was not found."
-                return 1
-            }
-
-            canonical_license="$(base_repo_agpl_license_text "$source_license")" || {
-                base_std_log_error "Base AGPL license text '$source_license' did not contain the canonical AGPL terms."
-                return 1
-            }
-
-            year="$(base_repo_baseline_year)"
-            {
-                cat <<EOF
-Copyright (C) $year $copyright_holder
-
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU Affero General Public License as published by the Free
-Software Foundation, either version 3 of the License, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License along
-with this program. If not, see <https://www.gnu.org/licenses/>.
-EOF
-                printf '\n'
-                printf '%s\n' "$canonical_license"
-            } | base_repo_write_stream "$dry_run" "$root/LICENSE"
-            ;;
-        Apache-2.0)
-            [[ -f "$license_template" ]] || {
-                base_std_log_error "Apache-2.0 license template '$license_template' was not found."
-                return 1
-            }
-            base_repo_write_stream "$dry_run" "$root/LICENSE" < "$license_template"
-            ;;
-        *)
-            base_std_log_error "Unsupported repository license '$license_id'. Expected: $(base_repo_license_display)"
-            return 1
-            ;;
-    esac
+    [[ "$license_id" == "Apache-2.0" ]] || {
+        base_std_log_error "Unsupported repository license '$license_id'. Expected: $(base_repo_license_display)"
+        return 1
+    }
+    [[ -f "$license_template" ]] || {
+        base_std_log_error "Apache-2.0 license template '$license_template' was not found."
+        return 1
+    }
+    base_repo_write_stream "$dry_run" "$root/LICENSE" < "$license_template"
 }
 
 base_repo_write_gitignore() {
@@ -1204,13 +1132,12 @@ base_repo_write_project_support_files() {
 }
 
 base_repo_write_baseline() {
-    local copyright_holder="$4"
     local description="$3"
     local dry_run="$1"
-    local license_id="$6"
+    local license_id="$5"
     local name="$2"
-    local root="$5"
-    local languages=("${@:7}")
+    local root="$4"
+    local languages=("${@:6}")
     local status=0
 
     if [[ "$dry_run" != "1" ]]; then
@@ -1223,7 +1150,7 @@ base_repo_write_baseline() {
     base_repo_write_contributing "$dry_run" "$name" "$root" || status=1
     base_repo_write_pull_request_template "$dry_run" "$root" || status=1
     base_repo_write_project_config "$dry_run" "$root" || status=1
-    base_repo_write_license "$dry_run" "$copyright_holder" "$license_id" "$root" || status=1
+    base_repo_write_license "$dry_run" "$license_id" "$root" || status=1
     base_repo_write_gitignore "$dry_run" "$root" || status=1
     base_repo_write_manifest "$dry_run" "$name" "$root" "${languages[@]}" || status=1
     base_repo_write_validate_script "$dry_run" "$root" || status=1
@@ -2120,7 +2047,6 @@ base_repo_init() {
     local agent_ready=0
     local configure=1
     local baseline_change_status=0
-    local copyright_holder=""
     local category=""
     local create_pr=0
     local default_branch=""
@@ -2130,7 +2056,7 @@ base_repo_init() {
     local github_visibility="private"
     local github_visibility_explicit=0
     local issue=""
-    local license_id="AGPL-3.0-or-later"
+    local license_id="Apache-2.0"
     local name=""
     local path=""
     local project_owner=""
@@ -2310,14 +2236,6 @@ base_repo_init() {
                 }
                 shift
                 ;;
-            --copyright-holder)
-                [[ -n "${2:-}" ]] || {
-                    base_repo_init_usage_error "Option '--copyright-holder' requires an argument."
-                    return $?
-                }
-                copyright_holder="$2"
-                shift 2
-                ;;
             --private|--public)
                 requested_visibility="${1#--}"
                 if ((github_visibility_explicit)) && [[ "$github_visibility" != "$requested_visibility" ]]; then
@@ -2435,7 +2353,6 @@ base_repo_init() {
     fi
     [[ -n "$path" ]] || path="$(base_repo_default_target_path "$name")"
     [[ -n "$description" ]] || description="$(base_repo_default_description "$name")"
-    [[ -n "$copyright_holder" ]] || copyright_holder="$(base_repo_default_copyright_holder)"
     root="$(base_repo_target_path "$path")"
     if [[ -n "$issue" ]] && ! base_github_issue_number_is_valid "$issue"; then
         base_repo_init_usage_error "Option '--issue' must be a positive integer."
@@ -2517,7 +2434,7 @@ base_repo_init() {
         return $?
     fi
 
-    base_repo_write_baseline "$dry_run" "$name" "$description" "$copyright_holder" "$root" "$license_id" "${language_options[@]}" || return 1
+    base_repo_write_baseline "$dry_run" "$name" "$description" "$root" "$license_id" "${language_options[@]}" || return 1
     if ((configure_release)); then
         base_repo_configure_release "$dry_run" "$github_repo" "$root" || return 1
     fi

@@ -54,10 +54,9 @@ baseline PR. Use `--no-configure` when GitHub setup should be skipped or when
 local-only initialization is desired. Add `--agent-ready` when the baseline
 should also seed `AGENTS.md` and `skills.md` for agent-assisted development.
 
-The generated license defaults to `AGPL-3.0-or-later`, matching Base. Pass
-`--license Apache-2.0` for an extracted package repository such as
-`base-cli`; the distribution and import package can then remain named
-`base-cli`/`base_cli` without inheriting Base's copyleft license.
+The generated license defaults to `Apache-2.0`, matching Base. The generated
+baseline can therefore be reused by extracted package repositories such as
+`base-cli`/`base_cli` without inheriting a copyleft license.
 
 Use `--language <csv>` to record the repository's language profile in the
 generated `base_manifest.yaml`. The option may be repeated, and CSV and

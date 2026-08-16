@@ -5,6 +5,13 @@ opinionated, testable, and useful as a local operating contract for deterministi
 readiness and handoff across independent Git repositories. The durable product
 loop is inventory -> prepare -> verify -> trust -> onboard -> hand off.
 
+## License
+
+Base is distributed under Apache-2.0 starting with v1.9.0. Earlier releases
+retain the license stated in their release documentation. Unless a separate
+written agreement says otherwise, contributions submitted for inclusion in Base
+are accepted under the Apache-2.0 terms.
+
 ## AI-Assisted Development
 
 Coding agents should follow [AGENTS.md](AGENTS.md). It points to the same

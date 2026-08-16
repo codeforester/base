@@ -367,7 +367,6 @@ load ./basectl_helpers.bash
     [ "$status" -eq 0 ]
     for flag in \
         "--description <text>" \
-        "--copyright-holder <name>" \
         "--project <title>" \
         "--project-owner <login>" \
         "--project-schema <schema>" \

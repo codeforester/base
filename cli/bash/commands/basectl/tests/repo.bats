@@ -1358,7 +1358,7 @@ EOF
 
     [ "$status" -eq 2 ]
     [[ "$output" == *"Unsupported repository license 'MIT'"* ]]
-    [[ "$output" == *"AGPL-3.0-or-later or Apache-2.0"* ]]
+    [[ "$output" == *"Apache-2.0"* ]]
     [ ! -e "$repo_dir" ]
 }
 
@@ -1445,7 +1445,8 @@ EOF
     if grep -Fq "Demo Impact" "$repo_dir/.github/pull_request_template.md"; then
         fail "pull request template should not include Demo Impact by default"
     fi
-    grep -Fq "GNU Affero General Public License" "$repo_dir/LICENSE"
+    grep -Fq "Apache License" "$repo_dir/LICENSE"
+    grep -Fq "Version 2.0, January 2004" "$repo_dir/LICENSE"
     run grep -F "Base - a workspace control plane" "$repo_dir/LICENSE"
     [ "$status" -eq 1 ]
 
@@ -1536,71 +1537,6 @@ EOF
     [[ "$output" == *"basectl repo configure $repo_dir --repo <owner/base-demo>"* ]]
     [[ "$output" == *"Or to create the GitHub repository and configure it now:"* ]]
     [[ "$output" == *"basectl repo init base-demo --path $repo_dir --repo <owner/base-demo>"* ]]
-}
-
-@test "basectl repo init defaults copyright holder to git user name" {
-    local repo_dir="$TEST_TMPDIR/git-owner"
-
-    cat > "$TEST_MOCKBIN/git" <<'EOF'
-#!/usr/bin/env bash
-if [[ "${1:-}" == "config" && "${2:-}" == "--global" && "${3:-}" == "user.name" ]]; then
-    printf 'Ada Lovelace\n'
-    exit 0
-fi
-exit 1
-EOF
-    chmod +x "$TEST_MOCKBIN/git"
-
-    run env \
-        HOME="$TEST_HOME" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
-        "$BASE_REPO_ROOT/bin/basectl" repo init git-owner --path "$repo_dir" --no-configure
-
-    [ "$status" -eq 0 ]
-    grep -Fq "Copyright (C) $(date +%Y) Ada Lovelace" "$repo_dir/LICENSE"
-    grep -Fq "GNU Affero General Public License as published by" "$repo_dir/LICENSE"
-}
-
-@test "basectl repo init falls back to system username for copyright holder" {
-    local repo_dir="$TEST_TMPDIR/system-owner"
-    local username
-
-    cat > "$TEST_MOCKBIN/git" <<'EOF'
-#!/usr/bin/env bash
-exit 1
-EOF
-    chmod +x "$TEST_MOCKBIN/git"
-    username="$(id -un)"
-
-    run env \
-        HOME="$TEST_HOME" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
-        "$BASE_REPO_ROOT/bin/basectl" repo init system-owner --path "$repo_dir" --no-configure
-
-    [ "$status" -eq 0 ]
-    grep -Fq "Copyright (C) $(date +%Y) $username" "$repo_dir/LICENSE"
-    grep -Fq "GNU Affero General Public License as published by" "$repo_dir/LICENSE"
-}
-
-@test "base_repo_baseline_year uses bash time formatting without date command" {
-    cat > "$TEST_MOCKBIN/date" <<'EOF'
-#!/usr/bin/env bash
-exit 1
-EOF
-    chmod +x "$TEST_MOCKBIN/date"
-
-    run env \
-        HOME="$TEST_HOME" \
-        BASE_HOME="$BASE_REPO_ROOT" \
-        PATH="$TEST_MOCKBIN:/usr/bin:/bin:/usr/sbin:/sbin" \
-        "$BASH" -c '
-            source "$BASE_HOME/base_init.sh"
-            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/repo.sh"
-            base_repo_baseline_year
-        '
-
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ ^[0-9]{4}$ ]]
 }
 
 @test "basectl repo init leaves existing files unchanged" {
