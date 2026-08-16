@@ -90,16 +90,24 @@ Read more: [Tool Boundaries](../tool-boundaries.md)
 
 Base starts before the developer has a working Base environment.
 
-On macOS, `bootstrap.sh` handles the first mile:
+On macOS, `bootstrap.sh` handles the first mile through Homebrew. On
+Ubuntu/Debian, use source mode to preview the manual apt-backed path:
 
 ```bash
+# macOS
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
+# Ubuntu/Debian preview
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --source --dry-run
 ```
 
-It installs or checks the prerequisites needed to hand off to `basectl setup`.
-Users can choose source checkout mode or Homebrew install mode explicitly.
+The macOS path installs or checks the prerequisites needed to hand off to
+`basectl setup`. The Ubuntu/Debian path prints the prerequisite and source
+checkout commands without running `sudo apt` from a piped script. Users can
+choose source checkout mode explicitly on either platform; Homebrew install
+mode is the macOS path.
 
-Read more: [First-Mile Bootstrap](../bootstrap.md)
+Read more: [First-Mile Bootstrap](../bootstrap.md) and
+[Linux Support](../linux-support.md)
 
 ---
 
@@ -119,7 +127,8 @@ basectl check
 basectl doctor
 ```
 
-Read more: [Clean macOS Install Validation](../macos-install-validation.md)
+Read more: [Clean macOS Install Validation](../macos-install-validation.md) and
+[Linux Support](../linux-support.md)
 
 ---
 

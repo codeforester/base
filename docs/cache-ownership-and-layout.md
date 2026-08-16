@@ -41,10 +41,13 @@ raw project logs and caches remain in the project-owned tree.
 
 ## Proposed directory tree
 
-With the cache root set to `~/Library/Caches/base`, the clean layout is:
+The default cache root is `~/Library/Caches/base` on macOS and `~/.cache/base`
+on Ubuntu/Debian. `BASE_CACHE_DIR` can override either default. The ownership
+split is the same on both platforms; with `$BASE_CACHE_DIR` set to the resolved
+cache root, the clean layout is:
 
 ```text
-~/Library/Caches/base/
+$BASE_CACHE_DIR/
 ├── base/
 │   ├── history/
 │   │   └── runs.jsonl

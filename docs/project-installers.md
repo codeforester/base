@@ -26,12 +26,18 @@ the product-shaped welcome mat.
 
 Base owns:
 
-- macOS workstation bootstrap primitives
-- Homebrew, Xcode Command Line Tools, Base Python, and Base venv setup
+- macOS workstation bootstrap primitives and supported Ubuntu/Debian runtime
+  setup
+- Homebrew, Xcode Command Line Tools, apt-backed prerequisites, Base Python, and
+  Base venv setup
 - project discovery through `base_manifest.yaml`
 - artifact reconciliation through `basectl setup`
 - diagnostics through `basectl check` and `basectl doctor`
 - shell integration through `basectl update-profile`
+
+The Ubuntu/Debian path is narrower than macOS: it covers the supported runtime
+and apt-backed prerequisites, not GUI IDE installation or every project runtime
+dependency. See [Linux Support](linux-support.md) for the platform boundary.
 
 A project installer owns:
 
