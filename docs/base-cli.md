@@ -305,9 +305,14 @@ Configuration is resolved from lowest to highest precedence:
 1. Code defaults
 2. User config: `~/.base.d/config.yaml`
 3. Project config: `<project-root>/.base/config.yaml`
-4. Environment variables
-5. Command line options
-6. Explicit runtime API overrides
+4. Explicit config selected by `--config`
+5. Recognized environment variables
+6. Command-line standard options
+
+The `--config` option selects an additional config file that is merged after
+project config and before environment variables. It is therefore a config
+source layer, while options such as `--environment`, `--debug`, and
+`--keep-temp` remain the final command-line layer.
 
 V1 intentionally does not read machine-wide or organization-wide config
 implicitly. In particular, Base must not silently load `/etc/base.d/config.yaml`
@@ -316,9 +321,9 @@ checkout and a local developer shell deterministic unless the user or wrapper
 explicitly opts into an additional config source.
 
 V1 implements the shape and context fields, but only needs a minimal config
-loader: YAML files are merged when present, environment is read from
-`BASE_CLI_ENVIRONMENT`, and CLI options can override `--environment`, `--debug`,
-`--keep-temp`, and `--log-file`.
+loader: YAML files are merged when present, recognized environment values are
+applied after the explicit config source, and CLI options can override
+`--environment`, `--debug`, `--keep-temp`, and `--log-file`.
 
 `ctx.config` remains the merged raw configuration dictionary. `ctx.user_config`
 is the typed machine-local user config, so command authors can read

@@ -200,6 +200,7 @@ readonly by Base.
 | Variable | Scope | Meaning |
 | --- | --- | --- |
 | `BASE_CACHE_DIR` | Python CLI/runtime cache | Overrides the cache, log, and temp root. Defaults are platform-specific. |
+| `BASE_PROJECT_PYTHON_BIN` | Project Python runtime selection | Overrides the interpreter candidate used when Base creates or checks a project virtual environment. The path must point to a supported Python interpreter. |
 | `BASE_CLI_ENVIRONMENT` | Python CLI config | Selects the CLI environment value used by `base_cli`. |
 | `BASE_CLI_LOG_LEVEL` | Python CLI config | Sets the Python CLI user-stream log level. |
 | `BASE_CLI_KEEP_TEMP` | Python CLI config | Keeps temp directories for inspection when true. |

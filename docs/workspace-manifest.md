@@ -487,10 +487,8 @@ Missing required repositories are errors. Missing optional repositories are
 warnings. Present repositories without `base_manifest.yaml` are allowed and
 reported with project diagnostics skipped.
 
-With `--format json`, workspace status includes `python_runtime` for each
-ready, inspectable Base-managed project environment. The object reports the
-environment manager, virtualenv path, interpreter path, and actual Python minor
-version so users can quickly compare project runtimes across a workspace.
+For the canonical `python_runtime` field definition and JSON shape, see
+[Python Manifest](python-manifest.md#workspace-status-python_runtime).
 
 `basectl workspace check --manifest <path>` includes normal project diagnostics
 for present Base-managed projects and renders check-oriented status, names, and
