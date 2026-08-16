@@ -86,6 +86,18 @@ JSON output is a report document rather than the row list from plain
 semantics. Setup, check, doctor, repository inspection, and GitHub inspection
 commands likewise retain their existing `text|json` contracts until they are
 individually migrated.
+`release check` is not one of those exceptions: it supports all five shared
+report formats, `text|csv|tsv|yaml|json`.
+
+## `basectl release check`
+
+`release check` uses the five-format contract above. Its `json` output is the
+stable v1 inspection envelope documented in [Inspection JSON](inspection-json.md)
+and its `yaml` output preserves the same object and field structure. Its
+`csv` and `tsv` output flattens each `data.findings[]` record into one row, in
+`STATUS`, `NAME`, `MESSAGE` order, from the finding's `status`, `name`, and
+`message` fields. With the default `text` format, a terminal receives a
+human-readable summary; redirected output remains headerless rows.
 
 ## `basectl projects list`
 

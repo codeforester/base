@@ -55,7 +55,10 @@ Stable JSON contracts include:
   [Workspace Manifest](workspace-manifest.md);
 - local trust status JSON documented in
   [Manifest Command Trust](manifest-command-trust.md);
-- redacted local config JSON documented in [Local Config](local-config.md).
+- redacted local config JSON documented in [Local Config](local-config.md);
+- side-effect-free lifecycle listing payloads from `basectl run --list
+  --format json` and `basectl build --list --format json`, documented in the
+  [Command Quick Reference](command-reference.md);
 - the shared v1 envelope and command-specific fields for read-only control-plane
   inspection JSON documented in [Inspection JSON](inspection-json.md).
 
@@ -79,7 +82,7 @@ same meaning. See [Doctor Finding IDs](doctor-findings.md).
 The following are internal unless another document explicitly promotes them:
 
 - direct `base_cli` package standard options rejected by `basectl`, such as
-  `--debug`, `--quiet`, `--config`, `--environment`, and `--keep-temp`;
+  `--debug`, `--quiet`, `--log-file`, `--config`, and `--environment`;
 - Bash helper functions and sourced subcommand modules under
   `cli/bash/commands/basectl/subcommands/`;
 - Python modules that are not documented as a public package surface;
@@ -91,3 +94,7 @@ The following are internal unless another document explicitly promotes them:
 When a user-facing workflow starts depending on an internal surface, promote
 that surface deliberately by documenting its tier and adding a focused test or
 contract row.
+
+The wrapper-level `basectl --keep-temp <command>` flag is public and stable; it
+is intentionally separate from the rejected direct `base_cli` package options
+listed above.

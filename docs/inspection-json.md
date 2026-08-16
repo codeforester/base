@@ -13,6 +13,10 @@ Text remains the default. JSON mode writes exactly one JSON document to stdout
 and never mixes ANSI formatting or human prose into that stream. Upstream tools
 may still write diagnostics to stderr.
 
+`release check` also supports the full report-format set:
+`--format text|csv|tsv|yaml|json`. This page defines its `json` serialization;
+the other renderings are described in [Output formats](output-formats.md).
+
 ## Stable V1 Envelope
 
 Every command uses the same top-level object:
@@ -119,6 +123,11 @@ and `missing_files`. The release record reports `manifest_path`, `manifest_decla
 `findings` fields. Each finding has stable `status`, `name`, and `message`
 fields. Finding names and messages follow the existing release readiness
 policy; consumers should branch on `status` and `name`, not prose.
+
+When `release check` is rendered as CSV or TSV, each `data.findings[]` object
+becomes one row with `STATUS`, `NAME`, and `MESSAGE` columns. Those columns are
+the finding's `status`, `name`, and `message` fields in that order; see [Output
+formats](output-formats.md) for the shared rendering rules.
 
 ```json
 {

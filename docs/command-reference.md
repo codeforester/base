@@ -175,7 +175,7 @@ daily project loop commands from the local checkout.
 
 | Command | What it does | Important flags |
 |---|---|---|
-| `basectl release check --version <version>` | Inspect release readiness without publishing. Stable inspection JSON uses the shared v1 envelope. | `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
+| `basectl release check --version <version>` | Inspect release readiness without publishing. Supports all five report formats; JSON uses the shared v1 inspection envelope. | `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl release plan --version <version>` | Print the release plan and downstream handoff details. | `--manifest <path>` |
 | `basectl release notes --version <version>` | Extract release notes for the requested version. | `--manifest <path>` |
 | `basectl release publish --version <version>` | Create the annotated Git tag and GitHub Release after checks pass. | `--manifest <path>`, `--dry-run`, `--yes` |
