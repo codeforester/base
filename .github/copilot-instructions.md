@@ -36,7 +36,7 @@ Use the narrowest relevant validation first:
   focused pytest target with `BASE_CLI_SOURCE_DIR=../base-cli/lib/python` and
   `PYTHONPATH=../base-cli/lib/python:lib/python:cli/python`;
 - Bash command changes: run the focused BATS tests;
-- general Base changes: run `env -u BASE_HOME ./bin/base-test` when practical.
+- general Base changes: run `basectl test base` when practical.
 
 Copilot cloud-agent sessions may run `.github/workflows/copilot-setup-steps.yml`
 before work starts. That workflow is only a lightweight environment guardrail;
