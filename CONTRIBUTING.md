@@ -81,6 +81,7 @@ available for local edits:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --source
 git clone https://github.com/basefoundry/base-bash-libs.git ~/work/base-bash-libs
+git clone https://github.com/basefoundry/base-cli.git ~/work/base-cli
 ~/work/base/bin/basectl setup --profile dev
 ~/work/base/bin/basectl update-profile
 exec "$SHELL" -l
@@ -92,8 +93,11 @@ installs developer prerequisites such as BATS, the GitHub CLI, and ShellCheck. S
 [First-Mile Bootstrap](docs/bootstrap.md) for install modes and boundaries.
 
 Base source development resolves reusable Bash libraries from the sibling
-`~/work/base-bash-libs` checkout. If that checkout already exists, update it
-instead of cloning a second copy.
+`~/work/base-bash-libs` checkout and the standalone Python framework from the
+`~/work/base-cli` checkout. If either checkout already exists, update it instead
+of cloning a second copy. The Bash checkout is required by the source-checkout
+suite; the `base-cli` checkout is also required by the Python test command
+shown below.
 
 ## First External PR
 
@@ -128,7 +132,9 @@ When the full source-checkout suite is needed from a linked worktree under
 `~/work/base-worktrees`, export the reusable Bash library path first:
 
 ```bash
-BASE_BASH_LIBS_DIR=~/work/base-bash-libs/lib/bash env -u BASE_HOME ./bin/base-test
+BASE_BASH_LIBS_DIR=~/work/base-bash-libs/lib/bash \
+BASE_CLI_SOURCE_DIR=~/work/base-cli/lib/python \
+env -u BASE_HOME ./bin/base-test
 ```
 
 ## Running Tests
