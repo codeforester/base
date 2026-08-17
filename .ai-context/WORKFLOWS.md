@@ -14,7 +14,8 @@ Base uses GitHub Issues as the public product backlog. Use the canonical
 [GitHub Workflow](../docs/github-workflow.md) for issue labels, assignment,
 repo-named Project metadata and status, readiness, API-budget safeguards, and
 repository workflow configuration. Keep this file focused on AI-context-specific
-guidance and link there instead of copying those rules.
+guidance, including agent-ready repo baselines, and link there instead of
+copying those rules.
 
 ## Branch And Worktree Flow
 
