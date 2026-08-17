@@ -8,7 +8,7 @@ Last reviewed: 2026-08-15
 **Base** is a macOS-first local operating contract for developers who work across
 multiple independent Git repositories checked out side by side under a shared
 directory (typically `~/work/`). Rather than forcing unrelated codebases into a
-monorepo, Base makes the repo set understandable, locally ready, explicitly
+monorepo, Base makes the repository set understandable, locally ready, explicitly
 trusted, onboardable, and transferable through one inspectable CLI contract.
 
 Its durable product loop is:
@@ -30,7 +30,7 @@ bootstrap story, and the glue between projects — shared env vars, shared tools
 consistent shell environments — lives in fragile ad-hoc dotfiles or one-off
 scripts. Base formalizes that glue without absorbing project-specific logic.
 
-It gives the repo set a common, inspectable operating contract:
+It gives the repository set a common, inspectable operating contract:
 
 1. **Inventory** — identify participating repositories and their declarations.
 2. **Prepare** — reconcile the tools and environments those declarations need.
@@ -66,9 +66,12 @@ them by scanning the workspace root.
 | Static analysis | ShellCheck, Pylint, Bandit, pip-audit |
 | CI | GitHub Actions (tests, lint, skills) |
 
-## Architecture: Three Layers
+## Shell Environment Architecture: Three Layers
 
-**Layer 1 — Dotfile integration** (`basectl update-profile`)
+These are shell environment layers, not the product responsibility tiers
+described in the architecture reference.
+
+**Shell Layer 1 — Dotfile integration** (`basectl update-profile`)
 
 Manages small marked sections in `~/.bash_profile`, `~/.bashrc`, `~/.zprofile`,
 and `~/.zshrc`. Adds `$BASE_HOME/bin` to `PATH`. Never takes over whole dotfiles.
@@ -80,7 +83,7 @@ Markers look like:
 # <<< base: bashrc managed <<<
 ```
 
-**Layer 2 — Base runtime** (`base_init.sh`, sourced on every `basectl` invocation)
+**Shell Layer 2 — Base runtime** (`base_init.sh`, sourced on every `basectl` invocation)
 
 Exports `BASE_HOME`, `BASE_BIN_DIR`, `BASE_BASH_LIB_DIR`,
 `BASE_BASH_LIBS_DIR`, `BASE_BASH_LIBS_SOURCE`, `BASE_OS`, `BASE_PLATFORM`,
@@ -91,7 +94,7 @@ library root. Sets up
 The standalone install path and post-migration contract for those reusable
 libraries are documented in [Base Bash Libraries](base-bash-libs.md).
 
-**Layer 3 — Project environment** (`basectl activate <project>`)
+**Shell Layer 3 — Project environment** (`basectl activate <project>`)
 
 Spawns a Bash runtime shell, sets `BASE_PROJECT`, applies the project runtime
 route, runs `activate.source` scripts declared in the manifest, and updates the

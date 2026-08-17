@@ -6,7 +6,7 @@ Last reviewed: 2026-07-30
 Base is a local operating contract for developers and platform engineers who
 need repeatable project readiness and handoff, whether their work lives in one
 repository or spans multiple independent Git repositories. It makes a project
-or participating repo set understandable and locally ready without forcing a
+or participating repository set understandable and locally ready without forcing a
 monorepo or taking project-specific behavior away from the repositories that
 own it.
 
@@ -44,7 +44,7 @@ external tools and project declarations it orchestrates.
 | Prepare | `basectl setup`, workspace init/clone/pull/configure, and project-owned adapters prepare the declared local state through explicit commands. |
 | Verify | `basectl check` and `basectl doctor`, including workspace forms, report readiness with JSON where supported and stable doctor finding IDs. |
 | Trust | `basectl trust` keeps manifest-declared project execution behind explicit local approval while leaving inspection paths available. |
-| Onboard | `basectl onboard` guides first Base setup; `basectl workspace onboarding` gives a read-only first-day repo-set summary. |
+| Onboard | `basectl onboard` guides first Base setup; `basectl workspace onboarding` gives a read-only first-day repository set summary. |
 | Hand off | `basectl workspace agent-brief` summarizes repository readiness; diagnostics, history reports, and context exports provide deeper local evidence. |
 
 The workspace-level brief is shipped, but Base does not yet compose issue,
@@ -74,7 +74,7 @@ packages:
 - A small opt-in contract for independent repositories through
   `base_manifest.yaml`.
 - Inventory, workspace onboarding, and agent-brief views that do not require
-  cloning or setup to inspect repo-set and handoff state.
+  cloning or setup to inspect repository set and handoff state.
 - Human-readable and machine-readable readiness checks through `check`,
   `doctor`, workspace reports, and stable finding IDs.
 - Explicit manifest-command trust instead of silently executing project-owned

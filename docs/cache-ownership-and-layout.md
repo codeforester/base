@@ -58,7 +58,7 @@ $BASE_CACHE_DIR/
 │   │       ├── base_setup/
 │   │       └── base_github_projects/
 │   └── runs/
-    │       └── <base-run-id>__<command>__<project>/
+│       └── <base-run-id>__<command>__<project>/
 │           ├── run.json
 │           ├── logs/
 │           │   └── primary.log

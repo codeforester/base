@@ -147,7 +147,7 @@ reference. The filename should answer "what is this about?"
   model for executing project-owned manifest commands from unfamiliar
   repositories.
 - [Workspace Manifest](workspace-manifest.md) defines the local team-shared
-  repo-set contract and `basectl workspace --manifest` reporting behavior.
+  repository set contract and `basectl workspace --manifest` reporting behavior.
 - [Setup Hooks Boundary](setup-hooks.md) records why Base does not support
   arbitrary manifest setup hooks yet.
 - [`basectl setup` parallelism](setup-parallelism.md) records why setup stays

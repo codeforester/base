@@ -19,7 +19,7 @@ For execution tracking, use GitHub Issues and the workflow in
 ## Product Thesis
 
 Base is a local operating contract for developers and platform engineers who
-work across multiple independent Git repositories. It should make the repo set
+work across multiple independent Git repositories. It should make the repository set
 understandable, locally ready, explicitly trusted, onboardable, and transferable
 without forcing a monorepo or taking project behavior away from its owning
 repository.
@@ -217,19 +217,8 @@ Base should help a target user answer one question at each step:
 
 ## Non-Goals
 
-Base should not become:
-
-- a general tool version manager;
-- an automatic directory-based environment loader;
-- a full dotfile manager;
-- a generic task runner;
-- a generic multi-repository checkout, sync, or command fan-out manager;
-- a full reproducible package manager or environment solver;
-- a local services platform;
-- a container runtime;
-- a hosted agent runtime, session-transfer service, or provider upload system;
-- a replacement for GitHub CLI, IDEs, Homebrew, `mise`, uv, Docker, Nix,
-  Devbox, Dev Containers, `just`, Taskfile, or project-owned build systems.
+Base's canonical non-goals are maintained in
+[What Base Is Not](tool-boundaries.md#what-base-is-not).
 
 Base can learn from and integrate with those tools. It should not absorb their
 complete domains.
@@ -286,7 +275,7 @@ Use technical docs for implementation detail:
   behavior.
 - [Runtime Environment](runtime-environment.md) owns Base-managed variables and
   mutability rules.
-- [Workspace Manifest](workspace-manifest.md) owns the team-shared repo-set
+- [Workspace Manifest](workspace-manifest.md) owns the team-shared repository set
   contract.
 - [Python Manifest Section](python-manifest.md) owns Python and uv manifest
   behavior.

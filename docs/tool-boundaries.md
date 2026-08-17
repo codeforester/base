@@ -42,6 +42,8 @@ startup, workspace, repository, and release commands it ships. Those supporting
 surfaces are not evidence that generic machine convergence or multi-repository
 management is unique to Base.
 
+## What Base Is Not
+
 Base gets weaker when it drifts into becoming any of these:
 
 - a general tool version manager
@@ -49,9 +51,18 @@ Base gets weaker when it drifts into becoming any of these:
 - a full dotfile manager
 - a generic task runner
 - a full reproducible package manager or environment solver
+- a broadly cross-platform runtime; macOS and Ubuntu/Debian are the current
+  support contract, while broader Linux, WSL, and Windows need separate decisions
 - a generic multi-repository inventory, synchronization, or command fan-out
   manager
 - a multi-VCS client or revision-controlled source-tree materializer
+- a local services platform or container runtime
+- a hosted agent runtime, live session-transfer service, or provider upload
+  system
+- a second authority for `mani.yaml`, `.repos`, Repo manifests, or `west.yml`
+- a replacement for GitHub CLI, IDEs, Homebrew, `mise`, uv, Docker, Nix,
+  Devbox, Dev Containers, `just`, Taskfile, or project-owned build systems
+- a solution for every language runtime, project edge case, or container workflow
 
 ## Adapter Quality Bar
 
@@ -747,17 +758,8 @@ trust, lifecycle guidance, onboarding, and portable handoff evidence.
 
 ### Base should explicitly avoid becoming
 
-- another polyglot version manager
-- another `cd`-triggered environment tool
-- another general task runner
-- another broad dotfile manager
-- another reproducible package manager or dependency solver
-- another generic multi-repository inventory, sync, status, or command runner
-- a multi-VCS client
-- a revision-pinned source-tree materializer or manifest resolution engine
-- a second authority for `mani.yaml`, `.repos`, Repo manifests, or `west.yml`
-- an agent runtime, hosted session-sharing service, sandbox, or provider-policy
-  engine
+See the canonical [What Base Is Not](#what-base-is-not) list above. This section
+does not maintain a second non-goals list.
 
 ## What This Means for Future Base Design
 

@@ -34,7 +34,7 @@ Base gives that workspace a common, inspectable operating contract.
 Base is a local operating contract for deterministic readiness and handoff
 across independent Git repositories.
 
-It makes the repo set understandable, locally ready, explicitly trusted,
+It makes the repository set understandable, locally ready, explicitly trusted,
 onboardable, and transferable. Its durable loop is:
 
 ```text

@@ -44,7 +44,7 @@ machine-readable structures, and clear next actions from declared inputs and
 observable local state. It does not mean hermetic builds, byte-for-byte
 environments, or transactional multi-repository mutation.
 
-The product responsibility layers are:
+The product responsibility tiers are:
 
 1. The core outcome: deterministic local readiness and handoff.
 2. The enabling execution contract: `base_manifest.yaml`, `basectl`,
@@ -53,7 +53,7 @@ The product responsibility layers are:
    conventions.
 4. Adapters: environment managers, IDEs, containers, Nix/devenv, and AI tools.
 
-These are architecture responsibility layers, not separately installed
+These are architecture responsibility tiers, not separately installed
 packages. Major features should strengthen the outcome loop. A command does not
 become core merely because `basectl` dispatches it.
 
@@ -196,8 +196,10 @@ basectl activate myproject
 ## Shell Environment Layers
 
 Base separates ordinary shell startup from Base runtime activation.
+These shell environment layers are distinct from the product responsibility
+tiers above; their numbering is local to shell startup and runtime state.
 
-### Layer 1 — Dotfile Integration
+### Shell Layer 1 — Dotfile Integration
 
 Applied by the user's normal Bash/Zsh startup files after running
 `basectl update-profile`.
@@ -214,7 +216,7 @@ This layer must not source `base_init.sh` and must not establish the full Base
 runtime contract. It is only about Bash/Zsh startup behavior plus launcher
 availability.
 
-### Layer 2 — Base Runtime Environment
+### Shell Layer 2 — Base Runtime Environment
 
 Applied when the user invokes `basectl`, `basectl activate <project>`, or
 `basectl /path/to/script.sh`. Invoking `basectl` with no arguments in a terminal
@@ -237,7 +239,7 @@ live in [Runtime Environment](runtime-environment.md). The standalone
 `base-bash-libs` install path and post-migration contract live in
 [Base Bash Libraries](base-bash-libs.md).
 
-### Layer 3 — Project-Specific Environment
+### Shell Layer 3 — Project-Specific Environment
 
 Applied inside the project subshell when `basectl activate <project>` is run.
 
@@ -598,7 +600,7 @@ parent manifest rather than auto-discovering everything.
 
 ### Workspace manifest
 
-A workspace manifest is a team-shared repo-set contract. It is distinct from
+A workspace manifest is a team-shared repository set contract. It is distinct from
 each project's `base_manifest.yaml`: the workspace manifest says which
 repositories should belong together, while project manifests say how each
 repository participates in Base.
@@ -657,7 +659,7 @@ state, virtual environment state, and Git state across discovered projects,
 including invalid manifests without stopping the whole scan. With
 `workspace.manifest` or `--manifest <path>`, workspace commands also report
 missing required repositories, missing optional repositories, and discovered
-Base-managed projects outside the expected repo set. `basectl workspace check`
+Base-managed projects outside the expected repository set. `basectl workspace check`
 and `basectl workspace doctor` run project checks and diagnostics across
 discovered projects. `basectl workspace onboarding` is a shipped read-only text
 or JSON summary of ready, needs-setup, invalid-manifest, missing-required, and
@@ -818,18 +820,8 @@ These extras emerge organically from real needs — they are not designed upfron
 
 ## What Base Is Not
 
-- Not a replacement for Docker or dev containers — those solve a different problem
-  (containerization). Base is local and lightweight.
-- Not broadly cross-platform today — macOS remains the primary platform, while
-  Ubuntu/Debian source-checkout runtime and apt-backed setup are implemented.
-  Broader Linux distributions, WSL, and Windows are not supported today.
-- Not a universal package manager — Homebrew handles that. Base orchestrates on top
-  of Homebrew.
-- Not a generic multi-repository sync or command fan-out manager.
-- Not a hosted agent runtime, live session-transfer service, or provider upload
-  system.
-- Not trying to solve every edge case — version conflict handling across projects,
-  language runtimes beyond Python, and container integration are future considerations.
+For the canonical non-goals and ecosystem boundary, see
+[Tool Boundaries](tool-boundaries.md#what-base-is-not).
 
 ---
 
