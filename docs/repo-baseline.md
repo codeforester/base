@@ -481,7 +481,7 @@ the repo Project:
 - `Area`: `CLI`, `Setup`, `Workspace`, `Manifest`, `Runtime`, `Shell`,
   `Python`, `Docs`, `CI`, `Packaging`, `Security`, `Product`
 - `Size`: `T`, `S`, `M`, `L`
-- `Initiative`: `BanyanLabs Dogfood`, `BanyanLabs Dogfooding`,
+- `Initiative`: `BanyanLabs Dogfood`,
   `Workspace Handling`, `pyproject/uv`, `v1.0 Readiness`, `Adoption Polish`,
   `Contract Hardening`, `Agentic Coding Platform`, plus values passed with
   `--initiative-option`
