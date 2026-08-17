@@ -22,83 +22,13 @@ them.
 
 ## GitHub Workflow
 
-### Pre-Edit Workflow Gate
-
-Before modifying files in this repository, classify the request.
-
-- For implementation work in `basefoundry/base`, do not edit on `main`.
-- First create or choose the GitHub issue, set required Project metadata, move
-  Project `Status` to `In Progress`, create the issue branch and worktree, and
-  verify the active branch is not `main`.
-- Only start file edits after the issue-backed worktree is active.
-- Read-only investigation, design-only discussion, and requests explicitly
-  scoped to local-only/no-PR work may stay outside this gate, but keep that
-  scope explicit in the handoff.
-- If edits start before the work is recognized as issue-backed implementation
-  work, stop, create or choose the issue, move the work onto the issue
-  branch/worktree, and then continue.
-
-### Standard Issue Flow
-
-- Create or choose a GitHub issue before implementation work.
-- Use one primary category label: `bug`, `enhancement`, `documentation`, `ci`,
-  or `security`.
-- Do not create or apply `type:*` issue labels.
-- Assign agent-created Base repository issues to `codeforester` when GitHub
-  allows it; `.github/base-project.yml` carries this repo-local default for
-  `basectl gh issue create`.
-- For issues tracked in the repo-named Project, set Project `Status` to
-  `In Progress` before implementation starts, move it to `In Review` when the
-  PR opens, and verify `Done` after merge/closure. If Project V2 access or item
-  state prevents an update, mention that in the work summary.
-- When creating issues, choose Project `Size` from actual scope: `T` for tiny
-  obvious work, `S` for normal small work or unknown scope, `M` for interacting
-  changes, and `L` only for work that should probably be split.
-- Prefer `basectl gh` for supported issue, branch, PR, check, and cleanup
-  operations.
-- Fall back to the GitHub connector, raw `gh`, or `git` when `basectl gh` does
-  not support the needed operation or local tooling is unavailable.
-- For GitHub issue, PR, label, comment, or Project metadata writes, treat API
-  budget as shared infrastructure: serialize mutating requests, compute minimal
-  diffs before writing, prefer exact issue, Project item, or GraphQL operations
-  over broad scans, and pause between bulk writes.
-- If GitHub reports rate pressure, a secondary limit, a content-generation
-  limit, or a `retry-after` delay, stop mutating state and report what
-  completed, what remains, and when it is safe to resume.
-- Branch from `origin/main` with
-  `<category>/<issue>-<YYYYMMDD>-<slug>`.
-- Treat that branch shape as tool-independent: do not substitute `feat/`,
-  `agent/`, `codex/`, a bare issue number, or another provider-specific prefix.
-  The prefix must match the issue's single category label. `basectl gh pr
-  create` rejects invalid or mismatched names, the GitHub branch naming ruleset
-  rejects invalid non-default branches at the remote boundary, and the required
-  `base/issue-branch-policy` status checks semantic matches across every open PR
-  sharing the head commit.
-- Use a dedicated worktree under `~/work/base-worktrees/<slug>` for PR work.
-- Before creating a worktree, check whether the current checkout is already a
-  linked worktree for the intended issue.
-- Link PRs with `Fixes #<issue>` or `Closes #<issue>` when merge should close
-  the issue.
-- After merge, sync `main`, remove the worktree, and delete local and remote
-  branches.
-
-### Superseded Pull Request Closure
-
-- If a pull request is closed because another pull request supersedes it,
-  closure and cleanup are one operation. Do not leave the head branch as a
-  user follow-up.
-- Verify that the replacement pull request contains the work, add a closing
-  comment linking it, close the superseded pull request, delete its remote head
-  branch, remove agent-created local branches and worktrees, and verify that
-  the branch and worktree are gone.
-- Do not delete a user-owned or dirty worktree without explicit approval. If a
-  cleanup step fails, keep ownership of the blocker and report it as unfinished
-  work rather than handing the cleanup back to the user.
-- Ordinary closed pull requests are not automatically branch-cleanup
-  candidates; use this flow only when supersession has been established.
-
-See `docs/github-workflow.md` for the full policy, including PR body sections,
-milestones, GitHub Projects, and cleanup rules.
+Before implementation, complete the [pre-edit workflow
+gate](docs/github-workflow.md#pre-edit-workflow-gate) and work from the
+issue-backed worktree. Use the [GitHub Workflow](docs/github-workflow.md) for
+the canonical issue, repo-named Project, branch, worktree, pull request, and
+cleanup policy, including [superseded pull
+requests](docs/github-workflow.md#superseded-pull-requests). This file adds
+only the agent-specific repository guidance below.
 
 ## Repository Release Contract
 

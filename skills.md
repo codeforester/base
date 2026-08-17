@@ -5,55 +5,19 @@ Coding standards live in `STANDARDS.md`.
 
 ## GitHub Issue And PR Workflow
 
-Use this workflow when creating GitHub issues, branches, worktrees, or pull
-requests for Base.
-
-- Prefer `basectl gh` for supported Base repository GitHub workflows so Base
-  dogfoods its own issue, branch, PR, and repository hygiene tool.
-- Fall back to the GitHub connector, raw `gh`, or `git` when `basectl gh` does
-  not support the needed operation or local `gh` authentication/tooling is not
-  available.
-- Assign Codex-created issues to `codeforester`.
-- Use GitHub default-style labels:
-  - `bug` for defects.
-  - `enhancement` for features, refactors, and most maintenance.
-  - `documentation` for docs-only changes.
-  - `ci` for GitHub Actions, tests, and release automation.
-  - `security` for hardening, dependency pinning, and static analysis.
-- Do not create new `type:*` labels.
-- Name branches as `<category>/<issue>-<YYYYMMDD>-<slug>`, for example
-  `bug/245-20260529-fix-profile-project-prompt`. The category prefix must match
-  the issue's single standard category label.
-- Do not use provider-specific alternatives such as `feat/`, `agent/`,
-  `codex/`, or a bare `<issue>-<slug>` branch. The same server-side rule applies
-  to every AI tool and human contributor.
-- Do all pull request implementation work in a dedicated worktree under
-  `~/work/base-worktrees/<slug>`.
-- Before creating a worktree, check whether the current checkout is already a
-  linked worktree for the issue. Do not create nested or duplicate worktrees.
-- Keep the PR worktree available while review feedback is pending. After merge,
-  sync `main`, remove the worktree, and delete local and remote branches.
-- Link PRs to issues with `Fixes #<issue>` or `Closes #<issue>`.
-- See `docs/github-workflow.md` for the full policy, including milestones and
-  GitHub Projects.
+Use the [GitHub Workflow](docs/github-workflow.md) for the canonical issue,
+Project, branch, worktree, pull request, and cleanup policy. Before editing,
+complete its [pre-edit workflow gate](docs/github-workflow.md#pre-edit-workflow-gate)
+and prefer `basectl gh` for supported operations; use the documented fallbacks
+when necessary. Assign agent-created issues to `codeforester` when GitHub
+allows it.
 
 ## Close a superseded pull request
 
-Use this workflow when a pull request will not merge because another pull
-request carries its implementation. Treat the close decision and branch
-cleanup as one operation for every AI tool and human contributor:
-
-- verify that the replacement pull request contains the superseded work;
-- add a closing comment linking the replacement pull request;
-- close the superseded pull request and delete its remote head branch;
-- remove agent-created local branches and worktrees, then verify cleanup;
-- preserve user-owned or dirty worktrees unless the user explicitly approves
-  their removal; and
-- keep ownership of any failed cleanup instead of making it a user follow-up.
-
-Do not apply this cleanup to an ordinary closed pull request without an
-established replacement. See `docs/github-workflow.md` for the detailed close,
-delete, and verification procedure.
+When a replacement PR carries the work, follow the canonical [superseded PR
+closure procedure](docs/github-workflow.md#superseded-pull-requests), including
+the closing comment and branch/worktree cleanup. Do not apply it to an ordinary
+closed PR without an established replacement.
 
 ## Debug and verify Base behavior
 

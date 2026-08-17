@@ -2,141 +2,36 @@
 
 ## Pre-Edit Workflow Gate
 
-Before modifying Base files, classify the request.
-
-For implementation work in `basefoundry/base`, do not edit on `main`. Create
-or choose the GitHub issue, set the required Project metadata, move Project
-`Status` to `In Progress`, create the issue branch and dedicated worktree, and
-verify the active branch is not `main` before editing files.
-
-Read-only investigation, design-only discussion, and requests explicitly scoped
-to local-only/no-PR work may stay outside this gate. If the scope turns into
-issue-backed implementation work after edits have started, stop, create or
-choose the issue, move the work onto the issue branch/worktree, and then
-continue.
+Before modifying Base files, follow the canonical [pre-edit workflow
+gate](../docs/github-workflow.md#pre-edit-workflow-gate). It distinguishes
+issue-backed implementation from read-only investigation, design discussion,
+and explicitly local-only work; implementation begins in an issue-backed
+worktree rather than on `main`.
 
 ## Issue-First Work
 
-Base uses GitHub Issues as the public product backlog. Implementation work
-should start from a GitHub issue with one primary category label:
-
-- `bug`
-- `enhancement`
-- `documentation`
-- `ci`
-- `security`
-
-Do not create new `type:*` labels.
-
-Issues created by automation should be assigned to `codeforester` when GitHub
-allows it. When an issue is tracked in the repo-named Project, move its status
-through `In Progress`, `In Review`, and `Done` as the work advances. Repo-named
-Project metadata uses five fields: `Status`, `Priority`, `Area`, `Size`, and
-`Initiative`.
-Use `Agentic Coding Platform` for GitHub-centered agentic workflow work such as
-agent-ready repo baselines, agent-readiness checks, issue-readiness gates,
-Copilot/cloud-agent readiness, current local context evidence, and planned
-handoff artifacts such as #1562. The workspace-level agent brief from #1561 is
-shipped local evidence in this initiative.
-Use the smallest accurate `Size` when creating issues: `T` for tiny obvious
-work, `S` for normal small work or unknown scope, `M` for interacting changes,
-and `L` only for work that should probably be split. The default remains `S`
-when automation cannot infer scope.
-Issue creation is unassigned by default unless `basectl gh issue create`
-receives `--assignee <login>` or `.github/base-project.yml` sets
-`project.issue_defaults.assignee`; use `--no-assignee` to skip that repo-local
-default for a specific issue.
-Starter issues for first external contributors use the `good first issue`
-label only when the issue has explicit acceptance criteria, concrete Project
-metadata, `Size` `T` or `S`, and local validation that does not require private
-state. Use `help wanted` without `good first issue` for broader work where
-outside help is useful but deeper Base context is needed.
-
-When updating GitHub issues, pull requests, labels, comments, or Project
-metadata, protect the API budget. Use a read-plan-write flow: fetch the target
-IDs and current values, compute the minimal local diff, then write only changed
-fields. Do not run parallel mutating GitHub requests. Prefer exact issue and
-Project item updates, exact-item GraphQL mutations, or
-`basectl gh project issue set-fields` with known targets over broad scans. Cache
-IDs during the train, pause between bulk writes, and obey `retry-after`,
-`x-ratelimit-reset`, secondary-limit, and content-generation-limit responses. If
-a limit is hit, stop writes and report completed and remaining targets before
-resuming later. Consider GitHub Apps only for recurring multi-repo automation
-that needs a separate installation budget and narrowly scoped permissions.
-
-Base-managed repositories should carry `.github/workflows/project-intake.yml`
-as the fallback for issues created outside `basectl gh issue create`.
-`basectl repo init` seeds it for new repositories, and `basectl repo configure`
-creates it when missing from older repositories.
-They should also carry `.github/workflows/issue-branch-policy.yml`; this trusted
-workflow publishes the semantic category/issue status without checking out PR
-code, queues default-branch refreshes for matching open PRs after issue
-relabeling, aggregates all open PRs sharing a head SHA, and `repo configure`
-promotes a recent trusted default-branch
-dispatch to a GitHub-Actions-bound required status.
-When a shared repo or Project schema repair needs to roll across a local repo
-family, use `basectl workspace configure --dry-run` first, then
-`basectl workspace configure`; it delegates to the same idempotent per-repo
-`repo configure` path and reports configured, skipped, and failed repos.
-If a repo Project has GitHub's default `View 1` instead of the standard Base
-views, use `basectl repo configure --replace-project` with `--repo`; Base
-archives the old Project and recreates it from `base-project-template`.
-Already-standard Projects are left intact and continue through metadata repair.
+Base uses GitHub Issues as the public product backlog. Use the canonical
+[GitHub Workflow](../docs/github-workflow.md) for issue labels, assignment,
+repo-named Project metadata and status, readiness, API-budget safeguards, and
+repository workflow configuration. Keep this file focused on AI-context-specific
+guidance and link there instead of copying those rules.
 
 ## Branch And Worktree Flow
 
-Use a dedicated worktree for PR work. Branch names follow:
-
-```text
-<category>/<issue>-<YYYYMMDD>-<slug>
-```
-
-The allowed categories are `bug`, `enhancement`, `documentation`, `ci`, and
-`security`; short or provider-specific prefixes are not aliases. Base-managed
-repositories enforce this for every non-default remote branch through the
-`Base branch naming` GitHub ruleset, while `basectl gh pr create` fails early
-for an invalid local branch, including an impossible calendar date. The prefix
-must match the issue's single category label. The trusted Issue Branch Policy
-workflow publishes the GitHub-Actions-bound `base/issue-branch-policy` status
-on the PR head and refreshes it after issue relabeling. GitHub statuses are
-SHA-scoped, so the workflow validates every open PR sharing that SHA; the
-branch-name ruleset remains the immediate remote boundary for repo-owned
-branches, while the status adds semantic validation for raw Git and forks.
-
-The standard worktree location is:
-
-```text
-~/work/base-worktrees/<slug>
-```
-
-Start from current `origin/main`, keep the worktree while the PR is open, and
-clean it up after merge.
+Use the canonical [branch and worktree
+flow](../docs/github-workflow.md#worktrees) for branch naming, worktree
+location, review lifetime, and cleanup. This context file does not repeat
+those repository-wide rules.
 
 ## Pull Requests
 
-Pull requests are issue-backed by default and scoped to one issue unless there
-is a documented exception. `basectl gh pr create` adds `Fixes #<issue>` from
-Base branch names by default; pass `--no-fixes` only when the PR should not
-close the issue automatically. If `base_manifest.yaml` declares `github.pr`,
-the command renders required PR sections from that project policy. PR bodies
-should include:
+Pull requests are issue-backed by default and scoped to one issue. Follow the
+canonical [GitHub Workflow](../docs/github-workflow.md) for PR creation,
+required body sections, metadata, and issue/Project tracking. Keep this file's
+AI-context-specific guidance separate from that repository-wide policy.
 
-- summary of what changed and why
-- issue reference such as `Fixes #<issue>` or `Closes #<issue>`
-- validation commands and relevant output
-- `Demo Impact`
-- notes or tradeoffs when helpful
-- whether `.ai-context/` was updated or not applicable
-
-The issue owns milestone and Project tracking. PRs should inherit relevant
-labels but should not be added as duplicate Project items by default.
-
-When a PR is closed because another PR supersedes it, the agent owns the full
-close-and-cleanup operation: verify the replacement, link it in the closing
-comment, delete the remote head branch, remove agent-created local branches and
-worktrees, and verify cleanup. Preserve user-owned or dirty worktrees unless
-the user explicitly approves removal, and do not hand failed cleanup back as a
-user task.
+When a replacement PR supersedes another, follow the canonical [superseded PR
+closure procedure](../docs/github-workflow.md#superseded-pull-requests).
 
 ## Validation
 

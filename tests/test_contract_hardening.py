@@ -191,13 +191,14 @@ def test_superseded_pr_cleanup_guidance_is_shared_across_ai_tools() -> None:
         "workflow": " ".join(workflow.split()),
         "ai_context": " ".join(ai_context.split()),
     }
-    for text in normalized.values():
-        assert "replacement" in text
-        assert "cleanup" in text
+    for name in ("agents", "skills", "ai_context"):
+        assert "docs/github-workflow.md" in normalized[name]
+        assert "superseded-pull-requests" in normalized[name]
+        assert "cleanup" in normalized[name]
 
-    assert "closing comment" in normalized["agents"]
-    assert "delete its remote head branch" in normalized["agents"]
-    assert "agent-created local branches and worktrees" in normalized["skills"]
+    assert "replacement" in normalized["workflow"]
+    assert "closing comment" in normalized["workflow"]
+    assert "remote head ref" in normalized["workflow"]
     assert "user-owned or dirty worktree" in normalized["workflow"]
     assert "cleanup step fails" in normalized["workflow"]
     assert "gh pr close <number>" in normalized["workflow"]
