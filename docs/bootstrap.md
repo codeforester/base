@@ -112,14 +112,12 @@ focused `--ensure-bash --yes` path that installs only Bash.
 
 ## Contributor Path
 
-Contributors should prefer source mode:
+Contributors should first complete the [source checkout install recipe](#source-checkout-install-recipe),
+then add the sibling library checkout and contributor profile:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --source
 git clone https://github.com/basefoundry/base-bash-libs.git ~/work/base-bash-libs
 ~/work/base/bin/basectl setup --profile dev
-~/work/base/bin/basectl update-profile
-exec "$SHELL" -l
 ```
 
 The sibling `base-bash-libs` checkout gives the source-tree BATS suite the
@@ -151,14 +149,15 @@ configure accounts, credentials, model access, or organization policy. See
 [Remote Installer Policy](remote-installer-policy.md) for the allowed URLs,
 dry-run behavior, non-interactive behavior, and managed-device guidance.
 
-## Relationship To Other Install Paths
+## Direct Install Recipes
 
-Use `bootstrap.sh` when the machine may not have Homebrew, Git, or a supported
-Bash yet. Homebrew bootstrap follows the remote installer trust model described
-in [Remote Installer Policy](remote-installer-policy.md).
+These are the canonical direct-install command sequences. Other Base
+documentation should link here rather than repeat them.
 
-Use Homebrew directly when Homebrew is already installed and Base should be
-managed like a normal formula:
+### Homebrew Install Recipe
+
+Use this path when Homebrew is already installed and Base should be managed like
+a normal formula:
 
 ```bash
 brew trust basefoundry/base
@@ -167,6 +166,26 @@ basectl setup
 basectl update-profile
 exec "$SHELL" -l
 ```
+
+### Source Checkout Install Recipe
+
+Use this path when contributing to Base or running the repository directly:
+
+```bash
+git clone https://github.com/basefoundry/base.git ~/work/base
+~/work/base/bin/basectl setup
+~/work/base/bin/basectl update-profile
+exec "$SHELL" -l
+```
+
+## Relationship To Other Install Paths
+
+Use `bootstrap.sh` when the machine may not have Homebrew, Git, or a supported
+Bash yet. Homebrew bootstrap follows the remote installer trust model described
+in [Remote Installer Policy](remote-installer-policy.md).
+
+For a direct Homebrew install, use the
+[canonical Homebrew install recipe](#homebrew-install-recipe).
 
 Use `install.sh` when you specifically want the source-install script to clone
 or update Base and run setup/profile commands in one path. `bootstrap.sh` is the

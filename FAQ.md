@@ -85,15 +85,8 @@ before Base can continue. It does not clone Base, install Python, create virtual
 environments, or run project setup.
 
 Use Homebrew when you already have Homebrew and Bash and want Base managed like
-an ordinary installed tool:
-
-```bash
-brew trust basefoundry/base
-brew install basefoundry/base/base
-basectl setup
-basectl update-profile
-exec "$SHELL" -l
-```
+an ordinary installed tool. Follow the canonical
+[Homebrew install recipe](docs/bootstrap.md#homebrew-install-recipe).
 
 Use the full formula name `basefoundry/base/base` for installs and upgrades.
 `basefoundry/base` is the tap name, not the formula, and bare `base` can resolve
@@ -105,14 +98,8 @@ that already trust `basefoundry/base`.
 
 Use a source checkout when you are contributing to Base or want to inspect and
 run the repository directly. This is also the preferred active install for a
-Base development machine:
-
-```bash
-git clone https://github.com/basefoundry/base.git ~/work/base
-~/work/base/bin/basectl setup
-~/work/base/bin/basectl update-profile
-exec "$SHELL" -l
-```
+Base development machine; follow the canonical
+[source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe).
 
 Use `install.sh` when you specifically want the source-install path to clone or
 update Base and then run setup/profile commands as one script.

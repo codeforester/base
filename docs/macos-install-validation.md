@@ -87,15 +87,8 @@ Use this path when validating the consumer install experience.
 
 ### Install
 
-For a machine that already has Homebrew:
-
-```bash
-brew trust basefoundry/base
-brew install basefoundry/base/base
-basectl setup
-basectl update-profile
-exec "$SHELL" -l
-```
+For a machine that already has Homebrew, follow the
+[canonical Homebrew install recipe](bootstrap.md#homebrew-install-recipe).
 
 For a first-mile bootstrap run that should choose the Homebrew route:
 
@@ -103,14 +96,9 @@ For a first-mile bootstrap run that should choose the Homebrew route:
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --brew
 ```
 
-Then run the handoff commands printed by `bootstrap.sh`. They should include
-the Homebrew-managed `basectl` setup and profile steps:
-
-```bash
-basectl setup
-basectl update-profile
-exec "$SHELL" -l
-```
+Then run the handoff commands printed by `bootstrap.sh`, using the canonical
+[Homebrew install recipe](bootstrap.md#homebrew-install-recipe) as the expected
+setup and profile sequence.
 
 When validating Homebrew Base from a shell that may already be inside a source
 checkout or Base runtime shell, use the Homebrew-managed `basectl` path and
@@ -213,27 +201,14 @@ For bootstrap source mode:
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --source
 ```
 
-Then run the handoff commands printed by `bootstrap.sh`. They should point at
-the selected source checkout:
-
-```bash
-<source-checkout>/bin/basectl setup --profile dev
-<source-checkout>/bin/basectl update-profile
-exec "$SHELL" -l
-```
-
-For a manual source clone:
-
-```bash
-git clone https://github.com/basefoundry/base.git <source-checkout>
-<source-checkout>/bin/basectl setup --profile dev
-<source-checkout>/bin/basectl update-profile
-exec "$SHELL" -l
-```
+Then run the handoff commands printed by `bootstrap.sh`, using the canonical
+[source checkout install recipe](bootstrap.md#source-checkout-install-recipe) as
+the expected checkout, setup, profile, and shell handoff sequence. For this
+validation path, use `--profile dev` when the run must validate
+`basectl test base`.
 
 Use plain `basectl setup` instead of `--profile dev` when the run is limited to
-the first-run user path. Use `--profile dev` when the run must validate
-`basectl test base`.
+the first-run user path.
 
 Accept the install when:
 
