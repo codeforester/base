@@ -127,7 +127,7 @@ Doctor commands use the same diagnostic item fields. The top-level
 | `BASE-D102` | Unsupported prerequisite profile version |
 | `BASE-D103` | Homebrew unavailable for prerequisite profile checks |
 | `BASE-D104` | Prerequisite profile Homebrew package presence and freshness |
-| `BASE-D105` | GitHub CLI availability |
+| `BASE-D105` | GitHub CLI executable availability for authentication checks |
 | `BASE-D106` | GitHub CLI authentication status |
 | `BASE-D107` | AI developer tool availability and version status |
 | `BASE-D108` | Multipass availability and version status for the `linux-lab` profile |

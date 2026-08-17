@@ -38,7 +38,7 @@ Options:
 ```text
   --profile <list> Include named prerequisite profiles.
   --dry-run        Explain and show planned actions without making changes.
-  --yes            Accept setup/profile prompts; never approve manifest trust.
+  --yes            Accept setup/profile prompts; never grant manifest trust.
   --no-profile     Skip shell profile updates.
   -v               Enable DEBUG logging for underlying commands.
   -h, --help       Show help text.
@@ -111,23 +111,8 @@ Those responsibilities already belong to the setup/check/profile commands.
 
 ## Command Shape
 
-Command shape:
-
-```bash
-basectl onboard [project] [options]
-```
-
-Options:
-
-```text
-  --profile <list> Include named prerequisite profiles.
-  --dry-run        Explain and show planned actions without making changes.
-  --yes            Approve setup changes and the shell-profile prompt; never
-                   grant manifest trust.
-  --no-profile     Skip shell profile updates.
-  -v               Enable DEBUG logging for underlying commands.
-  -h, --help       Show help text.
-```
+The command shape and canonical option descriptions are documented in
+[Usage](#usage) above.
 
 The command defaults to the `base` project. Passing a project name targets the
 Base-managed project checks and setup steps without making Base responsible for

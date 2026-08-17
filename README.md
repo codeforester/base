@@ -11,7 +11,7 @@ engineers. It gives a repeatable way to prepare, verify, test, build, and hand
 off a project, whether that project lives in one repository or spans multiple
 independent Git repositories.
 
-It makes that project or repo set easier to inventory, prepare, verify, trust,
+It makes that project or repository set easier to inventory, prepare, verify, trust,
 onboard, and hand off without turning it into a monorepo or moving
 project-specific logic into Base.
 
@@ -54,7 +54,7 @@ Every engineering project accumulates setup steps, readiness rules, trusted
 commands, and handoff context that can become scattered across READMEs, shell
 state, and maintainer memory. That problem exists within a single repository
 and becomes more visible when work spans several repositories. Base gives a
-project or participating repo set one explicit local contract for answering:
+project or participating repository set one explicit local contract for answering:
 what belongs here, what is ready, what is missing, what may run, and what the
 next person or agent needs to know.
 
@@ -777,7 +777,7 @@ run `basectl workspace configure` to apply the repair path. With
 non-Base-managed repositories, and continues after per-repo failures. Without a
 manifest, Base scans discovered local Base-managed projects under the workspace
 root. This is the fastest way to roll out shared repo or Project schema repairs
-across a local repo family while keeping each repository's `repo configure`
+across a local repository set while keeping each repository's `repo configure`
 behavior idempotent.
 
 Use `basectl workspace setup --dry-run` to preview project setup across the
@@ -1897,7 +1897,7 @@ project is one repository or a set of independent Git repositories.
 
 A single repository can use Base to make setup, readiness, trusted execution,
 and handoff explicit. When a project spans several repositories, Base extends
-the same contract across the repo set. Each project repo remains independent;
+the same contract across the repository set. Each project repo remains independent;
 Base sits beside those repos and offers:
 
 - one declared way to inventory, prepare, and verify local readiness
@@ -1969,7 +1969,7 @@ tracked in GitHub Issues using the workflow in
 
 ## Short Version
 
-Base is the local operating contract you add to a repo set so its readiness,
+Base is the local operating contract you add to a repository set so its readiness,
 trusted execution, onboarding, and handoff stop depending on private maintainer
 memory.
 

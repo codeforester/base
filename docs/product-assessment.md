@@ -56,9 +56,13 @@ across every repository and external tool.
 The execution contract (`base_manifest.yaml`, `basectl`, `base-wrapper`, and
 declared project commands) enables that outcome. Repository/GitHub/release
 workflow packs and environment/IDE/container/AI adapters support it without
-becoming equal product pillars. Ubuntu/Debian source-checkout runtime and
-apt-backed setup support are implemented, while broader Linux distribution
-support remains deliberately narrow and Windows is not currently in scope.
+becoming equal product pillars.
+
+### Current Platform Contract
+
+Ubuntu/Debian source-checkout runtime and apt-backed setup support are
+implemented. Broader Linux distribution support remains deliberately narrow and
+Windows is not currently in scope.
 
 The local workspace agent brief now summarizes repository readiness for a
 handoff, while onboarding, diagnostics, privacy-conscious history reports, and
@@ -194,7 +198,7 @@ The best adoption path is evidence-driven:
 
 Base can become much larger, but the larger possibility is not "put every tool
 inside Base." The larger possibility is to make readiness and operating context
-portable within a project, from a single repository to a repo set, without
+portable within a project, from a single repository to a repository set, without
 absorbing the tools that prepare, build, or host those repositories.
 
 ### 2026-07-30 / Single-repository positioning
@@ -215,9 +219,6 @@ The review also sharpened the near-term adoption risks.
 
 Immediate action items:
 
-- Ubuntu/Debian runtime and apt-backed setup support have since shipped. The
-  remaining expansion boundary is broader Linux-family, WSL, or Windows support
-  and external adoption evidence; do not generalize beyond the tested contract.
 - Semantic onboarding and transferable readiness/handoff evidence are the
   strongest moat candidate. Local workspace manifests and explicit canonical
   manifest sync support that outcome, but repository-set materialization alone
@@ -280,8 +281,6 @@ not a rewrite of historical releases.
 Remaining risks should stay issue-backed rather than becoming a parallel
 backlog here:
 
-- The first Linux target in #562 has since shipped for Ubuntu/Debian. Broader
-  Linux families, WSL, and Windows still require separate support contracts.
 - Dev Container and Nix bridges should remain export/bridge work from Base
   manifests, not a replacement for those ecosystems; this is tracked in #876.
 - A local dashboard is still plausible, but should follow durable observability
@@ -294,14 +293,21 @@ backlog here:
 
 Maintainability is the refreshed watchlist. The current file-size pressure is
 not in the reusable Bash standard library anymore; #873 documents why
-single-file shell-library standards remain intentional. The more important
-ownership pressure is in command orchestration files: `repo.sh` is roughly
-3,400 lines, `setup_common.sh` is roughly 2,170 lines, `repo.bats` is roughly
-1,730 lines, and `gh.bats`, `base_projects/engine.py`, and
-`base_github_projects/engine.py` are all around the 1,000-line mark. The right
-response is not an abstract split-everything campaign. Reduce ownership where a
-stable subdomain is visible, keep tests near behavior, and use #929 for the
-known `setup_common.sh` ownership-reduction path.
+single-file shell-library standards remain intentional. Keep the watchlist
+live instead of hardcoding line counts; inspect the current ownership pressure
+with:
+
+```bash
+wc -l \
+  cli/bash/commands/basectl/subcommands/repo.sh \
+  cli/bash/commands/basectl/subcommands/setup_common.sh \
+  cli/bash/commands/basectl/tests/repo.bats \
+  cli/bash/commands/basectl/tests/gh.bats
+```
+
+The right response is not an abstract split-everything campaign. Reduce
+ownership where a stable subdomain is visible, keep tests near behavior, and
+use #929 for the known `setup_common.sh` ownership-reduction path.
 
 ### 2026-06-25 / 1.2.0 Product Review Delta
 
@@ -314,7 +320,7 @@ The strongest shipped signal is that Base now has a more durable review and
 workflow loop around itself:
 
 - `basectl workspace init` makes a workspace repository the entry point for
-  cloning and materializing the declared repo set.
+  cloning and materializing the declared repository set.
 - `basectl prompt list` and `basectl prompt product-self-review` make
   repo-owned prompts inspectable and repeatable instead of private chat-only
   process.
@@ -341,8 +347,6 @@ organizational-impact assessment.
 
 Current watchlist for the next release line:
 
-- Ubuntu/Debian support from #562 has since shipped; keep broader Linux, WSL,
-  and Windows claims separate and evidence-backed.
 - Command history should earn user-facing reports before a local dashboard
   becomes product surface.
 - Artifact support should stay Base-managed and manifest-explicit until real
@@ -393,9 +397,6 @@ Current watchlist for the next release line:
 - Keep the clean macOS install checklist honest by automating safe repeatable
   steps where possible and explicitly preserving manual-only boundaries where
   host mutation or real Homebrew installation is required.
-- Ubuntu/Debian support from #562 has since shipped. Treat broader Linux
-  families, WSL, and Windows as separate expansion decisions with their own
-  evidence and support contracts.
 - Treat remaining ownership pressure in large shell command modules, Project
   engines, and broad BATS files as issue-backed maintainability work rather
   than as a reason to reposition the product.
@@ -436,9 +437,6 @@ organizational-impact assessment.
 
 Current watchlist for the next release line:
 
-- Keep Ubuntu/Debian claims precise: source-checkout runtime and apt-backed setup
-  are real, but broader Linux families, WSL, and Windows still need separate
-  support contracts before public claims expand.
 - Use the shipped privacy-conscious history report as handoff evidence while
   keeping the broader #1562 bundle local, redacted, and explicit about missing
   data.
@@ -539,8 +537,6 @@ Watchlist recorded at the 1.7.0 review:
   explicitly separate until the latter is actually shipped.
 - Validate the readiness and handoff wedge with external polyrepo design
   partners before expanding Base's feature surface (#1616).
-- Keep Ubuntu/Debian claims precise and treat broader Linux, WSL, and Windows as
-  separate support-contract decisions.
 - Continue issue-backed ownership reduction and preserve adapter boundaries as
   new IDE, container, AI, and environment requests arrive.
 
@@ -590,8 +586,6 @@ Current watchlist for the next release line:
   #1562 explicitly separate until the latter is actually shipped.
 - Validate the readiness and handoff wedge with external polyrepo design
   partners before expanding Base's feature surface (#1616).
-- Keep Ubuntu/Debian claims precise and treat broader Linux, WSL, and Windows
-  as separate support-contract decisions.
 - Continue issue-backed ownership reduction and preserve adapter boundaries as
   new IDE, container, AI, environment, and repository-workflow requests arrive.
 

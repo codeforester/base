@@ -38,7 +38,7 @@ activation, commands, tests, demo, IDE requirements, and health declarations.
 
 A workspace manifest is a team-shared contract that lists repositories that
 should exist in a workspace. It answers "which repos belong together?", not
-"how does each repo set itself up?"
+"how does each repository prepare itself?"
 
 An expected repository is listed in the workspace manifest. It may or may not
 exist locally yet.
