@@ -21,12 +21,13 @@ inventory -> prepare -> verify -> trust -> onboard -> hand off
 
 ## Quickstart
 
-For the shortest complete source-checkout path:
+For the canonical source-checkout install commands, see the
+[source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe).
+Then run the trust-conscious project proof:
 
 ```bash
-git clone https://github.com/basefoundry/base.git ~/work/base
+# After completing the canonical source-checkout install recipe.
 ~/work/base/bin/basectl setup --dry-run
-~/work/base/bin/basectl setup
 ~/work/base/bin/basectl projects list --workspace ~/work
 ~/work/base/bin/basectl trust status base
 ```
@@ -92,14 +93,14 @@ for the command-by-command compatibility contract and non-GitHub Git workflow.
 
 ### Trust-Conscious Proof, No Dotfile Changes
 
-This trust-conscious evaluation path uses a source checkout. It lets you
-inspect the code, run setup explicitly, and prove the local project loop before
-Base touches shell startup files:
+This trust-conscious evaluation path uses a source checkout. First follow the
+[source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe),
+then inspect the code and prove the local project loop before relying on the
+shell handoff:
 
 ```bash
-git clone https://github.com/basefoundry/base.git ~/work/base
+# After completing the canonical source-checkout install recipe.
 ~/work/base/bin/basectl setup --dry-run
-~/work/base/bin/basectl setup
 ~/work/base/bin/basectl projects list --workspace ~/work
 ~/work/base/bin/basectl trust status base
 ```
@@ -170,18 +171,8 @@ normal Base install paths:
 - Use a source checkout when you want to inspect, contribute to, or dogfood Base
   from the repository.
 
-```bash
-# Homebrew-managed install
-brew trust basefoundry/base
-brew install basefoundry/base/base
-basectl setup
-```
-
-```bash
-# Source checkout install
-git clone https://github.com/basefoundry/base.git ~/work/base
-~/work/base/bin/basectl setup
-```
+See the canonical [Homebrew install recipe](docs/bootstrap.md#homebrew-install-recipe)
+or [source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe).
 
 For Homebrew installs, Base itself lives under Homebrew's prefix rather than in
 your project workspace. For source checkout installs, Base lives at the clone
@@ -1465,15 +1456,8 @@ prerequisites, a sibling `base-bash-libs` checkout, `basectl setup --dry-run`,
 The focused `bootstrap.sh --ensure-bash --yes` path is intentionally narrower:
 it installs only Bash after a dry-run review.
 
-Base can be installed through its Homebrew tap:
-
-```bash
-brew trust basefoundry/base
-brew install basefoundry/base/base
-basectl setup
-basectl update-profile
-exec "$SHELL" -l
-```
+For the complete Homebrew command sequence, see the canonical
+[Homebrew install recipe](docs/bootstrap.md#homebrew-install-recipe).
 
 Use the full formula name `basefoundry/base/base` for Homebrew installs and
 upgrades. `basefoundry/base` is the tap name, not the formula, and bare `base`
@@ -1555,14 +1539,8 @@ curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/install.sh | 
 Use `--no-profile` to skip shell startup integration and `--dry-run` to print
 planned actions.
 
-The explicit manual bootstrap path is:
-
-```bash
-git clone https://github.com/basefoundry/base.git ~/work/base
-~/work/base/bin/basectl setup
-~/work/base/bin/basectl update-profile
-exec "$SHELL" -l
-```
+For the explicit manual source-checkout command sequence, see the canonical
+[source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe).
 
 After the shell restarts, Base's managed startup section adds `~/work/base/bin`
 to `PATH`, so `basectl` can be run without spelling out the full path. Use
