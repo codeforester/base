@@ -110,12 +110,11 @@ Project fields:
 
 - `Status`: `Triage`, `Backlog`, `Ready`, `In Progress`, `In Review`, `Done`
 - `Priority`: `P0`, `P1`, `P2`, `P3`
-- `Area`: `CLI`, `Setup`, `Workspace`, `Manifest`, `Runtime`, `Shell`,
-  `Python`, `Docs`, `CI`, `Packaging`, `Security`, `Product`
+- `Area`: repo-specific options declared in
+  [`.github/base-project.yml`](../.github/base-project.yml)
 - `Size`: `T`, `S`, `M`, `L`
-- `Initiative`: `BanyanLabs Dogfood`, `BanyanLabs Dogfooding`,
-  `Workspace Handling`, `pyproject/uv`, `v1.0 Readiness`, `Adoption Polish`,
-  `Contract Hardening`, `Agentic Coding Platform`
+- `Initiative`: repo-specific options declared in
+  [`.github/base-project.yml`](../.github/base-project.yml)
 
 Use `Agentic Coding Platform` for work that makes GitHub-centered agentic
 implementation more repeatable: agent-ready repo baselines, agent-readiness
@@ -740,13 +739,15 @@ Recommended fields:
 
 - `Status`: Triage, Backlog, Ready, In Progress, In Review, Done
 - `Priority`: P0, P1, P2, P3
-- `Area`: repo-specific options declared in `.github/base-project.yml`
+- `Area` and `Initiative`: repo-specific options declared in
+  [`.github/base-project.yml`](../.github/base-project.yml)
 - `Size`: T, S, M, L
-- `Initiative`: repo-specific options declared in `.github/base-project.yml`
 
 Keep `Status`, `Priority`, and `Size` standardized across repos. Keep `Area`
 and `Initiative` repo-specific, and let `basectl repo configure` add missing
-options additively from the repo config file.
+options additively from the repo config file. The metadata vocabulary above and
+the repository configuration are the source of truth; do not maintain a second
+concrete option list in this workflow guide.
 
 Useful views:
 

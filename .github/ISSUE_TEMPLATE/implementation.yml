@@ -111,7 +111,6 @@ body:
       description: Select the intended Base Project Initiative field value.
       options:
         - BanyanLabs Dogfood
-        - BanyanLabs Dogfooding
         - Workspace Handling
         - pyproject/uv
         - v1.0 Readiness
