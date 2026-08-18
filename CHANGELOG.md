@@ -15,6 +15,9 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Changed
 
+- Aligned `basectl devcontainer` and `basectl devenv-report` option parsing
+  with the shared `arg_parse` contract while preserving their public options
+  and project validation.
 - Relicensed Base prospectively under Apache-2.0 starting with v1.9.0 to reduce
   adoption friction for companies with copyleft-averse license review. Existing
   MIT and AGPL releases retain their original licenses.
