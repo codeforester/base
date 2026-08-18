@@ -3,6 +3,28 @@
 load ./basectl_helpers.bash
 
 
+@test "basectl devcontainer parses options through reusable arg helper" {
+    local state_file="$TEST_TMPDIR/arg-parse-state"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_BASH_LIBS_DIR="${BASE_BASH_LIBS_DIR:-}" \
+        BASE_TEST_ARG_PARSE_STATE="$state_file" \
+        bash -c '
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/devcontainer.sh"
+            base_arg_parse() {
+                printf "%s\n" "$*" > "${BASE_TEST_ARG_PARSE_STATE:?}"
+                return 2
+            }
+            base_devcontainer_subcommand_main demo --format json
+        '
+
+    [ "$status" -eq 2 ]
+    [[ "$(cat "$state_file")" == "parsed_options positionals option_specs -- demo --format json" ]]
+}
+
 @test "basectl devcontainer delegates resolved manifest to base_setup export action" {
     local python_bin="$TEST_HOME/.base.d/base/.venv/bin/python"
     local workspace="$TEST_TMPDIR/workspace"
@@ -33,7 +55,7 @@ EOF
         HOME="$TEST_HOME" \
         PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
         BASE_TEST_PROJECT_ROOT="$workspace/demo" \
-        "$BASE_REPO_ROOT/bin/basectl" devcontainer demo --workspace "$workspace" --format json --write
+        "$BASE_REPO_ROOT/bin/basectl" devcontainer demo --workspace "$workspace" --format json -v --write
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"BASE_PROJECT=base"* ]]
@@ -56,4 +78,18 @@ EOF
 
     [ "$status" -eq 2 ]
     [[ "$output" == *"ERROR: Option '--workspace' requires an explicit project name."* ]]
+}
+
+@test "basectl devcontainer reports parser failures as usage errors" {
+    run_basectl devcontainer demo --unknown
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"Usage:"* ]]
+}
+
+@test "basectl devcontainer rejects extra project positionals" {
+    run_basectl devcontainer demo other
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"ERROR: The 'devcontainer' command accepts exactly one project name."* ]]
 }

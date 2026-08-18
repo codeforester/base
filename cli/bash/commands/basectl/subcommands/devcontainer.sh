@@ -4,6 +4,8 @@
 _base_devcontainer_subcommand_sourced=1
 readonly _base_devcontainer_subcommand_sourced
 
+import_base_lib arg/lib_arg.sh
+
 base_devcontainer_subcommand_usage() {
     cat <<'EOF'
 Usage:
@@ -30,62 +32,48 @@ base_devcontainer_usage_error() {
 base_devcontainer_subcommand_main() {
     local project="" wrapper resolve_output resolved_name project_root manifest_path
     local output_format="text" workspace_requested=0 write=0
-    local args=() setup_args=()
+    local args=() setup_args=() arg
+    local -a option_specs=(
+        "debug|flag|-v"
+        "workspace|value|--workspace"
+        "format|value|--format"
+        "write|flag|--write"
+    )
+    local -a positionals=()
+    local -A parsed_options=()
 
-    while (($#)); do
-        case "$1" in
+    for arg in "$@"; do
+        case "$arg" in
             -h|--help|help)
                 base_devcontainer_subcommand_usage
                 return 0
                 ;;
-            -v)
-                args+=(--debug)
-                shift
-                ;;
-            --workspace)
-                [[ -n "${2:-}" ]] || {
-                    base_devcontainer_usage_error "Option '--workspace' requires an argument."
-                    return $?
-                }
-                workspace_requested=1
-                args+=(--workspace "$2")
-                shift 2
-                ;;
-            --workspace=*)
-                workspace_requested=1
-                args+=("$1")
-                shift
-                ;;
-            --format)
-                [[ -n "${2:-}" ]] || {
-                    base_devcontainer_usage_error "Option '--format' requires an argument."
-                    return $?
-                }
-                output_format="$2"
-                shift 2
-                ;;
-            --format=*)
-                output_format="${1#--format=}"
-                shift
-                ;;
-            --write)
-                write=1
-                shift
-                ;;
-            -*)
-                base_devcontainer_usage_error "Unknown devcontainer option '$1'."
-                return $?
-                ;;
-            *)
-                if [[ -n "$project" ]]; then
-                    base_devcontainer_usage_error "The 'devcontainer' command accepts exactly one project name."
-                    return $?
-                fi
-                project="$1"
-                shift
-                ;;
         esac
     done
+
+    if ! base_arg_parse parsed_options positionals option_specs -- "$@"; then
+        base_devcontainer_subcommand_usage >&2
+        return 2
+    fi
+
+    if ((${#positionals[@]} > 1)); then
+        base_devcontainer_usage_error "The 'devcontainer' command accepts exactly one project name."
+        return $?
+    fi
+    if ((${#positionals[@]} == 1)); then
+        project="${positionals[0]}"
+    fi
+    if [[ "${parsed_options[debug]:-}" == "1" ]]; then
+        args+=(--debug)
+    fi
+    if [[ -n "${parsed_options[workspace]+set}" ]]; then
+        workspace_requested=1
+        args+=(--workspace "${parsed_options[workspace]}")
+    fi
+    if [[ -n "${parsed_options[format]+set}" ]]; then
+        output_format="${parsed_options[format]}"
+    fi
+    write="${parsed_options[write]:-0}"
 
     [[ "$output_format" == "text" || "$output_format" == "json" ]] || {
         base_devcontainer_usage_error "Unsupported devcontainer format '$output_format'. Expected text or json."
