@@ -30,7 +30,7 @@ def check_pyproject(manifest: BaseManifest) -> tuple[ArtifactCheck, ...]:
         return (pyproject_readability_warning(pyproject_path, error),)
 
     checks: list[ArtifactCheck] = [pyproject_metadata_check(data)]
-    if has_dependency_metadata(data):
+    if has_dependency_metadata(data) and manifest.python.manager != "uv":
         checks.append(pyproject_dependency_warning())
     if has_tool_base(data):
         checks.append(pyproject_tool_base_warning())

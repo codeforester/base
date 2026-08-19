@@ -5,15 +5,17 @@ import unittest
 from pathlib import Path
 
 from base_setup.manifest import BaseManifest
+from base_setup.manifest_model import PythonConfig
 from base_setup.pyproject import check_pyproject
 
 
-def manifest_at(path: Path) -> BaseManifest:
+def manifest_at(path: Path, *, python_manager: str | None = None) -> BaseManifest:
     return BaseManifest(
         path=path,
         project_name="demo",
         brewfile=None,
         artifacts=(),
+        python=PythonConfig(manager=python_manager),
     )
 
 
@@ -94,6 +96,20 @@ class PyprojectDiagnosticsTests(unittest.TestCase):
         self.assertIn("dependency metadata", dependency_check.message)
         self.assertNotIn("secret", dependency_check.message)
         self.assertNotIn("example.invalid", dependency_check.message)
+
+    def test_dependency_metadata_is_managed_by_explicit_uv_project_manager(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "pyproject.toml").write_text(
+                "[project]\nname = \"demo\"\ndependencies = [\"requests\"]\n",
+                encoding="utf-8",
+            )
+            manifest = manifest_at(root / "base_manifest.yaml", python_manager="uv")
+
+            checks = check_pyproject(manifest)
+
+        self.assertEqual([check.finding_id for check in checks], ["BASE-P140"])
+        self.assertTrue(checks[0].ok)
 
     def test_tool_base_warns_as_unsupported(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

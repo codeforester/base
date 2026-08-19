@@ -29,6 +29,8 @@ and Base versions are tracked in the repo-root `VERSION` file.
 - Batched branch and worktree GitHub PR-state verification through one
   paginated REST read per prune invocation, avoiding one GraphQL query per
   branch and failing the scan closed when that read is unavailable.
+- Suppressed the redundant `BASE-P142` `pyproject.toml` dependency warning for
+  projects that explicitly delegate Python dependency synchronization to uv.
 
 ## [1.8.0] - 2026-08-15
 

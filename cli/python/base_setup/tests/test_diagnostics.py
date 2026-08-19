@@ -813,3 +813,38 @@ class IdeDiagnosticsTests(unittest.TestCase):
         self.assertIn("github.copilot", error_output)
         self.assertIn("Cursor setting: editor.formatOnSave", error_output)
         self.assertIn("Fix:", error_output)
+
+
+def test_check_json_omits_redundant_pyproject_warning_for_uv_project() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        manifest_path = root / "base_manifest.yaml"
+        manifest_path.write_text(
+            "project:\n  name: demo\npython:\n  manager: uv\nartifacts: []\n",
+            encoding="utf-8",
+        )
+        (root / "pyproject.toml").write_text(
+            "[project]\nname = \"demo-python\"\ndependencies = [\"requests\"]\n",
+            encoding="utf-8",
+        )
+        default_manifest = BaseManifest(
+            path=Path("default_manifest.yaml"),
+            project_name="base-defaults",
+            brewfile=None,
+            artifacts=(),
+        )
+        manifest = read_manifest(manifest_path)
+
+        with redirect_stdout(io.StringIO()) as stdout:
+            status = engine.check_manifest(
+                fake_context(),
+                default_manifest,
+                manifest,
+                output_format="json",
+            )
+
+    payload = json.loads(stdout.getvalue())
+    finding_ids = [check["id"] for check in payload["checks"]]
+    assert status == 0
+    assert "BASE-P142" not in finding_ids
+    assert "BASE-P150" in finding_ids
