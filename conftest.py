@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -88,6 +89,101 @@ class ManifestFactory:
                 "    - .base/activate.sh",
                 "artifacts: []",
             ],
+        )
+
+    def write_pr_policy(self, root: Path, name: str = "demo") -> Path:
+        """Write a manifest with the default pull-request policy sections."""
+
+        return self._write(
+            root,
+            [
+                "project:",
+                f"  name: {name}",
+                "github:",
+                "  pr:",
+                "    required_sections:",
+                "      default: [Summary]",
+            ],
+        )
+
+    def write_release(
+        self,
+        root: Path,
+        *,
+        version_file_content: str = "1.2.3\n",
+        changelog: str | None = None,
+        homebrew: bool = True,
+    ) -> Path:
+        """Write a release-ready project with an initial Git commit."""
+
+        changelog_content = changelog or "\n".join(
+            [
+                "# Changelog",
+                "",
+                "## [Unreleased]",
+                "",
+                "## [1.2.3] - 2026-06-09",
+                "",
+                "- Added the release assistant.",
+                "",
+                "## [1.2.2] - 2026-06-01",
+                "",
+                "- Previous release.",
+            ]
+        )
+        root.mkdir(parents=True, exist_ok=True)
+        root.joinpath("VERSION").write_text(version_file_content, encoding="utf-8")
+        root.joinpath("CHANGELOG.md").write_text(changelog_content, encoding="utf-8")
+        manifest_lines = [
+            "project:",
+            "  name: demo",
+            "",
+            "release:",
+            "  version_file: VERSION",
+            "  changelog: CHANGELOG.md",
+            "  tag_prefix: v",
+            "  github:",
+            "    repository: codeforester/demo",
+            "    release_title: \"Demo v{version}\"",
+        ]
+        if homebrew:
+            manifest_lines.extend(
+                [
+                    "  homebrew:",
+                    "    required: true",
+                    "    tap_repository: codeforester/homebrew-demo",
+                    "    formula_path: Formula/demo.rb",
+                    "    package: codeforester/demo/demo",
+                ]
+            )
+        manifest_path = self._write(root, manifest_lines + ["", "artifacts: []"])
+        self._initialize_git(root)
+        return manifest_path
+
+    @staticmethod
+    def _initialize_git(root: Path) -> None:
+        subprocess.run(["git", "init"], cwd=root, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ["git", "config", "user.email", "base@example.com"],
+            cwd=root,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Base Tests"],
+            cwd=root,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(["git", "add", "."], cwd=root, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ["git", "commit", "-m", "initial"],
+            cwd=root,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
     @staticmethod

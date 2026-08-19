@@ -23,3 +23,20 @@ def test_manifest_factory_writes_command_surfaces(project_root: Path, manifest_f
     assert "build:" in manifest
     assert "demo:" in manifest
     assert "activate:" in manifest
+
+
+def test_manifest_factory_writes_pull_request_policy(project_root: Path, manifest_factory) -> None:
+    manifest_path = manifest_factory.write_pr_policy(project_root)
+
+    assert manifest_path.read_text(encoding="utf-8") == (
+        "project:\n  name: demo\ngithub:\n  pr:\n    required_sections:\n      default: [Summary]\n"
+    )
+
+
+def test_manifest_factory_writes_release_project(project_root: Path, manifest_factory) -> None:
+    manifest_path = manifest_factory.write_release(project_root)
+
+    assert manifest_path == project_root / "base_manifest.yaml"
+    assert (project_root / "VERSION").read_text(encoding="utf-8") == "1.2.3\n"
+    assert (project_root / "CHANGELOG.md").is_file()
+    assert (project_root / ".git").is_dir()
