@@ -9,54 +9,11 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 from base_cli_adapters.history import build_finished_record
 from base_cli.testing import invoke
-
-
-def write_manifest(project_root: Path, name: str = "demo", command: str | None = "pytest tests/") -> Path:
-    project_root.mkdir(parents=True, exist_ok=True)
-    manifest_path = project_root / "base_manifest.yaml"
-    lines = ["project:", f"  name: {name}"]
-    if command is not None:
-        lines.extend(["test:", f"  command: {command}"])
-    lines.append("artifacts: []")
-    manifest_path.write_text(
-        "\n".join(lines) + "\n",
-        encoding="utf-8",
-    )
-    return manifest_path
-
-
-def write_all_command_surfaces_manifest(project_root: Path, name: str = "demo") -> Path:
-    project_root.mkdir(parents=True, exist_ok=True)
-    manifest_path = project_root / "base_manifest.yaml"
-    manifest_path.write_text(
-        "\n".join(
-            [
-                "project:",
-                f"  name: {name}",
-                "test:",
-                "  command: pytest tests/",
-                "commands:",
-                "  lint: ruff check .",
-                "build:",
-                "  targets:",
-                "    api:",
-                "      command: go build ./...",
-                "demo:",
-                "  script: demo.sh",
-                "activate:",
-                "  source:",
-                "    - .base/activate.sh",
-                "artifacts: []",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return manifest_path
 
 
 def init_git_repo(project_root: Path, origin: str) -> str:
@@ -96,6 +53,8 @@ def init_git_repo(project_root: Path, origin: str) -> str:
 
 
 class ManifestCommandTrustTests(unittest.TestCase):
+    manifest_factory: Any
+
     def test_require_explicit_manifest_populates_history_project_metadata(self) -> None:
         from base_trust import engine
 
@@ -103,7 +62,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             project_root = root / "work" / "demo"
-            manifest_path = write_manifest(project_root)
+            manifest_path = self.manifest_factory.write(project_root)
             outside = root / "outside"
             outside.mkdir()
             captured: list[tuple[object, ...]] = []
@@ -159,7 +118,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir) / "work" / "demo"
-            manifest_path = write_manifest(project_root)
+            manifest_path = self.manifest_factory.write(project_root)
             head = init_git_repo(project_root, "https://user:secret@github.com/example/demo.git")
             expected_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
 
@@ -179,8 +138,8 @@ class ManifestCommandTrustTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            all_surfaces = write_all_command_surfaces_manifest(root / "all")
-            no_surfaces = write_manifest(root / "none", name="none", command=None)
+            all_surfaces = self.manifest_factory.write_command_surfaces(root / "all")
+            no_surfaces = self.manifest_factory.write(root / "none", name="none", test_command=None)
 
             self.assertEqual(
                 engine.manifest_command_surfaces(all_surfaces),
@@ -195,7 +154,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             project_root = root / "work" / "demo"
-            manifest_path = write_manifest(project_root)
+            manifest_path = self.manifest_factory.write(project_root)
             identity = engine.compute_trust_identity_for_manifest(manifest_path)
             store = engine.ManifestCommandTrustStore(home=home)
 
@@ -223,7 +182,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            manifest_path = write_manifest(workspace / "demo")
+            manifest_path = self.manifest_factory.write(workspace / "demo")
             expected_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
 
             result = invoke(
@@ -252,10 +211,10 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            write_manifest(workspace / "fresh", name="fresh")
-            allowed_manifest = write_manifest(workspace / "allowed", name="allowed")
-            changed_manifest = write_manifest(workspace / "changed", name="changed")
-            write_manifest(workspace / "metadata-only", name="metadata-only", command=None)
+            self.manifest_factory.write(workspace / "fresh", name="fresh")
+            allowed_manifest = self.manifest_factory.write(workspace / "allowed", name="allowed")
+            changed_manifest = self.manifest_factory.write(workspace / "changed", name="changed")
+            self.manifest_factory.write(workspace / "metadata-only", name="metadata-only", test_command=None)
             store = engine.ManifestCommandTrustStore(home=home)
             store.allow(
                 engine.compute_trust_identity_for_manifest(allowed_manifest),
@@ -311,7 +270,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            write_manifest(workspace / "docs", name="docs", command=None)
+            self.manifest_factory.write(workspace / "docs", name="docs", test_command=None)
 
             result = invoke(
                 engine.app,
@@ -344,9 +303,9 @@ class ManifestCommandTrustTests(unittest.TestCase):
             workspace = root / "configured-workspace"
             base_home = root / "installed-base"
             active_root = root / "active"
-            write_manifest(workspace / "scoped", name="scoped")
-            write_manifest(base_home, name="base")
-            active_manifest = write_manifest(active_root, name="active")
+            self.manifest_factory.write(workspace / "scoped", name="scoped")
+            self.manifest_factory.write(base_home, name="base")
+            active_manifest = self.manifest_factory.write(active_root, name="active")
             config_path = home / ".base.d" / "config.yaml"
             config_path.parent.mkdir(parents=True)
             config_path.write_text(f"workspace:\n  root: {workspace}\n", encoding="utf-8")
@@ -396,7 +355,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            manifest_path = write_manifest(workspace / "demo")
+            manifest_path = self.manifest_factory.write(workspace / "demo")
             expected_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
 
             stdout = io.StringIO()
@@ -429,7 +388,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            manifest_path = write_all_command_surfaces_manifest(workspace / "demo")
+            manifest_path = self.manifest_factory.write_command_surfaces(workspace / "demo")
 
             with mock.patch("base_cli.is_terminal", return_value=True):
                 result = invoke(
@@ -455,7 +414,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            manifest_path = write_manifest(workspace / "demo")
+            manifest_path = self.manifest_factory.write(workspace / "demo")
             identity = engine.compute_trust_identity_for_manifest(manifest_path)
             engine.ManifestCommandTrustStore(home=home).allow(identity, base_version="9.9.9")
             manifest_path.write_text(
@@ -489,7 +448,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            manifest_path = write_manifest(workspace / "demo")
+            manifest_path = self.manifest_factory.write(workspace / "demo")
             identity = engine.compute_trust_identity_for_manifest(manifest_path)
             engine.ManifestCommandTrustStore(home=home).allow(identity, base_version="9.9.9")
 
@@ -511,7 +470,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            write_manifest(workspace / "demo")
+            self.manifest_factory.write(workspace / "demo")
 
             stdout = io.StringIO()
             stderr = io.StringIO()
@@ -549,7 +508,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             workspace = root / "work"
-            manifest_path = write_manifest(workspace / "demo")
+            manifest_path = self.manifest_factory.write(workspace / "demo")
             expected_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
             env = {"BASE_HOME": str(workspace / "base")}
 

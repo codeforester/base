@@ -9,53 +9,12 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 from base_cli_adapters.history import build_finished_record
 from base_cli_adapters.protocol import loads_records
 from base_projects import engine, project_discovery
-
-
-def write_manifest(project_root: Path, name: str) -> None:
-    project_root.mkdir(parents=True)
-    (project_root / "base_manifest.yaml").write_text(
-        f"project:\n  name: {name}\npython: {{}}\nartifacts: []\n",
-        encoding="utf-8",
-    )
-
-
-def write_shell_manifest(project_root: Path, name: str) -> None:
-    project_root.mkdir(parents=True)
-    (project_root / "base_manifest.yaml").write_text(
-        f"project:\n  name: {name}\nartifacts: []\n",
-        encoding="utf-8",
-    )
-
-
-def write_uv_manifest(project_root: Path, name: str) -> None:
-    project_root.mkdir(parents=True)
-    (project_root / "base_manifest.yaml").write_text(
-        f"project:\n  name: {name}\npython:\n  manager: uv\n",
-        encoding="utf-8",
-    )
-    python_bin = project_root / ".venv" / "bin" / "python"
-    write_ready_python_bin(python_bin)
-
-
-def write_inline_uv_manifest(project_root: Path, name: str) -> None:
-    project_root.mkdir(parents=True)
-    (project_root / "base_manifest.yaml").write_text(
-        f"project:\n  name: {name}\npython: {{manager: uv}}\nartifacts: []\n",
-        encoding="utf-8",
-    )
-    python_bin = project_root / ".venv" / "bin" / "python"
-    write_ready_python_bin(python_bin)
-
-
-def write_ready_python_bin(python_bin: Path) -> None:
-    python_bin.parent.mkdir(parents=True)
-    python_bin.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-    python_bin.chmod(0o755)
 
 
 def write_versioned_python_bin(python_bin: Path, version: str) -> None:
@@ -251,6 +210,8 @@ def run_engine_with_home(args: list[str], base_home: Path, home: Path) -> tuple[
 
 
 class ProjectDiscoveryTests(unittest.TestCase):
+    manifest_factory: Any
+
     # pylint: disable=too-many-statements
     def test_command_protocol_covers_project_command_bridge_records(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -390,8 +351,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
     def test_cached_project_discovery_sorts_projects(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
-            write_manifest(workspace / "zeta", "zeta")
-            write_manifest(workspace / "alpha", "alpha")
+            self.manifest_factory.write_project(workspace / "zeta", "zeta")
+            self.manifest_factory.write_project(workspace / "alpha", "alpha")
             (workspace / "notes").mkdir()
 
             ctx = mock.Mock()
@@ -404,8 +365,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
             base_home = workspace / "base"
-            write_manifest(base_home, "base")
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(base_home, "base")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(["list"], base_home)
 
@@ -419,7 +380,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir) / "custom"
             base_home = Path(tmpdir) / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(["list", "--workspace", str(workspace)], base_home)
 
@@ -433,7 +394,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = root / "configured-workspace"
             base_home = root / "homebrew" / "base" / "libexec"
             base_home.mkdir(parents=True)
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(
                 ["list"],
@@ -452,8 +413,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
             explicit_workspace = root / "explicit"
             base_home = root / "homebrew" / "base" / "libexec"
             base_home.mkdir(parents=True)
-            write_manifest(configured_workspace / "configured-demo", "configured-demo")
-            write_manifest(explicit_workspace / "explicit-demo", "explicit-demo")
+            self.manifest_factory.write_project(configured_workspace / "configured-demo", "configured-demo")
+            self.manifest_factory.write_project(explicit_workspace / "explicit-demo", "explicit-demo")
 
             status, stdout, stderr = run_engine(
                 ["list", "--workspace", str(explicit_workspace)],
@@ -470,7 +431,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir) / "custom"
             base_home = Path(tmpdir) / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(
                 ["list", "--workspace", str(workspace), "--format", "json"],
@@ -486,7 +447,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir) / "custom"
             base_home = Path(tmpdir) / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(
                 ["list", "--workspace", str(workspace), "--format", "csv"],
@@ -504,7 +465,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir) / "custom"
             base_home = Path(tmpdir) / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(
                 ["list", "--workspace", str(workspace), "--format", "yaml"],
@@ -523,10 +484,10 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = root / "base"
             home.mkdir()
             base_home.mkdir()
-            write_manifest(workspace / "base", "base")
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "base", "base")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
             python_bin = home / ".base.d" / "base" / ".venv" / "bin" / "python"
-            write_ready_python_bin(python_bin)
+            self.manifest_factory.write_ready_python_bin(python_bin)
             write_last_check(home, "base", "2026-06-17T14:30:00Z")
 
             status, stdout, stderr = invoke_engine(["status", "--workspace", str(workspace)], base_home, home)
@@ -546,7 +507,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = root / "base"
             home.mkdir()
             base_home.mkdir()
-            write_uv_manifest(workspace / "bankbuddy", "bankbuddy")
+            self.manifest_factory.write_python(workspace / "bankbuddy", "bankbuddy")
 
             status, stdout, stderr = invoke_engine(["status", "--workspace", str(workspace)], base_home, home)
 
@@ -564,7 +525,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             home.mkdir()
             base_home.mkdir()
             project_root = workspace / "shell-only"
-            write_shell_manifest(project_root, "shell-only")
+            self.manifest_factory.write_shell(project_root, "shell-only")
 
             status, stdout, stderr = invoke_engine(
                 ["status", "--workspace", str(workspace), "--format", "json"],
@@ -589,7 +550,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             home.mkdir()
             base_home.mkdir()
             project_root = workspace / "shell-only"
-            write_shell_manifest(project_root, "shell-only")
+            self.manifest_factory.write_shell(project_root, "shell-only")
 
             status, stdout, stderr = invoke_engine(["status", "--workspace", str(workspace)], base_home, home)
 
@@ -615,7 +576,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = root / "base"
             home.mkdir()
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
             write_last_check(home, "demo", "2026-06-17T14:30:00Z", status="error")
 
             status, stdout, stderr = invoke_engine(
@@ -651,8 +612,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = root / "workspace"
             base_home = workspace / "base"
             home.mkdir()
-            write_manifest(base_home, "base")
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(base_home, "base")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = invoke_engine(
                 ["--debug", "status", "--format", "json"],
@@ -679,7 +640,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             project_root = workspace / "bankbuddy"
             home.mkdir()
             base_home.mkdir()
-            write_uv_manifest(project_root, "bankbuddy")
+            self.manifest_factory.write_python(project_root, "bankbuddy")
             python_bin = project_root / ".venv" / "bin" / "python"
             write_versioned_python_bin(python_bin, "3.12")
 
@@ -706,7 +667,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = root / "base"
             home.mkdir()
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
             broken_root = workspace / "broken"
             broken_root.mkdir(parents=True)
             (broken_root / "base_manifest.yaml").write_text("project: [", encoding="utf-8")
@@ -727,7 +688,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = root / "base"
             home.mkdir()
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             with mock.patch(
                 "base_projects.project_discovery.read_project", wraps=project_discovery.read_project
@@ -753,7 +714,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             home.mkdir()
             base_home.mkdir()
             project_root = workspace / "demo"
-            write_manifest(project_root, "demo")
+            self.manifest_factory.write_project(project_root, "demo")
 
             with mock.patch(
                 "base_projects.project_discovery.read_project", wraps=project_discovery.read_project
@@ -779,7 +740,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir)
             base_home = workspace / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             with mock.patch("base_projects.project_discovery.write_project_cache") as write_cache:
                 status, stdout, stderr = run_engine(
@@ -808,7 +769,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = workspace / "base"
             base_home.mkdir()
             project_root = workspace / "demo"
-            write_manifest(project_root, "demo")
+            self.manifest_factory.write_project(project_root, "demo")
 
             status, stdout, stderr = run_engine(["resolve", "demo"], base_home)
 
@@ -826,7 +787,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = workspace / "base"
             base_home.mkdir()
             project_root = workspace / "demo"
-            write_manifest(project_root, "demo")
+            self.manifest_factory.write_project(project_root, "demo")
             outside = workspace / "outside"
             outside.mkdir()
             captured: list[tuple[object, ...]] = []
@@ -854,7 +815,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = workspace / "base"
             base_home.mkdir()
             project_root = workspace / "demo"
-            write_inline_uv_manifest(project_root, "demo")
+            self.manifest_factory.write_inline_python(project_root, "demo")
 
             status, stdout, stderr = run_engine(["resolve", "demo"], base_home)
 
@@ -873,7 +834,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home.mkdir()
             project_root = root / "active" / "demo"
             manifest_path = project_root / "base_manifest.yaml"
-            write_manifest(project_root, "demo")
+            self.manifest_factory.write_project(project_root, "demo")
 
             with mock.patch(
                 "base_projects.engine.discover_projects_cached",
@@ -910,8 +871,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
             active_root = root / "active" / "demo"
             explicit_workspace = root / "explicit"
             explicit_root = explicit_workspace / "demo"
-            write_manifest(active_root, "demo")
-            write_manifest(explicit_root, "demo")
+            self.manifest_factory.write_project(active_root, "demo")
+            self.manifest_factory.write_project(explicit_root, "demo")
 
             status, stdout, stderr = run_engine(
                 ["resolve", "demo", "--workspace", str(explicit_workspace)],
@@ -942,7 +903,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = root / "base"
             base_home.mkdir()
             project_root = root / "active" / "demo"
-            write_manifest(project_root, "other")
+            self.manifest_factory.write_project(project_root, "other")
 
             status, _stdout, stderr = run_engine(
                 ["resolve", "demo"],
@@ -963,7 +924,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home = root / "homebrew" / "base" / "libexec"
             base_home.mkdir(parents=True)
             project_root = workspace / "demo"
-            write_manifest(project_root, "demo")
+            self.manifest_factory.write_project(project_root, "demo")
 
             status, stdout, stderr = run_engine(
                 ["resolve", "demo"],
@@ -990,8 +951,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir)
             base_home = workspace / "base"
             other_base = workspace / "base-worktree"
-            write_manifest(base_home, "base")
-            write_manifest(other_base, "base")
+            self.manifest_factory.write_project(base_home, "base")
+            self.manifest_factory.write_project(other_base, "base")
 
             status, stdout, stderr = run_engine(["resolve", "base"], base_home)
 
@@ -1009,8 +970,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = root / "configured-workspace"
             base_home = root / "homebrew" / "base" / "libexec"
             other_base = workspace / "base"
-            write_manifest(base_home, "base")
-            write_manifest(other_base, "base")
+            self.manifest_factory.write_project(base_home, "base")
+            self.manifest_factory.write_project(other_base, "base")
 
             status, stdout, stderr = run_engine(
                 ["resolve", "base"],
@@ -1180,7 +1141,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir)
             base_home = workspace / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(["activation-sources", "demo"], base_home)
 
@@ -1209,7 +1170,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir)
             base_home = workspace / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, stdout, stderr = run_engine(["resolve", "demo"], base_home)
 
@@ -1284,7 +1245,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir)
             base_home = workspace / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, _stdout, stderr = run_engine(["test-command", "demo"], base_home)
 
@@ -1523,7 +1484,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir)
             base_home = workspace / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, _stdout, stderr = run_engine(["demo-script", "demo"], base_home)
 
@@ -1748,7 +1709,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             workspace = Path(tmpdir)
             base_home = workspace / "base"
             base_home.mkdir()
-            write_manifest(workspace / "demo", "demo")
+            self.manifest_factory.write_project(workspace / "demo", "demo")
 
             status, _stdout, stderr = run_engine(["run-commands", "demo"], base_home)
 
@@ -1762,7 +1723,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home.mkdir()
             project_root = workspace / "demo"
             manifest_path = project_root / "base_manifest.yaml"
-            write_manifest(project_root, "demo")
+            self.manifest_factory.write_project(project_root, "demo")
 
             status, stdout, stderr = run_engine(["manifest", str(manifest_path)], base_home)
 
@@ -1787,7 +1748,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
             base_home.mkdir()
             project_root = workspace / "demo"
             nested = project_root / "docs" / "notes"
-            write_manifest(project_root, "demo")
+            self.manifest_factory.write_project(project_root, "demo")
             nested.mkdir(parents=True)
 
             old_cwd = Path.cwd()
@@ -1847,8 +1808,8 @@ class ProjectDiscoveryTests(unittest.TestCase):
     def test_cached_project_discovery_rejects_duplicate_project_names(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
-            write_manifest(workspace / "one", "demo")
-            write_manifest(workspace / "two", "demo")
+            self.manifest_factory.write_project(workspace / "one", "demo")
+            self.manifest_factory.write_project(workspace / "two", "demo")
 
             with self.assertRaisesRegex(engine.ProjectDiscoveryError, "Duplicate project names"):
                 ctx = mock.Mock()
