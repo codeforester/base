@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 from base_cli_adapters.history import build_finished_record
@@ -52,6 +53,8 @@ def init_git_repo(project_root: Path, origin: str) -> str:
 
 
 class ManifestCommandTrustTests(unittest.TestCase):
+    manifest_factory: Any
+
     def test_require_explicit_manifest_populates_history_project_metadata(self) -> None:
         from base_trust import engine
 

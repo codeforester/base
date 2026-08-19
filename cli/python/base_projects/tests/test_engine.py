@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 from base_cli_adapters.history import build_finished_record
@@ -209,6 +210,8 @@ def run_engine_with_home(args: list[str], base_home: Path, home: Path) -> tuple[
 
 
 class ProjectDiscoveryTests(unittest.TestCase):
+    manifest_factory: Any
+
     # pylint: disable=too-many-statements
     def test_command_protocol_covers_project_command_bridge_records(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -11,15 +11,15 @@ class ManifestFactory:
     """Build the small manifest variants used by package-level tests."""
 
     @staticmethod
-    def _write(project_root: Path, lines: list[str]) -> Path:
-        project_root.mkdir(parents=True, exist_ok=True)
-        manifest_path = project_root / "base_manifest.yaml"
+    def _write(root: Path, lines: list[str]) -> Path:
+        root.mkdir(parents=True, exist_ok=True)
+        manifest_path = root / "base_manifest.yaml"
         manifest_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return manifest_path
 
     def write(
         self,
-        project_root: Path,
+        root: Path,
         name: str = "demo",
         *,
         test_command: str | None = "pytest tests/",
@@ -30,46 +30,46 @@ class ManifestFactory:
         if test_command is not None:
             lines.extend(["test:", f"  command: {test_command}"])
         lines.append("artifacts: []")
-        return self._write(project_root, lines)
+        return self._write(root, lines)
 
-    def write_project(self, project_root: Path, name: str = "demo") -> Path:
+    def write_project(self, root: Path, name: str = "demo") -> Path:
         """Write a minimal Python-project manifest."""
 
         return self._write(
-            project_root,
+            root,
             ["project:", f"  name: {name}", "python: {}", "artifacts: []"],
         )
 
-    def write_shell(self, project_root: Path, name: str = "demo") -> Path:
+    def write_shell(self, root: Path, name: str = "demo") -> Path:
         """Write a minimal shell-project manifest."""
 
-        return self._write(project_root, ["project:", f"  name: {name}", "artifacts: []"])
+        return self._write(root, ["project:", f"  name: {name}", "artifacts: []"])
 
-    def write_python(self, project_root: Path, name: str = "demo") -> Path:
+    def write_python(self, root: Path, name: str = "demo") -> Path:
         """Write a uv-managed Python-project manifest with a ready venv."""
 
         manifest_path = self._write(
-            project_root,
+            root,
             ["project:", f"  name: {name}", "python:", "  manager: uv"],
         )
-        self.write_ready_python_bin(project_root / ".venv" / "bin" / "python")
+        self.write_ready_python_bin(root / ".venv" / "bin" / "python")
         return manifest_path
 
-    def write_inline_python(self, project_root: Path, name: str = "demo") -> Path:
+    def write_inline_python(self, root: Path, name: str = "demo") -> Path:
         """Write an inline-uv Python-project manifest with a ready venv."""
 
         manifest_path = self._write(
-            project_root,
+            root,
             ["project:", f"  name: {name}", "python: {manager: uv}", "artifacts: []"],
         )
-        self.write_ready_python_bin(project_root / ".venv" / "bin" / "python")
+        self.write_ready_python_bin(root / ".venv" / "bin" / "python")
         return manifest_path
 
-    def write_command_surfaces(self, project_root: Path, name: str = "demo") -> Path:
+    def write_command_surfaces(self, root: Path, name: str = "demo") -> Path:
         """Write a manifest containing every executable command surface."""
 
         return self._write(
-            project_root,
+            root,
             [
                 "project:",
                 f"  name: {name}",
@@ -97,15 +97,15 @@ class ManifestFactory:
         python_bin.chmod(0o755)
 
 
-@pytest.fixture
-def manifest_factory() -> ManifestFactory:
+@pytest.fixture(name="manifest_factory")
+def manifest_factory_fixture() -> ManifestFactory:
     """Return shared manifest writers for pytest-style tests."""
 
     return ManifestFactory()
 
 
-@pytest.fixture
-def project_root(tmp_path: Path) -> Path:
+@pytest.fixture(name="project_root")
+def project_root_fixture(tmp_path: Path) -> Path:
     """Return an isolated project root for tests that need one project."""
 
     return tmp_path / "project"
