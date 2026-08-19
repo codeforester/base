@@ -4,6 +4,12 @@
 
 BASE_DEFAULT_HOMEBREW_INSTALLER_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
+install_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+if [[ -f "$install_script_dir/lib/base/homebrew_install.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "$install_script_dir/lib/base/homebrew_install.sh"
+fi
+
 install_usage() {
     cat <<'EOF'
 Usage:
@@ -218,9 +224,34 @@ install_homebrew() {
     local installer
     local installer_url
     local installer_sha256
+    local pinned_selected=false
+    local pinned_url_selected=false
+    local pinned_sha256_selected=false
 
     installer_url="$(install_homebrew_installer_url)"
     installer_sha256="$(install_homebrew_installer_sha256)"
+
+    if declare -F base_homebrew_install >/dev/null 2>&1; then
+        install_homebrew_pinned_selected && pinned_selected=true
+        install_homebrew_pinned_url_selected && pinned_url_selected=true
+        install_homebrew_pinned_sha256_selected && pinned_sha256_selected=true
+        base_homebrew_install \
+            "$installer_url" \
+            "$installer_sha256" \
+            "${BASE_INSTALL_DRY_RUN:-false}" \
+            "$pinned_selected" \
+            "$pinned_url_selected" \
+            "$pinned_sha256_selected" \
+            install_log \
+            install_die \
+            install_log_homebrew_mutable_policy \
+            install_fetch_homebrew_installer \
+            base_homebrew_run_mutable_installer
+        return $?
+    fi
+
+    # A raw install.sh download has no adjacent Base checkout to source. Keep
+    # this standalone fallback for that first-mile invocation.
     install_log "Installing Homebrew."
     if install_homebrew_pinned_selected; then
         install_homebrew_pinned_url_selected &&

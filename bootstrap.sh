@@ -4,6 +4,12 @@
 
 BASE_DEFAULT_HOMEBREW_INSTALLER_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
+bootstrap_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+if [[ -f "$bootstrap_script_dir/lib/base/homebrew_install.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "$bootstrap_script_dir/lib/base/homebrew_install.sh"
+fi
+
 bootstrap_usage() {
     cat <<'EOF'
 Usage:
@@ -343,9 +349,35 @@ bootstrap_install_homebrew() {
     local installer
     local installer_url
     local installer_sha256
+    local pinned_selected=false
+    local pinned_url_selected=false
+    local pinned_sha256_selected=false
 
     installer_url="$(bootstrap_homebrew_installer_url)"
     installer_sha256="$(bootstrap_homebrew_installer_sha256)"
+
+    if declare -F base_homebrew_install >/dev/null 2>&1; then
+        bootstrap_homebrew_pinned_selected && pinned_selected=true
+        bootstrap_homebrew_pinned_url_selected && pinned_url_selected=true
+        bootstrap_homebrew_pinned_sha256_selected && pinned_sha256_selected=true
+        base_homebrew_install \
+            "$installer_url" \
+            "$installer_sha256" \
+            "${BASE_BOOTSTRAP_DRY_RUN:-false}" \
+            "$pinned_selected" \
+            "$pinned_url_selected" \
+            "$pinned_sha256_selected" \
+            bootstrap_log \
+            bootstrap_die \
+            bootstrap_log_homebrew_mutable_policy \
+            bootstrap_fetch_homebrew_installer \
+            base_homebrew_run_mutable_installer \
+            "$result_var"
+        return $?
+    fi
+
+    # A raw bootstrap.sh download has no adjacent Base checkout to source.
+    # Keep this standalone fallback for that first-mile invocation.
     bootstrap_log "Installing Homebrew."
     if bootstrap_homebrew_pinned_selected; then
         bootstrap_homebrew_pinned_url_selected &&
