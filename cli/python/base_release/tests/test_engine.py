@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from contextlib import redirect_stderr
 from contextlib import redirect_stdout
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 from base_cli_adapters.history import build_finished_record
@@ -63,63 +64,6 @@ def run_engine(args: list[str], cwd: Path, extra_env: dict[str, str] | None = No
 class TerminalStringIO(io.StringIO):
     def isatty(self) -> bool:
         return True
-
-
-def write_release_project(
-    root: Path,
-    *,
-    version_file_content: str = "1.2.3\n",
-    changelog: str | None = None,
-    homebrew: bool = True,
-) -> Path:
-    changelog_content = changelog or "\n".join(
-        [
-            "# Changelog",
-            "",
-            "## [Unreleased]",
-            "",
-            "## [1.2.3] - 2026-06-09",
-            "",
-            "- Added the release assistant.",
-            "",
-            "## [1.2.2] - 2026-06-01",
-            "",
-            "- Previous release.",
-        ]
-    )
-    root.joinpath("VERSION").write_text(version_file_content, encoding="utf-8")
-    root.joinpath("CHANGELOG.md").write_text(changelog_content, encoding="utf-8")
-    manifest_lines = [
-        "project:",
-        "  name: demo",
-        "",
-        "release:",
-        "  version_file: VERSION",
-        "  changelog: CHANGELOG.md",
-        "  tag_prefix: v",
-        "  github:",
-        "    repository: codeforester/demo",
-        "    release_title: \"Demo v{version}\"",
-    ]
-    if homebrew:
-        manifest_lines.extend(
-            [
-                "  homebrew:",
-                "    required: true",
-                "    tap_repository: codeforester/homebrew-demo",
-                "    formula_path: Formula/demo.rb",
-                "    package: codeforester/demo/demo",
-            ]
-        )
-    manifest_lines.extend(["", "artifacts: []"])
-    manifest_path = root / "base_manifest.yaml"
-    manifest_path.write_text("\n".join(manifest_lines), encoding="utf-8")
-    subprocess.run(["git", "init"], cwd=root, check=True, stdout=subprocess.DEVNULL)
-    subprocess.run(["git", "config", "user.email", "base@example.com"], cwd=root, check=True)
-    subprocess.run(["git", "config", "user.name", "Base Tests"], cwd=root, check=True)
-    subprocess.run(["git", "add", "."], cwd=root, check=True)
-    subprocess.run(["git", "commit", "-m", "initial"], cwd=root, check=True, stdout=subprocess.DEVNULL)
-    return manifest_path
 
 
 def add_origin(root: Path) -> None:
@@ -199,13 +143,14 @@ class ReleaseUsageTests(unittest.TestCase):
 
 
 class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-methods
+    manifest_factory: Any
 
     def test_explicit_manifest_populates_history_project_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             project_root = root / "demo"
             project_root.mkdir()
-            manifest_path = write_release_project(project_root)
+            manifest_path = self.manifest_factory.write_release(project_root)
             outside = root / "outside"
             outside.mkdir()
             captured: list[tuple[object, ...]] = []
@@ -233,7 +178,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_check_json_reports_ready_findings_with_stable_envelope(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             with mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS):
                 status, stdout, stderr = run_engine(
@@ -271,7 +216,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         )
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             with mock.patch("base_release.engine.release_findings", return_value=findings):
                 status, stdout, stderr = run_engine(
@@ -289,7 +234,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_check_json_warning_and_empty_findings_preserve_success_exit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             with mock.patch(
                 "base_release.engine.release_findings",
@@ -334,7 +279,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_notes_prints_changelog_section_for_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             status, stdout, stderr = run_engine(
                 ["notes", "--version", "1.2.3", "--manifest", str(manifest_path)],
@@ -349,7 +294,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_plan_prints_github_and_homebrew_handoff(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             status, stdout, stderr = run_engine(
                 ["plan", "--version", "1.2.3", "--manifest", str(manifest_path)],
@@ -387,7 +332,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
                     "- Stable release.",
                 ]
             )
-            manifest_path = write_release_project(
+            manifest_path = self.manifest_factory.write_release(
                 root,
                 version_file_content="1.0.0\n",
                 changelog=changelog,
@@ -406,7 +351,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_plan_prints_no_homebrew_handoff_for_github_only_project(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root, homebrew=False)
+            manifest_path = self.manifest_factory.write_release(root, homebrew=False)
 
             status, stdout, stderr = run_engine(
                 ["plan", "--version", "1.2.3", "--manifest", str(manifest_path)],
@@ -421,7 +366,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_publish_dry_run_prints_planned_actions_without_running_commands(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             with mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS), mock.patch(
                 "base_release.engine.github_release_finding",
@@ -444,7 +389,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_publish_requires_yes_when_stdin_is_not_interactive(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             with mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS), mock.patch(
                 "base_release.engine.github_release_finding",
@@ -464,7 +409,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_publish_yes_creates_annotated_tag_pushes_and_creates_github_release(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
             commands: list[tuple[list[str], Path | None]] = []
 
             def fake_run_release_step(command: list[str], *, cwd: Path | None = None) -> None:
@@ -508,7 +453,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_publish_yes_reports_recovery_when_github_release_create_fails_after_tag_push(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
             commands: list[tuple[list[str], Path | None]] = []
 
             def fake_run_release_step(command: list[str], *, cwd: Path | None = None) -> None:
@@ -549,7 +494,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_publish_fails_when_readiness_has_errors(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             with mock.patch(
                 "base_release.engine.release_findings",
@@ -570,7 +515,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_publish_fails_when_github_release_already_exists(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
 
             with mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS), mock.patch(
                 "base_release.engine.github_release_finding",
@@ -596,7 +541,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_check_fails_when_version_file_does_not_match(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(root, version_file_content="1.2.2\n")
+            manifest_path = self.manifest_factory.write_release(root, version_file_content="1.2.2\n")
 
             status, stdout, stderr = run_engine(
                 ["check", "--version", "1.2.3", "--manifest", str(manifest_path)],
@@ -611,7 +556,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
     def test_check_fails_when_changelog_section_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            manifest_path = write_release_project(
+            manifest_path = self.manifest_factory.write_release(
                 root,
                 changelog="# Changelog\n\n## [1.2.2] - 2026-06-01\n\n- Previous release.\n",
             )
@@ -630,7 +575,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "project"
             root.mkdir()
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
             add_origin(root)
 
             with mock.patch(
@@ -653,7 +598,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "project"
             root.mkdir()
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
             add_origin(root)
             root.joinpath("scratch.txt").write_text("dirty\n", encoding="utf-8")
 
@@ -675,7 +620,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "project"
             root.mkdir()
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
             add_origin(root)
             subprocess.run(["git", "tag", "v1.2.3"], cwd=root, check=True)
 
@@ -697,7 +642,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "project"
             root.mkdir()
-            manifest_path = write_release_project(root)
+            manifest_path = self.manifest_factory.write_release(root)
             add_origin_with_remote_tag(root, "v1.2.3")
 
             with mock.patch(

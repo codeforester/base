@@ -10,14 +10,9 @@ from base_pr_policy.engine import PrPolicyInputs, render_pr_body
 from base_setup.github_manifest import GithubPrConfig, GithubPrRequiredSectionsConfig
 
 
-def test_explicit_manifest_populates_history_project_metadata(tmp_path) -> None:
+def test_explicit_manifest_populates_history_project_metadata(tmp_path, manifest_factory) -> None:
     project_root = tmp_path / "demo"
-    project_root.mkdir()
-    manifest_path = project_root / "base_manifest.yaml"
-    manifest_path.write_text(
-        "project:\n  name: demo\ngithub:\n  pr:\n    required_sections:\n      default: [Summary]\n",
-        encoding="utf-8",
-    )
+    manifest_path = manifest_factory.write_pr_policy(project_root)
     outside = tmp_path / "outside"
     outside.mkdir()
     captured = []
