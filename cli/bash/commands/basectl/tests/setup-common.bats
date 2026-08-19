@@ -140,6 +140,8 @@ run_setup_common_script() {
         source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_macos_homebrew.sh"
         source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_macos_homebrew.sh"
         for helper in \
+            base_homebrew_install \
+            base_homebrew_run_verified_installer \
             setup_find_brew_bin \
             setup_install_homebrew \
             setup_collect_macos_base_check_results \

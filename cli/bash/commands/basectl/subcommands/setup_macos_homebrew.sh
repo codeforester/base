@@ -14,6 +14,9 @@
 _base_setup_macos_homebrew_sourced=1
 readonly _base_setup_macos_homebrew_sourced
 
+# shellcheck source=/dev/null
+source "$BASE_HOME/lib/base/homebrew_install.sh"
+
 setup_python_formula() {
     printf '%s\n' "${BASE_SETUP_PYTHON_FORMULA:-python@3.13}"
 }
@@ -211,46 +214,39 @@ setup_fetch_homebrew_installer() {
     esac
 }
 
-setup_run_verified_homebrew_installer() {
+setup_homebrew_install_fatal() {
+    base_std_fatal_error "$1"
+}
+
+setup_homebrew_mutable_fatal() {
+    base_std_log_error "$(setup_recovery_homebrew)"
+    base_std_fatal_error "$1"
+}
+
+setup_run_mutable_homebrew_installer() {
     local installer_url="$1"
-    local expected_sha256="$2"
-    local installer_file
-    local checksum
-    local actual_sha256
     local exit_code
 
-    base_std_make_temp_file installer_file base-homebrew-installer || base_std_fatal_error "Failed to create a temporary Homebrew installer file."
-    setup_fetch_homebrew_installer "$installer_url" "$installer_file" || {
-        base_std_fatal_error "Failed to read pinned Homebrew installer content from '$installer_url'."
-    }
-
-    command -v shasum >/dev/null 2>&1 || {
-        base_std_fatal_error "shasum is required to verify pinned Homebrew installer content."
-    }
-    checksum="$(shasum -a 256 "$installer_file")" || {
-        base_std_fatal_error "Failed to compute Homebrew installer checksum."
-    }
-    actual_sha256="${checksum%% *}"
-    if [[ "$actual_sha256" != "$expected_sha256" ]]; then
-        base_std_fatal_error "Homebrew installer checksum mismatch (expected $expected_sha256, got $actual_sha256)."
+    if [[ -n "${BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT:-}" ]]; then
+        setup_reject_test_hook_if_disallowed BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT
+        "$BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT"
+        exit_code=$?
+        if ((exit_code)); then
+            base_std_log_error "$(setup_recovery_homebrew)"
+        fi
+        base_std_exit_if_error "$exit_code" "Homebrew installation failed."
+        return 0
     fi
 
-    /bin/bash "$installer_file"
-    exit_code=$?
-    if ((exit_code)); then
-        base_std_log_error "$(setup_recovery_homebrew)"
-    fi
-    base_std_exit_if_error "$exit_code" "Homebrew installer failed."
+    base_homebrew_run_mutable_installer "$installer_url" setup_homebrew_mutable_fatal
 }
 
 setup_install_homebrew() {
-    # Trust decision: Base follows Homebrew's official install command, which
-    # intentionally fetches the installer from the mutable HEAD ref. Pinning a
-    # reviewed commit would reduce mutability risk, but would also make Base own
-    # installer refreshes and drift from Homebrew's supported bootstrap path.
     local installer_url
     local installer_sha256
-    local exit_code
+    local pinned_selected=false
+    local pinned_url_selected=false
+    local pinned_sha256_selected=false
 
     installer_url="$(setup_homebrew_installer_url)"
     installer_sha256="$(setup_homebrew_installer_sha256)"
@@ -261,49 +257,24 @@ setup_install_homebrew() {
         return 0
     fi
 
-    if setup_homebrew_pinned_selected; then
-        setup_homebrew_pinned_url_selected &&
-            setup_homebrew_pinned_sha256_selected &&
-            [[ -n "$installer_url" && -n "$installer_sha256" ]] ||
-            base_std_fatal_error "Pinned Homebrew installer URL and SHA-256 are both required."
-        base_std_log_info "Installing Homebrew."
-        base_std_log_info "Using pinned Homebrew installer from $installer_url."
-        if setup_is_dry_run; then
-            base_std_log_info "[DRY-RUN] Would verify Homebrew installer SHA-256 $installer_sha256"
-            base_std_log_info "[DRY-RUN] Would run: /bin/bash <verified Homebrew installer from $installer_url>"
-            return 0
-        fi
-        setup_run_verified_homebrew_installer "$installer_url" "$installer_sha256"
-        setup_refresh_brew_path || base_std_fatal_error "Homebrew installation finished, but 'brew' was not found on PATH. $(setup_recovery_brew_path)"
-        return 0
-    fi
-
-    setup_log_homebrew_mutable_policy
-    if setup_is_dry_run; then
-        base_std_log_info "[DRY-RUN] Would run: /bin/bash -c <Homebrew installer from $installer_url>"
-        return 0
-    fi
-
-    base_std_log_info "Installing Homebrew."
-
-    if [[ -n "${BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT:-}" ]]; then
-        setup_reject_test_hook_if_disallowed BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT
-        "$BASE_SETUP_HOMEBREW_INSTALLER_SCRIPT"
-        exit_code=$?
-        if ((exit_code)); then
-            base_std_log_error "$(setup_recovery_homebrew)"
-        fi
-        base_std_exit_if_error "$exit_code" "Homebrew installation failed."
-    else
-        command -v curl >/dev/null 2>&1 || base_std_fatal_error "curl is required to install Homebrew. Install curl or install Homebrew manually from https://brew.sh/, then rerun 'basectl setup'."
-        /bin/bash -c "$(curl -fsSL "$installer_url")"
-        exit_code=$?
-        if ((exit_code)); then
-            base_std_log_error "$(setup_recovery_homebrew)"
-        fi
-        base_std_exit_if_error "$exit_code" "Homebrew installation failed."
-    fi
-
+    setup_homebrew_pinned_selected && pinned_selected=true
+    setup_homebrew_pinned_url_selected && pinned_url_selected=true
+    setup_homebrew_pinned_sha256_selected && pinned_sha256_selected=true
+    base_homebrew_install \
+        "$installer_url" \
+        "$installer_sha256" \
+        "$(setup_is_dry_run && printf true || printf false)" \
+        "$pinned_selected" \
+        "$pinned_url_selected" \
+        "$pinned_sha256_selected" \
+        base_std_log_info \
+        setup_homebrew_install_fatal \
+        setup_log_homebrew_mutable_policy \
+        setup_fetch_homebrew_installer \
+        setup_run_mutable_homebrew_installer
+    local install_status=$?
+    ((install_status == 0)) || return "$install_status"
+    setup_is_dry_run && return 0
     setup_refresh_brew_path || base_std_fatal_error "Homebrew installation finished, but 'brew' was not found on PATH. $(setup_recovery_brew_path)"
 }
 
