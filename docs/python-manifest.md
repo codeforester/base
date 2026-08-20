@@ -238,8 +238,11 @@ when you only need to inspect the resolved invocation.
 
 `pyproject.toml` remains the Python project's packaging contract. Base observes
 a same-directory `pyproject.toml` during diagnostics, reports whether it is
-readable, summarizes standard `[project]` metadata, and warns when dependency
-metadata or unsupported `[tool.base]` configuration is present.
+readable, and summarizes standard `[project]` metadata. For projects without
+an explicit supported Python manager, Base warns when dependency metadata or
+unsupported `[tool.base]` configuration is present. When `python.manager: uv`
+is declared, uv owns Python dependency synchronization and the dedicated uv
+diagnostics report project-file, environment, and lockfile readiness instead.
 
 Base does not treat `pyproject.toml` as an alternate Base manifest. It does not
 solve dependencies, execute build backend hooks, generate lockfiles, or install

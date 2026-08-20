@@ -173,7 +173,7 @@ Doctor commands use the same diagnostic item fields. The top-level
 | `BASE-P132` | IDE CLI PATH status |
 | `BASE-P140` | `pyproject.toml` presence and metadata summary |
 | `BASE-P141` | `pyproject.toml` readability |
-| `BASE-P142` | `pyproject.toml` dependency metadata observed but not reconciled |
+| `BASE-P142` | `pyproject.toml` dependency metadata observed without an explicit supported Python manager |
 | `BASE-P143` | Unsupported `[tool.base]` configuration |
 | `BASE-P150` | uv CLI availability for uv-managed projects or uv command runners |
 | `BASE-P151` | uv-managed project `pyproject.toml` presence |
@@ -198,8 +198,11 @@ as a guarantee that every project dependency import succeeds.
 Base only inspects the `pyproject.toml` file beside the active
 `base_manifest.yaml`. These findings do not make `pyproject.toml` a Base
 configuration source and do not cause Base to install Python dependencies.
-Warnings in this range should guide users toward a valid Python project file
-without failing the Base manifest check by themselves.
+`BASE-P142` applies when dependency metadata is present without an explicit
+supported Python manager; projects declaring `python.manager: uv` use the
+dedicated uv diagnostics instead. Warnings in this range should guide users
+toward a valid Python project file without failing the Base manifest check by
+themselves.
 
 `BASE-P150` through `BASE-P155` are uv support diagnostics. They are warnings
 when uv tooling or expected uv project files are missing, because check/doctor
