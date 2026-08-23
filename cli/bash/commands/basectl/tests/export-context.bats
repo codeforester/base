@@ -39,6 +39,8 @@ load ./basectl_helpers.bash
     local python_bin="$TEST_HOME/.base.d/base/.venv/bin/python"
     local workspace="$TEST_TMPDIR/workspace"
     local state_file="$TEST_TMPDIR/export-state"
+    local history_state="$TEST_TMPDIR/history-state"
+    local history_call
 
     mkdir -p "$(dirname "$python_bin")" "$workspace/demo"
     cat > "$python_bin" <<'EOF'
@@ -54,6 +56,10 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "base_export_context" ]]; then
     printf 'exported current\n'
     exit 0
 fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_history.record" ]]; then
+    printf '%s\n' "$*" > "${BASE_TEST_HISTORY_STATE:?}"
+    exit 0
+fi
 printf 'unexpected export-context python args: %s\n' "$*" >&2
 exit 1
 EOF
@@ -66,6 +72,7 @@ EOF
         PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
         BASE_TEST_PROJECT_ROOT="$workspace/demo" \
         BASE_TEST_EXPORT_STATE="$state_file" \
+        BASE_TEST_HISTORY_STATE="$history_state" \
         bash -c '
             cd "$1"
             shift
@@ -73,8 +80,52 @@ EOF
         ' bash "$workspace/demo" "$BASE_REPO_ROOT/bin/basectl" export-context --print
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"exported current"* ]]
+    [ "$output" = "exported current" ]
     [ "$(cat "$state_file")" = "--project-name demo --project-root $workspace/demo --format markdown --print" ]
+    history_call="$(cat "$history_state")"
+    [[ "$history_call" == *"-m base_history.record --command export-context "* ]]
+    [[ "$history_call" == *" --project demo --project-root $workspace/demo "* ]]
+    [[ "$history_call" == *" --manifest $workspace/demo/base_manifest.yaml "* ]]
+}
+
+@test "basectl export-context rejects incomplete project context before setting history attribution" {
+    local python_bin="$TEST_HOME/.base.d/base/.venv/bin/python"
+    local workspace="$TEST_TMPDIR/workspace"
+    local history_state="$TEST_TMPDIR/history-state"
+
+    mkdir -p "$(dirname "$python_bin")" "$workspace/demo"
+    cat > "$python_bin" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "current" ]]; then
+    base_test_protocol_project_reference demo "${BASE_TEST_PROJECT_ROOT:?}" ""
+    exit 0
+fi
+printf 'unexpected export-context python args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$python_bin"
+    workspace="$(cd "$workspace" && pwd -P)"
+
+    run env \
+        HOME="$TEST_HOME" \
+        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_BASH_LIBS_DIR="${BASE_BASH_LIBS_DIR:-}" \
+        BASE_TEST_PROJECT_ROOT="$workspace/demo" \
+        BASE_TEST_HISTORY_STATE="$history_state" \
+        "$TEST_BASH_BIN_DIR/bash" -c '
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/export_context.sh"
+            base_project_set_history_context() {
+                printf "%s\n" "$*" > "${BASE_TEST_HISTORY_STATE:?}"
+            }
+            cd "$1"
+            base_export_context_subcommand_main --print
+        ' bash "$workspace/demo"
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unable to resolve project for export-context."* ]]
+    [ ! -e "$history_state" ]
 }
 
 @test "basectl export-context resolves named project and forwards output options" {
