@@ -8,6 +8,10 @@ class ProjectDiscoveryError(RuntimeError):
     pass
 
 
+class ProjectNotFoundError(ProjectDiscoveryError):
+    pass
+
+
 @dataclass(frozen=True)
 class ManifestEntry:
     path: Path

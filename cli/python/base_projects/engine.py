@@ -65,6 +65,7 @@ from base_projects.workspace_report_text import print_workspace_agent_brief
 from base_projects.workspace_report_text import print_workspace_onboarding
 from base_projects.workspace_report_text import print_workspace_status
 from base_projects.workspace_scanner import ProjectDiscoveryError
+from base_projects.workspace_scanner import ProjectNotFoundError
 from base_projects.workspace_statuses import workspace_project_statuses
 from base_setup.demo import resolve_demo_script_path
 from base_setup.errors import ArtifactError
@@ -557,6 +558,9 @@ def test_command_project_command(
         else:
             project = current_project()
         manifest = read_manifest(project.manifest_path)
+    except ProjectNotFoundError as exc:
+        ctx.log.error(str(exc))
+        return base_cli.ExitCode.USAGE_ERROR
     except (ProjectDiscoveryError, ManifestError) as exc:
         ctx.log.error(str(exc))
         return base_cli.ExitCode.FAILURE
@@ -875,7 +879,7 @@ def resolve_named_project(ctx: base_cli.Context, project_name: str, workspace: s
         return bind_project_context(ctx, project)
 
     workspace_root = resolve_workspace_root(ctx, workspace)
-    raise ProjectDiscoveryError(f"Project '{project_name}' was not found in workspace '{workspace_root}'.")
+    raise ProjectNotFoundError(f"Project '{project_name}' was not found in workspace '{workspace_root}'.")
 
 
 def bind_project_context(ctx: base_cli.Context, project: Project) -> Project:

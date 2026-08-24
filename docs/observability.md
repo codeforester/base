@@ -81,11 +81,14 @@ History writes are best-effort:
 - ignore malformed history lines while warning in debug output
 
 `basectl history` shows one record per accepted public command invocation.
-Top-level command and wrapper-syntax errors are rejected before persistent
-runtime state is initialized, so they do not create a run bundle or history
-record. Once a recognized command is accepted, its run remains observable even
-if leaf-level argument validation, environment checks, or execution later
-fails. Legacy internal rows are ignored so old caches do not reintroduce
+Top-level command, wrapper-syntax, and leaf-level usage errors are rejected
+without persistent run evidence, so they do not create a retained run bundle
+or history record. A recognized command may initialize a temporary bundle
+before its leaf parser or project selector rejects the invocation; `basectl`
+discards that invocation-owned bundle before returning usage status `2`.
+Inherited parent bundles are never discarded. Once command usage is accepted,
+environment, manifest, trust, discovery, and execution failures remain
+observable. Legacy internal rows are ignored so old caches do not reintroduce
 duplicate command entries.
 
 ## Record Shape

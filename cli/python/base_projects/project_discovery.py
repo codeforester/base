@@ -12,6 +12,7 @@ import base_cli
 from base_cli_adapters.paths import base_cache_root, discover_manifest
 from base_projects.workspace_scanner import ManifestEntry
 from base_projects.workspace_scanner import ProjectDiscoveryError
+from base_projects.workspace_scanner import ProjectNotFoundError
 from base_projects.workspace_scanner import workspace_manifest_entries
 from base_setup.manifest import read_manifest
 from base_setup.manifest_loader import ManifestError
@@ -63,7 +64,7 @@ def find_project_in_projects(projects: tuple[Project, ...], workspace_root: Path
     for project in projects:
         if project.name == project_name:
             return project
-    raise ProjectDiscoveryError(f"Project '{project_name}' was not found in workspace '{workspace_root}'.")
+    raise ProjectNotFoundError(f"Project '{project_name}' was not found in workspace '{workspace_root}'.")
 
 
 def resolve_active_project(project_name: str) -> Project | None:

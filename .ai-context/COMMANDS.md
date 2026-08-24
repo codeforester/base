@@ -167,7 +167,10 @@ are documented in `docs/inspection-json.md`.
 - `basectl history` - list recent structured Base command runs from the local
   history index, with comma-separated OR filters such as
   `--command check,doctor`, `--format json` for scripts, and `--report` for a
-  privacy-conscious Markdown or JSON activity report.
+  privacy-conscious Markdown or JSON activity report. Rejected usage
+  invocations (status `2`), including an explicitly named nonexistent project,
+  leave no persistent run bundle, log, or history row. Failures after command
+  usage is accepted remain observable.
 - `basectl config <path|show|doctor>` - inspect Base's machine-local user
   config.
 - `basectl onboard` - guide a user through the first Base setup checklist.

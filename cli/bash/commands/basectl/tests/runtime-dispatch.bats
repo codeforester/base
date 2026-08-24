@@ -45,6 +45,64 @@ load ./basectl_helpers.bash
 }
 
 
+@test "basectl discards locally created run artifacts for leaf usage errors" {
+    local cache_root="$TEST_TMPDIR/cache"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_TEST_STATE_DIR="$TEST_STATE_DIR" \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() { return 2; }
+            basectl_history_record() { touch "$BASE_TEST_STATE_DIR/history-recorded"; }
+            basectl_main setup
+        '
+
+    [ "$status" -eq 2 ]
+    [ -d "$cache_root/base/runs" ]
+    [ -z "$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -print -quit)" ]
+    [ ! -e "$cache_root/base/history/runs.jsonl" ]
+    [ ! -e "$TEST_STATE_DIR/history-recorded" ]
+}
+
+
+@test "basectl preserves an inherited parent run bundle after a leaf usage error" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local inherited_root="$cache_root/base/runs/parent-run__setup"
+
+    mkdir -p "$inherited_root/logs" "$inherited_root/tmp/parent"
+    touch "$inherited_root/logs/primary.log" "$inherited_root/tmp/parent/proof.txt"
+    printf '%s\n' '{"run_id":"parent-run","owner":"base","status":"running"}' > "$inherited_root/run.json"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=parent-run \
+        BASE_CLI_RUN_ROOT="$inherited_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$inherited_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=parent-run \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        BASE_TEST_STATE_DIR="$TEST_STATE_DIR" \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() { return 2; }
+            basectl_history_record() { touch "$BASE_TEST_STATE_DIR/history-recorded"; }
+            basectl_main setup
+        '
+
+    [ "$status" -eq 2 ]
+    grep -Fq '"status":"running"' "$inherited_root/run.json"
+    [ -f "$inherited_root/tmp/parent/proof.txt" ]
+    [ ! -e "$TEST_STATE_DIR/history-recorded" ]
+}
+
+
 @test "basectl keeps a run bundle for a recognized command failure" {
     local cache_root="$TEST_TMPDIR/cache"
     local run_root
@@ -53,11 +111,12 @@ load ./basectl_helpers.bash
         HOME="$TEST_HOME" \
         BASE_HOME="$BASE_REPO_ROOT" \
         BASE_CACHE_DIR="$cache_root" \
+        BASE_TEST_STATE_DIR="$TEST_STATE_DIR" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
             base_std_log_debug() { :; }
             basectl_do_setup() { return 7; }
-            basectl_history_record() { :; }
+            basectl_history_record() { touch "$BASE_TEST_STATE_DIR/history-recorded"; }
             basectl_main setup
         '
 
@@ -66,6 +125,7 @@ load ./basectl_helpers.bash
     [ -n "$run_root" ]
     [ -f "$run_root/run.json" ]
     [ -f "$run_root/logs/primary.log" ]
+    [ -f "$TEST_STATE_DIR/history-recorded" ]
 }
 
 
