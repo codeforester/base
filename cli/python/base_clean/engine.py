@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import shutil
-import time
 import json
+import os
+import stat
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,16 +65,25 @@ def run(ctx: base_cli.Context, older_than: str | None, keep_last: str | None, dr
         ctx.log.info("No Base runtime artifacts matched the clean criteria.")
         return base_cli.ExitCode.SUCCESS
 
+    acted_count = 0
     for candidate in unique_candidates:
-        action = "Would remove" if dry_run else "Removing"
-        print(f"{action}\t{candidate.category}\t{candidate.path}")
-        if not dry_run:
-            remove_path(candidate.path)
+        if dry_run:
+            if not clean_path_is_safe(cache_root, candidate.path, "candidate", ctx.log):
+                continue
+            print(f"Would remove\t{candidate.category}\t{candidate.path}")
+            acted_count += 1
+        elif remove_path(cache_root, candidate.path, ctx.log):
+            print(f"Removing\t{candidate.category}\t{candidate.path}")
+            acted_count += 1
+
+    if not acted_count:
+        ctx.log.info("No safe Base runtime artifacts matched the clean criteria.")
+        return base_cli.ExitCode.SUCCESS
 
     ctx.log.info(
         "%s %s Base runtime artifact(s).",
         "Would remove" if dry_run else "Removed",
-        len(unique_candidates),
+        acted_count,
     )
     return base_cli.ExitCode.SUCCESS
 
@@ -110,11 +120,27 @@ def parse_keep_last(value: str) -> int:
 
 def find_clean_candidates(cache_root: Path, cutoff: float, logger: object | None = None) -> list[CleanCandidate]:
     candidates: list[CleanCandidate] = []
-    for owner_root in runtime_owner_roots(cache_root):
+    for owner_root in runtime_owner_roots(cache_root, logger):
         if logger is not None:
             logger.debug("Scanning runtime owner root '%s'.", owner_root)
-        candidates.extend(find_category_candidates(owner_root / "runs", "run", cutoff, logger))
-        candidates.extend(find_category_candidates(owner_root / "cache" / "components", "cache", cutoff, logger))
+        candidates.extend(
+            find_category_candidates(
+                cache_root,
+                owner_root / "runs",
+                "run",
+                cutoff,
+                logger,
+            )
+        )
+        candidates.extend(
+            find_category_candidates(
+                cache_root,
+                owner_root / "cache" / "components",
+                "cache",
+                cutoff,
+                logger,
+            )
+        )
     return sorted(candidates, key=lambda candidate: str(candidate.path))
 
 
@@ -124,19 +150,32 @@ def find_log_retention_candidates(
     logger: object | None = None,
 ) -> list[CleanCandidate]:
     candidates: list[CleanCandidate] = []
-    for owner_root in runtime_owner_roots(cache_root):
+    for owner_root in runtime_owner_roots(cache_root, logger):
         runs_root = owner_root / "runs"
         if logger is not None:
             logger.debug("Scanning run retention artifacts in '%s'.", runs_root)
-        if not runs_root.is_dir():
+        if not clean_path_is_safe(
+            cache_root,
+            runs_root,
+            "category root",
+            logger,
+            require_directory=True,
+        ):
             continue
         run_dirs = []
-        for path in sorted(runs_root.iterdir(), key=lambda item: item.name):
-            if not path.is_dir() or run_is_running(path):
+        for path in safe_directory_entries(runs_root, "category root", logger):
+            if not clean_path_is_safe(
+                cache_root,
+                path,
+                "candidate",
+                logger,
+                require_directory=True,
+            ) or run_is_running(path):
                 continue
             try:
                 run_dirs.append((path, run_metadata_mtime(path)))
-            except OSError:
+            except OSError as exc:
+                warn_unsafe_path(logger, "candidate", path, f"could not read metadata: {exc}")
                 continue
         retained = {
             path
@@ -154,13 +193,143 @@ def find_log_retention_candidates(
     return sorted(candidates, key=lambda candidate: str(candidate.path))
 
 
-def runtime_owner_roots(cache_root: Path) -> list[Path]:
-    roots = []
+def runtime_owner_roots(cache_root: Path, logger: object | None = None) -> list[Path]:
+    roots: list[Path] = []
     base_root = cache_root / "base"
-    if base_root.is_dir():
+    if clean_path_is_safe(
+        cache_root,
+        base_root,
+        "owner root",
+        logger,
+        require_directory=True,
+    ):
         roots.append(base_root)
-    roots.extend(path for path in sorted((cache_root / "projects").glob("*/*"), key=str) if path.is_dir())
+
+    projects_root = cache_root / "projects"
+    if not clean_path_is_safe(
+        cache_root,
+        projects_root,
+        "projects root",
+        logger,
+        require_directory=True,
+    ):
+        return roots
+
+    for namespace_root in safe_directory_entries(projects_root, "projects root", logger):
+        if not clean_path_is_safe(
+            cache_root,
+            namespace_root,
+            "project namespace",
+            logger,
+            require_directory=True,
+        ):
+            continue
+        for owner_root in safe_directory_entries(namespace_root, "project namespace", logger):
+            if clean_path_is_safe(
+                cache_root,
+                owner_root,
+                "owner root",
+                logger,
+                require_directory=True,
+            ):
+                roots.append(owner_root)
     return roots
+
+
+def safe_directory_entries(
+    directory: Path,
+    path_kind: str,
+    logger: object | None = None,
+) -> list[Path]:
+    try:
+        return sorted(directory.iterdir(), key=lambda item: item.name)
+    except OSError as exc:
+        warn_unsafe_path(logger, path_kind, directory, f"could not list directory: {exc}")
+        return []
+
+
+def clean_path_is_safe(  # pylint: disable=too-many-return-statements
+    cache_root: Path,
+    path: Path,
+    path_kind: str,
+    logger: object | None = None,
+    *,
+    require_directory: bool = False,
+) -> bool:
+    lexical_root = cache_root.absolute()
+    lexical_path = path.absolute()
+    try:
+        relative_path = lexical_path.relative_to(lexical_root)
+    except ValueError:
+        warn_unsafe_path(logger, path_kind, path, "path is outside the Base cache root")
+        return False
+
+    try:
+        resolved_root = lexical_root.resolve(strict=True)
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        warn_unsafe_path(logger, path_kind, path, f"could not resolve the Base cache root: {exc}")
+        return False
+
+    current = lexical_root
+    final_stat = None
+    for index, part in enumerate(relative_path.parts):
+        current /= part
+        try:
+            current_stat = current.lstat()
+        except FileNotFoundError:
+            return False
+        except OSError as exc:
+            warn_unsafe_path(logger, path_kind, path, f"could not inspect '{current}': {exc}")
+            return False
+        if stat.S_ISLNK(current_stat.st_mode):
+            warn_unsafe_path(
+                logger,
+                path_kind,
+                path,
+                f"path component '{current}' is a symlink; replace it with a real directory before retrying",
+            )
+            return False
+        if index < len(relative_path.parts) - 1 and not stat.S_ISDIR(current_stat.st_mode):
+            warn_unsafe_path(
+                logger,
+                path_kind,
+                path,
+                f"parent component '{current}' is not a directory",
+            )
+            return False
+        final_stat = current_stat
+
+    if final_stat is None:
+        return False
+    if require_directory and not stat.S_ISDIR(final_stat.st_mode):
+        return False
+
+    try:
+        resolved_path = lexical_path.resolve(strict=True)
+    except (FileNotFoundError, OSError) as exc:
+        warn_unsafe_path(logger, path_kind, path, f"could not resolve path: {exc}")
+        return False
+    if not resolved_path.is_relative_to(resolved_root):
+        warn_unsafe_path(logger, path_kind, path, "resolved path is outside the Base cache root")
+        return False
+    return True
+
+
+def warn_unsafe_path(
+    logger: object | None,
+    path_kind: str,
+    path: Path,
+    reason: str,
+) -> None:
+    if logger is not None:
+        logger.warning(
+            "Skipping unsafe Base cleanup %s '%s': %s.",
+            path_kind,
+            path,
+            reason,
+        )
 
 
 def run_is_running(run_root: Path) -> bool:
@@ -189,10 +358,10 @@ def find_log_retention_candidates_for_dir(
         if not path.is_file():
             continue
         try:
-            stat = path.stat()
+            path_stat = path.stat()
         except OSError:
             continue
-        log_files.append((path, stat.st_mtime))
+        log_files.append((path, path_stat.st_mtime))
 
     retained = sorted(log_files, key=lambda item: (item[1], item[0].name), reverse=True)[:keep_count]
     retained_paths = {path for path, _mtime in retained}
@@ -209,6 +378,7 @@ def deduplicate_candidates(candidates: list[CleanCandidate]) -> list[CleanCandid
 
 
 def find_category_candidates(
+    cache_root: Path,
     category_root: Path,
     category: str,
     cutoff: float,
@@ -216,14 +386,23 @@ def find_category_candidates(
 ) -> list[CleanCandidate]:
     if logger is not None:
         logger.debug("Scanning %s runtime artifacts in '%s'.", category, category_root)
-    if not category_root.is_dir():
+    if not clean_path_is_safe(
+        cache_root,
+        category_root,
+        "category root",
+        logger,
+        require_directory=True,
+    ):
         return []
 
     candidates = []
-    for path in sorted(category_root.iterdir(), key=lambda item: item.name):
+    for path in safe_directory_entries(category_root, "category root", logger):
+        if not clean_path_is_safe(cache_root, path, "candidate", logger):
+            continue
         try:
             mtime = run_metadata_mtime(path) if category == "run" else path.stat().st_mtime
-        except OSError:
+        except OSError as exc:
+            warn_unsafe_path(logger, "candidate", path, f"could not read metadata: {exc}")
             continue
         if mtime < cutoff:
             candidates.append(CleanCandidate(path=path, category=category, age_seconds=int(time.time() - mtime)))
@@ -240,8 +419,83 @@ def run_metadata_mtime(path: Path) -> float:
         return path.stat().st_mtime
 
 
-def remove_path(path: Path) -> None:
-    if path.is_dir() and not path.is_symlink():
-        shutil.rmtree(path)
-    else:
-        path.unlink()
+def remove_path(
+    cache_root: Path,
+    path: Path,
+    logger: object | None = None,
+) -> bool:
+    if not clean_path_is_safe(cache_root, path, "candidate", logger):
+        return False
+    if not descriptor_safe_removal_supported():
+        warn_unsafe_path(
+            logger,
+            "candidate",
+            path,
+            "secure descriptor-relative deletion is unavailable on this platform",
+        )
+        return False
+
+    lexical_root = cache_root.absolute()
+    relative_path = path.absolute().relative_to(lexical_root)
+    if not relative_path.parts:
+        warn_unsafe_path(logger, "candidate", path, "refusing to remove the Base cache root")
+        return False
+
+    opened_fds: list[int] = []
+    directory_flags = (
+        os.O_RDONLY
+        | os.O_DIRECTORY
+        | os.O_NOFOLLOW
+        | getattr(os, "O_CLOEXEC", 0)
+    )
+    try:
+        root_fd = os.open(lexical_root.resolve(strict=True), directory_flags)
+        opened_fds.append(root_fd)
+        parent_fd = root_fd
+        for component in relative_path.parts[:-1]:
+            parent_fd = os.open(component, directory_flags, dir_fd=parent_fd)
+            opened_fds.append(parent_fd)
+        secure_remove_entry(parent_fd, relative_path.parts[-1], directory_flags)
+    except OSError as exc:
+        warn_unsafe_path(
+            logger,
+            "candidate",
+            path,
+            f"could not open cache path without following symlinks: {exc}",
+        )
+        return False
+    finally:
+        for descriptor in reversed(opened_fds):
+            os.close(descriptor)
+    return True
+
+
+def descriptor_safe_removal_supported() -> bool:
+    return (
+        hasattr(os, "O_DIRECTORY")
+        and hasattr(os, "O_NOFOLLOW")
+        and os.open in os.supports_dir_fd
+        and os.stat in os.supports_dir_fd
+        and os.stat in os.supports_follow_symlinks
+        and os.unlink in os.supports_dir_fd
+        and os.rmdir in os.supports_dir_fd
+        and os.listdir in os.supports_fd
+    )
+
+
+def secure_remove_entry(parent_fd: int, name: str, directory_flags: int) -> None:
+    entry_stat = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    if not stat.S_ISDIR(entry_stat.st_mode):
+        os.unlink(name, dir_fd=parent_fd)
+        return
+
+    child_fd = os.open(name, directory_flags, dir_fd=parent_fd)
+    try:
+        opened_stat = os.fstat(child_fd)
+        if (opened_stat.st_dev, opened_stat.st_ino) != (entry_stat.st_dev, entry_stat.st_ino):
+            raise OSError("cleanup candidate changed while it was being opened")
+        for child_name in os.listdir(child_fd):
+            secure_remove_entry(child_fd, child_name, directory_flags)
+    finally:
+        os.close(child_fd)
+    os.rmdir(name, dir_fd=parent_fd)

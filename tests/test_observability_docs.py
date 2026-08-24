@@ -19,3 +19,16 @@ def test_unscheduled_observability_work_is_not_numbered_as_active_steps() -> Non
     assert "2. Add `basectl explain last-error`" not in section
     assert "3. Add `basectl report`" not in section
     assert "4. Extend `basectl clean`" not in section
+
+
+def test_cleanup_docs_define_the_symlink_containment_boundary() -> None:
+    observability = OBSERVABILITY_DOC.read_text(encoding="utf-8")
+    cache_layout = (REPO_ROOT / "docs" / "cache-ownership-and-layout.md").read_text(
+        encoding="utf-8"
+    )
+    commands = (REPO_ROOT / ".ai-context" / "COMMANDS.md").read_text(encoding="utf-8")
+
+    assert "rejects symlinked" in observability
+    assert "relative to trusted directory descriptors" in observability
+    assert "Cleanup rejects symlinks below the resolved" in cache_layout
+    assert "never follows them during deletion" in " ".join(commands.split())
