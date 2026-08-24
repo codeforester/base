@@ -26,6 +26,10 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Fixed
 
+- Prevented rejected `basectl` usage invocations from retaining run bundles,
+  logs, or history rows; an explicitly named nonexistent `basectl test` project
+  now returns usage status `2`, while accepted-command failures remain
+  observable and inherited parent bundles remain untouched.
 - Batched branch and worktree GitHub PR-state verification through one
   paginated REST read per prune invocation, avoiding one GraphQL query per
   branch and failing the scan closed when that read is unavailable.

@@ -617,6 +617,7 @@ basectl_initialize_run_bundle() {
     local command="${1:-run}" cache_root run_id run_root label
     shift || true
 
+    _basectl_run_bundle_created=0
     if [[ -n "${BASE_CLI_RUN_ROOT:-}" ]]; then
         export BASE_CLI_RUNTIME_OWNER=base
         if [[ -z "${BASE_CLI_RUN_ID:-}" ]]; then
@@ -650,6 +651,7 @@ basectl_initialize_run_bundle() {
         basectl_error "Unable to secure Base run bundle '$run_root'. Check file permissions."
         return 1
     }
+    _basectl_run_bundle_created=1
 }
 
 basectl_finalize_run_bundle() {
@@ -666,6 +668,28 @@ basectl_finalize_run_bundle() {
     chmod 600 "$run_root/run.json" "${BASE_BASH_LIBS_PRIMARY_LOG:-$run_root/logs/primary.log}" || return 1
     if [[ "${BASE_CLI_KEEP_TEMP:-}" != true ]]; then
         rm -rf -- "$run_root/tmp"
+    fi
+}
+
+basectl_discard_invocation_run_bundle() {
+    local run_root="${BASE_CLI_RUN_ROOT:-}" runs_root wrapper
+
+    [[ "${_basectl_run_bundle_created:-0}" == 1 ]] || return 0
+    [[ -n "$run_root" && -d "$run_root" && ! -L "$run_root" ]] || return 1
+    runs_root="${run_root%/*}"
+    [[ -n "$runs_root" && "$runs_root" != "$run_root" ]] || return 1
+    rm -rf -- "$run_root" || return 1
+
+    # Delegated base-cli children may have indexed the inherited outer bundle
+    # before the leaf command rejected its usage. Refresh that cache after the
+    # outer bundle is gone so it cannot retain a stale pointer.
+    wrapper="$BASE_HOME/bin/base-wrapper"
+    if [[ -x "$wrapper" ]]; then
+        (
+            unset BASE_CLI_RUN_ROOT BASE_CLI_RUN_ID BASE_BASH_LIBS_PRIMARY_LOG
+            unset BASE_CLI_PRIMARY_LOG BASE_CLI_HISTORY_PARENT_RUN_ID BASE_CLI_HISTORY_SCOPE
+            "$wrapper" --project base base_cli_adapters.run_index "$runs_root"
+        ) >/dev/null 2>&1 || true
     fi
 }
 
@@ -855,8 +879,14 @@ basectl_main() {
     esac
 
     if ((run_bundle_enabled)); then
-        basectl_finalize_run_bundle "$command_status"
-        basectl_history_record "$command" "$command_status" "$history_scope" "${history_args[@]}"
+        if ((command_status == 2)); then
+            basectl_discard_invocation_run_bundle || {
+                base_std_log_warn "Unable to discard rejected invocation run bundle."
+            }
+        else
+            basectl_finalize_run_bundle "$command_status"
+            basectl_history_record "$command" "$command_status" "$history_scope" "${history_args[@]}"
+        fi
     fi
     return "$command_status"
 }

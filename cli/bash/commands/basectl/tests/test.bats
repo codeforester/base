@@ -343,3 +343,56 @@ EOF
     [ "$status" -ne 2 ]
     [[ "$output" != *"ERROR: Unknown test option '--unknown'."* ]]
 }
+
+@test "basectl test discards artifacts after a leaf parser rejection" {
+    local cache_root="$TEST_TMPDIR/cache"
+
+    run env \
+        HOME="$TEST_HOME" \
+        PATH="$TEST_BASH_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin" \
+        BASE_CACHE_DIR="$cache_root" \
+        "$BASE_REPO_ROOT/bin/basectl" test --unknown
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"ERROR: Unknown test option '--unknown'."* ]]
+    [ -d "$cache_root/base/runs" ]
+    [ -z "$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)" ]
+    [ ! -e "$cache_root/base/history/runs.jsonl" ]
+}
+
+@test "basectl test discards artifacts when an explicit project does not exist" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local python_bin="$TEST_HOME/.base.d/base/.venv/bin/python"
+
+    mkdir -p "$(dirname "$python_bin")"
+    cat > "$python_bin" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "test-command" && "${4:-}" == "base-dmo" ]]; then
+    printf '{"version":1,"bundles":[{"path":"%s","run_id":"stale","status":"running","started_at":1,"size":1,"preserve":false}]}\n' \
+        "${BASE_CLI_RUN_ROOT:?}" > "${BASE_CLI_RUN_ROOT%/*}/.base-cli-run-index.json"
+    printf "Project 'base-dmo' was not found in workspace '/workspace'.\n" >&2
+    exit 2
+fi
+if [[ "${1:-}" == "-m" && "${2:-}" == "base_cli_adapters.run_index" ]]; then
+    printf '{"version":1,"bundles":[]}\n' > "${3:?}/.base-cli-run-index.json"
+    exit 0
+fi
+printf 'unexpected test python args: %s\n' "$*" >&2
+exit 1
+EOF
+    chmod +x "$python_bin"
+
+    run env \
+        HOME="$TEST_HOME" \
+        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        BASE_CACHE_DIR="$cache_root" \
+        "$BASE_REPO_ROOT/bin/basectl" test base-dmo
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"Project 'base-dmo' was not found"* ]]
+    [ -d "$cache_root/base/runs" ]
+    [ -z "$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)" ]
+    [ ! -e "$cache_root/base/history/runs.jsonl" ]
+    run grep -Fq 'base-dmo' "$cache_root/base/runs/.base-cli-run-index.json"
+    [ "$status" -eq 1 ]
+}

@@ -108,13 +108,17 @@ by individual Base components. This state is not tied to one diagnostic run.
 
 ### `base/runs/`
 
-One directory per Base control-plane invocation. The directory name starts
-with the canonical run ID and adds sanitized command/project labels for manual
-inspection, for example `20260719T052536_37996_8494__setup__base`. The labels
-are filesystem display context only; `run.json`, history, and CLI output retain
-the canonical run ID without the suffix. `run.json` is written at the
-start with `status: running` and finalized with timestamps, exit status,
-project metadata, command arguments, and parent/child references when known.
+One directory per accepted Base control-plane invocation. The directory name
+starts with the canonical run ID and adds sanitized command/project labels for
+manual inspection, for example
+`20260719T052536_37996_8494__setup__base`. The labels are filesystem display
+context only; `run.json`, history, and CLI output retain the canonical run ID
+without the suffix. `run.json` is written at the start with `status: running`
+and finalized with timestamps, exit status, project metadata, command
+arguments, and parent/child references when known. A recognized command may
+create this directory temporarily while validating leaf arguments or a named
+project, but a usage rejection removes the invocation-owned directory and does
+not write history. An inherited parent run directory is outside that cleanup.
 Run metadata and the primary log are private (`0600`). `primary.log` is the
 single diagnostic stream for the invocation. Bash and Python children append
 to this same file, which always captures DEBUG-level diagnostics even when the
@@ -174,7 +178,8 @@ the ownership boundary described above.
 
 ## Runtime invariants
 
-1. Every public invocation has one owner and one top-level run bundle.
+1. Every accepted public invocation has one owner and one top-level run bundle;
+   rejected usage invocations leave no persistent run bundle or history row.
 2. Base-owned processes always resolve the `base/` owner explicitly.
 3. Project-owned processes resolve their project ID and checkout ID from the
    validated manifest and canonical project root.

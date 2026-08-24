@@ -1005,6 +1005,18 @@ class ProjectDiscoveryTests(unittest.TestCase):
             f"{base_route_fields(base_home, 'demo')}\n",
         )
 
+    def test_projects_test_command_treats_unknown_named_project_as_usage_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir)
+            base_home = workspace / "base"
+            base_home.mkdir()
+
+            status, stdout, stderr = run_engine(["test-command", "base-dmo"], base_home)
+
+        self.assertEqual(status, 2)
+        self.assertEqual(stdout, "")
+        self.assertIn(f"Project 'base-dmo' was not found in workspace '{workspace.resolve()}'.", stderr)
+
     def test_projects_test_command_marks_manifest_command_trust_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir)
