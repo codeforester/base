@@ -1,21 +1,23 @@
 from __future__ import annotations
 
+import io
 import os
 import tempfile
 import time
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
 from base_clean import engine
 
 
-def create_old_run(root: Path) -> Path:
-    run_root = root / "old-run"
+def create_old_run(root: Path, *, status: str = "ok", name: str = "old-run") -> Path:
+    run_root = root / name
     (run_root / "logs").mkdir(parents=True)
     (run_root / "logs" / "proof.log").write_text("outside\n", encoding="utf-8")
     metadata = run_root / "run.json"
-    metadata.write_text('{"status":"ok"}\n', encoding="utf-8")
+    metadata.write_text(f'{{"status":"{status}"}}\n', encoding="utf-8")
     old_time = time.time() - 40 * 24 * 60 * 60
     os.utime(metadata, (old_time, old_time))
     return run_root
@@ -84,6 +86,24 @@ class BaseCleanTests(unittest.TestCase):  # pylint: disable=too-many-public-meth
             [(candidate.category, candidate.path.name) for candidate in candidates],
             [("cache", "old-cache"), ("run", "old-run")],
         )
+
+    def test_find_clean_candidates_retains_old_active_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir)
+            active_run = create_old_run(
+                cache_root / "base" / "runs",
+                status="running",
+            )
+            active_runs: set[Path] = set()
+
+            candidates = engine.find_clean_candidates(
+                cache_root,
+                time.time() - 30 * 24 * 60 * 60,
+                active_runs=active_runs,
+            )
+
+        self.assertEqual(candidates, [])
+        self.assertEqual(active_runs, {active_run})
 
     def test_find_clean_candidates_logs_examined_directories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -365,11 +385,86 @@ class BaseCleanTests(unittest.TestCase):  # pylint: disable=too-many-public-meth
             old_time = time.time() - 40 * 24 * 60 * 60
             os.utime(old_run / "run.json", (old_time, old_time))
 
-            with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}):
+            output = io.StringIO()
+            with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}), redirect_stdout(
+                output
+            ):
                 result = engine.main(["--older-than", "30d", "--dry-run"])
 
             self.assertEqual(result, 0)
             self.assertTrue(old_log.exists())
+            self.assertIn(f"Would remove\trun\t{old_run}", output.getvalue())
+
+    def test_clean_defaults_to_preview_without_deletion_consent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir) / "cache-root"
+            old_run = create_old_run(cache_root / "base" / "runs")
+            output = io.StringIO()
+
+            with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}), redirect_stdout(
+                output
+            ):
+                result = engine.main(["--older-than", "30d"])
+
+            self.assertEqual(result, 0)
+            self.assertTrue(old_run.is_dir())
+            self.assertIn(f"Would remove\trun\t{old_run}", output.getvalue())
+
+    def test_clean_rejects_conflicting_preview_and_deletion_consent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir) / "cache-root"
+            old_run = create_old_run(cache_root / "base" / "runs")
+
+            with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}):
+                result = engine.main(["--older-than", "30d", "--dry-run", "--yes"])
+
+            self.assertEqual(result, 2)
+            self.assertTrue(old_run.is_dir())
+
+    def test_clean_reports_and_retains_old_active_runs_once(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir) / "cache-root"
+            runs_root = cache_root / "base" / "runs"
+            active_run = create_old_run(runs_root, status="running", name="active-run")
+            completed_run = create_old_run(runs_root, name="completed-run")
+            output = io.StringIO()
+
+            with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}), redirect_stdout(
+                output
+            ):
+                result = engine.main(
+                    ["--older-than", "30d", "--keep-last", "1", "--yes"]
+                )
+
+            self.assertEqual(result, 0)
+            self.assertTrue(active_run.is_dir())
+            self.assertFalse(completed_run.exists())
+            self.assertEqual(
+                output.getvalue().count(f"Retaining\tactive run\t{active_run}"),
+                1,
+            )
+
+    def test_clean_preview_reports_matches_and_retained_active_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir) / "cache-root"
+            runs_root = cache_root / "base" / "runs"
+            active_run = create_old_run(runs_root, status="running", name="active-run")
+            completed_run = create_old_run(runs_root, name="completed-run")
+            output = io.StringIO()
+
+            with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}), redirect_stdout(
+                output
+            ):
+                result = engine.main(["--older-than", "30d", "--keep-last", "1"])
+
+            self.assertEqual(result, 0)
+            self.assertTrue(active_run.is_dir())
+            self.assertTrue(completed_run.is_dir())
+            self.assertIn(f"Would remove\trun\t{completed_run}", output.getvalue())
+            self.assertEqual(
+                output.getvalue().count(f"Retaining\tactive run\t{active_run}"),
+                1,
+            )
 
     def test_clean_removes_old_entries(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -383,7 +478,7 @@ class BaseCleanTests(unittest.TestCase):  # pylint: disable=too-many-public-meth
             os.utime(old_run / "run.json", (old_time, old_time))
 
             with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}):
-                result = engine.main(["--older-than", "30d"])
+                result = engine.main(["--older-than", "30d", "--yes"])
 
             self.assertEqual(result, 0)
             self.assertFalse(old_log.exists())
@@ -405,7 +500,7 @@ class BaseCleanTests(unittest.TestCase):  # pylint: disable=too-many-public-meth
             os.utime(new_run / "run.json", (now, now))
 
             with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}):
-                result = engine.main(["--keep-last", "1"])
+                result = engine.main(["--keep-last", "1", "--yes"])
 
             self.assertEqual(result, 0)
             self.assertFalse(old_run.exists())
@@ -423,7 +518,7 @@ class BaseCleanTests(unittest.TestCase):  # pylint: disable=too-many-public-meth
             os.utime(old_run / "run.json", (old_time, old_time))
 
             with mock.patch.dict(os.environ, {"BASE_CACHE_DIR": str(cache_root)}):
-                result = engine.main(["--older-than", "30d", "--keep-last", "1"])
+                result = engine.main(["--older-than", "30d", "--keep-last", "1", "--yes"])
 
             self.assertEqual(result, 0)
             self.assertFalse(old_run.exists())

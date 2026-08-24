@@ -204,7 +204,9 @@ another application's cache root. Cleanup rejects symlinks below the resolved
 Base cache root and performs deletion relative to trusted directory descriptors
 so an owner, category, or candidate path cannot redirect removal elsewhere.
 Persistent component caches may be pruned by age, while history metadata is
-retained until an explicit history-retention policy is applied.
+retained until an explicit history-retention policy is applied. Cleanup previews
+matches by default and requires `--yes` for deletion; active runs are reported
+as retained and are never reclassified as stale by cleanup.
 
 ## Implementation boundary
 

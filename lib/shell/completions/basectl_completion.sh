@@ -800,7 +800,7 @@ _base_basectl_completion() {
             _base_basectl_completion_compgen "--show-url -h --help" "$cur"
             ;;
         clean)
-            _base_basectl_completion_compgen "--older-than --keep-last --dry-run -v -h --help" "$cur"
+            _base_basectl_completion_compgen "--older-than --keep-last --dry-run --yes -v -h --help" "$cur"
             ;;
         logs)
             if ((COMP_CWORD == 2)) && [[ "$cur" != -* ]]; then

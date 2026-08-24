@@ -171,10 +171,15 @@ history can show that a recorded log or bundle is missing.
 
 The retention contract should be:
 
-- `basectl clean --older-than <age>` removes completed run bundles and component
+- `basectl clean --older-than <age>` selects completed run bundles and component
   caches older than the age.
 - `basectl clean --keep-last <count>` retains the newest completed bundles per
   owner namespace.
+- Cleanup is a dry-run preview by default. `--yes` is required to delete matched
+  artifacts, and `--dry-run` cannot be combined with `--yes`.
+- Run bundles whose metadata status is `running` are excluded from both age and
+  count retention and are reported explicitly as retained active runs. Stale-run
+  recovery remains a separate, intentional operation.
 - Cleanup resolves its Base cache boundary before scanning, rejects symlinked
   owner, category, and candidate path components, and reopens deletion targets
   relative to trusted directory descriptors. Unsafe or unverifiable paths are
