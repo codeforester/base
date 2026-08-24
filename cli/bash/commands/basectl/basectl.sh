@@ -613,24 +613,78 @@ basectl_run_bundle_label() {
     fi
 }
 
+basectl_scrub_inherited_run_context() {
+    unset \
+        BASE_CLI_RUNTIME_OWNER \
+        BASE_CLI_RUN_ID \
+        BASE_CLI_RUN_ROOT \
+        BASE_CLI_PRIMARY_LOG \
+        BASE_BASH_LIBS_PRIMARY_LOG \
+        BASE_CLI_HISTORY_PARENT_RUN_ID \
+        BASE_CLI_HISTORY_STARTED_AT \
+        BASE_CLI_HISTORY_SCOPE \
+        BASE_CLI_HISTORY_PROJECT \
+        BASE_CLI_HISTORY_PROJECT_ROOT \
+        BASE_CLI_HISTORY_MANIFEST
+}
+
+basectl_run_bundle_context_is_valid() {
+    local cache_root="$1"
+    local require_internal="${2:-true}"
+    local require_running="${3:-true}"
+    local run_root="${BASE_CLI_RUN_ROOT:-}"
+    local run_id="${BASE_CLI_RUN_ID:-}"
+    local runs_root physical_runs_root physical_run_root run_name metadata expected_log
+
+    [[ "${BASE_CLI_RUNTIME_OWNER:-}" == base ]] || return 1
+    [[ "$require_internal" != true || "${BASE_CLI_HISTORY_SCOPE:-}" == internal ]] || return 1
+    [[ -n "$run_id" && "$run_id" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]] || return 1
+    [[ "$run_id" != *"__"* && "$run_id" != *".."* ]] || return 1
+    [[ "${BASE_CLI_HISTORY_PARENT_RUN_ID:-}" == "$run_id" ]] || return 1
+    [[ -n "$run_root" && -d "$run_root" && ! -L "$run_root" ]] || return 1
+
+    runs_root="$cache_root/base/runs"
+    [[ -d "$runs_root" && ! -L "$cache_root/base" && ! -L "$runs_root" ]] || return 1
+    physical_runs_root="$(cd -- "$runs_root" 2>/dev/null && pwd -P)" || return 1
+    physical_run_root="$(cd -- "$run_root" 2>/dev/null && pwd -P)" || return 1
+    [[ "$(dirname -- "$physical_run_root")" == "$physical_runs_root" ]] || return 1
+
+    run_name="$(basename -- "$physical_run_root")"
+    [[ "$run_name" == "$run_id" || "$run_name" == "$run_id"__* ]] || return 1
+    [[ -d "$run_root/logs" && ! -L "$run_root/logs" ]] || return 1
+    [[ -f "$run_root/run.json" && ! -L "$run_root/run.json" ]] || return 1
+    expected_log="$run_root/logs/primary.log"
+    [[ "${BASE_BASH_LIBS_PRIMARY_LOG:-}" == "$expected_log" ]] || return 1
+    [[ -f "$expected_log" && ! -L "$expected_log" ]] || return 1
+    [[ ! -L "$run_root/run.json.tmp" ]] || return 1
+    [[ ! -e "$run_root/tmp" || (-d "$run_root/tmp" && ! -L "$run_root/tmp") ]] || return 1
+
+    metadata="$(<"$run_root/run.json")" || return 1
+    [[ "$metadata" != *$'\n'* ]] || return 1
+    [[ "$metadata" =~ \"run_id\"[[:space:]]*:[[:space:]]*\"$run_id\" ]] || return 1
+    [[ "$metadata" =~ \"owner\"[[:space:]]*:[[:space:]]*\"base\" ]] || return 1
+    if [[ "$require_running" == true ]]; then
+        [[ "$metadata" =~ \"status\"[[:space:]]*:[[:space:]]*\"running\" ]] || return 1
+    else
+        [[ "$metadata" =~ \"status\"[[:space:]]*:[[:space:]]*\"(running|ok|error)\" ]] || return 1
+    fi
+}
+
 basectl_initialize_run_bundle() {
     local command="${1:-run}" cache_root run_id run_root label
     shift || true
 
     _basectl_run_bundle_created=0
+    cache_root="$(basectl_cache_root)"
+    _BASECTL_ACTIVE_RUN_CACHE_ROOT="$cache_root"
     if [[ -n "${BASE_CLI_RUN_ROOT:-}" ]]; then
-        export BASE_CLI_RUNTIME_OWNER=base
-        if [[ -z "${BASE_CLI_RUN_ID:-}" ]]; then
-            BASE_CLI_RUN_ID="$(basename -- "$BASE_CLI_RUN_ROOT")"
-            BASE_CLI_RUN_ID="${BASE_CLI_RUN_ID%%__*}"
-            export BASE_CLI_RUN_ID
+        if basectl_run_bundle_context_is_valid "$cache_root"; then
+            return 0
         fi
-        export BASE_BASH_LIBS_PRIMARY_LOG="${BASE_BASH_LIBS_PRIMARY_LOG:-$BASE_CLI_RUN_ROOT/logs/primary.log}"
-        export BASE_CLI_HISTORY_PARENT_RUN_ID="${BASE_CLI_HISTORY_PARENT_RUN_ID:-$BASE_CLI_RUN_ID}"
-        return 0
+        basectl_scrub_inherited_run_context
+        base_std_log_warn "Ignoring invalid inherited Base run context; creating a fresh run bundle."
     fi
 
-    cache_root="$(basectl_cache_root)"
     run_id="$(date -u +%Y%m%dT%H%M%S 2>/dev/null || true)_${BASHPID:-$$}_${RANDOM}"
     label="$(basectl_run_bundle_label "$command" "$@")"
     run_root="$cache_root/base/runs/${run_id}__${label}"
@@ -655,29 +709,35 @@ basectl_initialize_run_bundle() {
 }
 
 basectl_finalize_run_bundle() {
-    local exit_code="$1" run_root tmp_file
+    local exit_code="$1" cache_root run_root tmp_file
 
     run_root="${BASE_CLI_RUN_ROOT:-}"
     [[ -n "$run_root" && -d "$run_root" ]] || return 0
-    tmp_file="$run_root/run.json.tmp"
+    cache_root="${_BASECTL_ACTIVE_RUN_CACHE_ROOT:-$(basectl_cache_root)}"
+    if ! basectl_run_bundle_context_is_valid "$cache_root" false false; then
+        base_std_log_warn "Skipping finalization for an invalid Base run context."
+        return 1
+    fi
+    tmp_file="$(mktemp "$run_root/.run.json.XXXXXX")" || return 1
     printf '{"run_id":"%s","owner":"base","status":"%s","exit_code":%s,"started_at":"%s","ended_at":"%s"}\n' \
         "${BASE_CLI_RUN_ID:-$(basename -- "$run_root")}" \
         "$([[ "$exit_code" == 0 ]] && printf ok || printf error)" "$exit_code" \
         "${BASE_CLI_HISTORY_STARTED_AT:-}" \
-        "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)" >"$tmp_file" && mv -f "$tmp_file" "$run_root/run.json"
-    chmod 600 "$run_root/run.json" "${BASE_BASH_LIBS_PRIMARY_LOG:-$run_root/logs/primary.log}" || return 1
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)" >"$tmp_file" || return 1
+    chmod 600 "$tmp_file" || return 1
+    mv -f "$tmp_file" "$run_root/run.json" || return 1
     if [[ "${BASE_CLI_KEEP_TEMP:-}" != true ]]; then
         rm -rf -- "$run_root/tmp"
     fi
 }
 
 basectl_discard_invocation_run_bundle() {
-    local run_root="${BASE_CLI_RUN_ROOT:-}" runs_root wrapper
+    local run_root="${BASE_CLI_RUN_ROOT:-}" cache_root runs_root wrapper
 
     [[ "${_basectl_run_bundle_created:-0}" == 1 ]] || return 0
-    [[ -n "$run_root" && -d "$run_root" && ! -L "$run_root" ]] || return 1
-    runs_root="${run_root%/*}"
-    [[ -n "$runs_root" && "$runs_root" != "$run_root" ]] || return 1
+    cache_root="${_BASECTL_ACTIVE_RUN_CACHE_ROOT:-$(basectl_cache_root)}"
+    basectl_run_bundle_context_is_valid "$cache_root" false false || return 1
+    runs_root="$cache_root/base/runs"
     rm -rf -- "$run_root" || return 1
 
     # Delegated base-cli children may have indexed the inherited outer bundle
@@ -736,7 +796,7 @@ basectl_main() {
         keep_temp=1
         shift
     done
-    local history_args=() history_scope="${BASE_CLI_HISTORY_SCOPE:-primary}"
+    local history_args=() history_scope
     local opt
 
     if [[ "${1:-}" == "help" ]]; then
@@ -827,6 +887,7 @@ basectl_main() {
     if ((run_bundle_enabled)); then
         basectl_initialize_run_bundle "$command" "$@" || return 1
     fi
+    history_scope="${BASE_CLI_HISTORY_SCOPE:-primary}"
     export BASE_CLI_HISTORY_SCOPE=internal
     BASE_CLI_HISTORY_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)"
     export BASE_CLI_HISTORY_STARTED_AT
@@ -882,10 +943,14 @@ basectl_main() {
         if ((command_status == 2)); then
             basectl_discard_invocation_run_bundle || {
                 base_std_log_warn "Unable to discard rejected invocation run bundle."
+                basectl_scrub_inherited_run_context
             }
         else
-            basectl_finalize_run_bundle "$command_status"
-            basectl_history_record "$command" "$command_status" "$history_scope" "${history_args[@]}"
+            if basectl_finalize_run_bundle "$command_status"; then
+                basectl_history_record "$command" "$command_status" "$history_scope" "${history_args[@]}"
+            else
+                basectl_scrub_inherited_run_context
+            fi
         fi
     fi
     return "$command_status"

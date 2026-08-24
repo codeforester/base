@@ -125,6 +125,12 @@ to this same file, which always captures DEBUG-level diagnostics even when the
 terminal is showing INFO. Normal command stdout remains stdout and is not
 captured here.
 
+Base-internal children may reuse a parent bundle only after the Bash dispatcher
+verifies that the inherited path is a real direct child of this `base/runs/`
+root and that its run metadata and parent markers match. Arbitrary, symlinked,
+completed, or mismatched inherited paths are never finalized; Base scrubs that
+state and creates a fresh bundle instead.
+
 An interactive `basectl activate` bundle remains `running` while the runtime
 shell is open. Shell startup inherits that bundle's run context for its
 diagnostics, but Base clears the context before the prompt so commands entered
