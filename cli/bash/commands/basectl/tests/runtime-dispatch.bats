@@ -26,6 +26,259 @@ load ./basectl_helpers.bash
 }
 
 
+@test "basectl replaces an external inherited run root without mutating it" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local external_root="$TEST_TMPDIR/private-token-external"
+    local fresh_root
+
+    mkdir -p "$external_root/logs" "$external_root/tmp/private"
+    touch "$external_root/logs/primary.log" "$external_root/tmp/private/proof.txt"
+    printf '%s\n' '{"sentinel":"must-survive"}' > "$external_root/run.json"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=attacker-run \
+        BASE_CLI_RUN_ROOT="$external_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$external_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=attacker-run \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() { return 0; }
+            basectl_history_record() { :; }
+            basectl_main setup
+    '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"private-token-external"* ]]
+    grep -Fq '"sentinel":"must-survive"' "$external_root/run.json"
+    [ -f "$external_root/tmp/private/proof.txt" ]
+    fresh_root="$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+    [ -n "$fresh_root" ]
+    grep -Fq '"status":"ok"' "$fresh_root/run.json"
+}
+
+
+@test "basectl preserves an external inherited run root after command failure" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local external_root="$TEST_TMPDIR/external-failure"
+    local fresh_root
+
+    mkdir -p "$external_root/logs" "$external_root/tmp/private"
+    touch "$external_root/logs/primary.log" "$external_root/tmp/private/proof.txt"
+    printf '%s\n' '{"sentinel":"must-survive"}' > "$external_root/run.json"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=attacker-run \
+        BASE_CLI_RUN_ROOT="$external_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$external_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=attacker-run \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() { return 7; }
+            basectl_history_record() { :; }
+            basectl_main setup
+        '
+
+    [ "$status" -eq 7 ]
+    grep -Fq '"sentinel":"must-survive"' "$external_root/run.json"
+    [ -f "$external_root/tmp/private/proof.txt" ]
+    fresh_root="$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+    [ -n "$fresh_root" ]
+    grep -Fq '"status":"error"' "$fresh_root/run.json"
+    grep -Fq '"exit_code":7' "$fresh_root/run.json"
+}
+
+
+@test "basectl keep-temp applies only to the fresh bundle after invalid inheritance" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local external_root="$TEST_TMPDIR/external-keep-temp"
+    local fresh_root
+
+    mkdir -p "$external_root/logs" "$external_root/tmp/private"
+    touch "$external_root/logs/primary.log" "$external_root/tmp/private/proof.txt"
+    printf '%s\n' '{"sentinel":"must-survive"}' > "$external_root/run.json"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=attacker-run \
+        BASE_CLI_RUN_ROOT="$external_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$external_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=attacker-run \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() {
+                mkdir -p "$BASE_CLI_RUN_ROOT/tmp/base_setup"
+                touch "$BASE_CLI_RUN_ROOT/tmp/base_setup/fresh.txt"
+                return 0
+            }
+            basectl_history_record() { :; }
+            basectl_main --keep-temp setup
+        '
+
+    [ "$status" -eq 0 ]
+    grep -Fq '"sentinel":"must-survive"' "$external_root/run.json"
+    [ -f "$external_root/tmp/private/proof.txt" ]
+    fresh_root="$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+    [ -f "$fresh_root/tmp/base_setup/fresh.txt" ]
+}
+
+
+@test "basectl rejects a symlinked inherited run root" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local external_root="$TEST_TMPDIR/external-symlink-target"
+    local inherited_root="$cache_root/base/runs/linked-run__setup"
+
+    mkdir -p "$external_root/logs" "$external_root/tmp/private" "$(dirname "$inherited_root")"
+    touch "$external_root/logs/primary.log" "$external_root/tmp/private/proof.txt"
+    printf '%s\n' '{"run_id":"linked-run","owner":"base","status":"running"}' > "$external_root/run.json"
+    ln -s "$external_root" "$inherited_root"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=linked-run \
+        BASE_CLI_RUN_ROOT="$inherited_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$inherited_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=linked-run \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() { return 0; }
+            basectl_history_record() { :; }
+            basectl_main setup
+        '
+
+    [ "$status" -eq 0 ]
+    [ -L "$inherited_root" ]
+    [ -f "$external_root/tmp/private/proof.txt" ]
+    grep -Fq '"status":"running"' "$external_root/run.json"
+}
+
+
+@test "basectl rejects mismatched inherited run identity" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local inherited_root="$cache_root/base/runs/expected-run__setup"
+
+    mkdir -p "$inherited_root/logs" "$inherited_root/tmp/private"
+    touch "$inherited_root/logs/primary.log" "$inherited_root/tmp/private/proof.txt"
+    printf '%s\n' '{"run_id":"different-run","owner":"base","status":"running"}' > "$inherited_root/run.json"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=expected-run \
+        BASE_CLI_RUN_ROOT="$inherited_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$inherited_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=wrong-parent \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() { return 0; }
+            basectl_history_record() { :; }
+            basectl_main setup
+        '
+
+    [ "$status" -eq 0 ]
+    [ -f "$inherited_root/tmp/private/proof.txt" ]
+    grep -Fq '"run_id":"different-run"' "$inherited_root/run.json"
+}
+
+
+@test "basectl reuses a validated internal run bundle" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local inherited_root="$cache_root/base/runs/parent-run__setup"
+
+    mkdir -p "$inherited_root/logs" "$inherited_root/tmp/private"
+    touch "$inherited_root/logs/primary.log" "$inherited_root/tmp/private/proof.txt"
+    printf '%s\n' '{"run_id":"parent-run","owner":"base","status":"running"}' > "$inherited_root/run.json"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=parent-run \
+        BASE_CLI_RUN_ROOT="$inherited_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$inherited_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=parent-run \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { :; }
+            basectl_do_setup() { return 0; }
+            basectl_history_record() { :; }
+            basectl_main setup
+        '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"Ignoring invalid inherited Base run context"* ]]
+    grep -Fq '"run_id":"parent-run"' "$inherited_root/run.json"
+    grep -Fq '"status":"ok"' "$inherited_root/run.json"
+    [ ! -e "$inherited_root/tmp" ]
+    [ "$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ]
+}
+
+
+@test "basectl revalidates a run root before finalization" {
+    local cache_root="$TEST_TMPDIR/cache"
+    local inherited_root="$cache_root/base/runs/parent-run__setup"
+    local original_root="$cache_root/base/runs/original-run"
+    local external_root="$TEST_TMPDIR/external-race-target"
+
+    mkdir -p "$inherited_root/logs" "$inherited_root/tmp/private" "$external_root/logs" "$external_root/tmp/private"
+    touch "$inherited_root/logs/primary.log" "$inherited_root/tmp/private/original.txt"
+    touch "$external_root/logs/primary.log" "$external_root/tmp/private/proof.txt"
+    printf '%s\n' '{"run_id":"parent-run","owner":"base","status":"running"}' > "$inherited_root/run.json"
+    printf '%s\n' '{"sentinel":"must-survive"}' > "$external_root/run.json"
+
+    run env \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$cache_root" \
+        BASE_CLI_RUNTIME_OWNER=base \
+        BASE_CLI_RUN_ID=parent-run \
+        BASE_CLI_RUN_ROOT="$inherited_root" \
+        BASE_BASH_LIBS_PRIMARY_LOG="$inherited_root/logs/primary.log" \
+        BASE_CLI_HISTORY_PARENT_RUN_ID=parent-run \
+        BASE_CLI_HISTORY_SCOPE=internal \
+        BASE_TEST_ORIGINAL_ROOT="$original_root" \
+        BASE_TEST_EXTERNAL_ROOT="$external_root" \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            basectl_initialize_run_bundle setup || exit $?
+            mv "$BASE_CLI_RUN_ROOT" "$BASE_TEST_ORIGINAL_ROOT" || exit $?
+            ln -s "$BASE_TEST_EXTERNAL_ROOT" "$BASE_CLI_RUN_ROOT" || exit $?
+            basectl_finalize_run_bundle 0
+        '
+
+    [ "$status" -ne 0 ]
+    [ -f "$external_root/tmp/private/proof.txt" ]
+    grep -Fq '"sentinel":"must-survive"' "$external_root/run.json"
+    [ -f "$original_root/tmp/private/original.txt" ]
+}
+
+
 @test "basectl rejects unknown commands before creating persistent runtime state" {
     local cache_root="$TEST_TMPDIR/cache"
 

@@ -32,3 +32,21 @@ def test_cleanup_docs_define_the_symlink_containment_boundary() -> None:
     assert "relative to trusted directory descriptors" in observability
     assert "Cleanup rejects symlinks below the resolved" in cache_layout
     assert "never follows them during deletion" in " ".join(commands.split())
+
+
+def test_run_bundle_docs_define_inherited_context_validation() -> None:
+    observability = OBSERVABILITY_DOC.read_text(encoding="utf-8")
+    cache_layout = (REPO_ROOT / "docs" / "cache-ownership-and-layout.md").read_text(
+        encoding="utf-8"
+    )
+    runtime_environment = (REPO_ROOT / "docs" / "runtime-environment.md").read_text(
+        encoding="utf-8"
+    )
+    architecture = (REPO_ROOT / ".ai-context" / "ARCHITECTURE.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "The same boundary is checked again before finalization" in observability
+    assert "Arbitrary, symlinked," in cache_layout
+    assert "Invalid inherited state is scrubbed" in runtime_environment
+    assert "Run-bundle propagation is an internal capability" in architecture

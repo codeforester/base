@@ -60,6 +60,13 @@ with the selected project virtual environment and a `PYTHONPATH` that includes
 Base's `lib/python` and `cli/python`; the `base_cli` provider is selected by
 `lib/base/base_cli_runtime.sh` and is not copied into this repository.
 
+Run-bundle propagation is an internal capability, not user configuration.
+`basectl` reuses inherited bundle state only when the physical path is a real
+direct child of the active Base cache owner root and the owner, run ID, parent
+ID, primary log, and running metadata all agree. Invalid state is scrubbed and
+replaced with a fresh bundle, and finalization repeats the validation before
+writing metadata or removing temporary data.
+
 Project Python ownership is explicit. A top-level `python:` mapping (including
 `python: {}`) or a `python-package` artifact requires a project runtime.
 Shell-only manifests use Base's own venv for setup/check/doctor control-plane
