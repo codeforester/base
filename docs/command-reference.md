@@ -122,7 +122,7 @@ manifest trust.
 | `basectl history --report` | Print a local Markdown or JSON activity report from history and log metadata. | `--limit <count>`, `--format <markdown\|json>`, `--oldest-first`, `--last <duration>`, `--since <time>`, `--until <time>`, `--local-time` |
 | `basectl logs --open` | Open the newest matching log in `PAGER` or `EDITOR`. | `--command <name[,name...]>` |
 | `basectl logs --tail` | Tail and follow the newest matching log. | `--command <name[,name...]>`, `--lines <count>` |
-| `basectl clean` | Remove old Base runtime logs, temp files, and cache entries. | `--older-than <age>`, `--keep-last <count>`, `--dry-run` |
+| `basectl clean` | Preview cleanup of completed Base run bundles and component caches; use `--yes` to delete matches. Active runs are retained and reported. | `--older-than <age>`, `--keep-last <count>`, `--dry-run`, `--yes` |
 | `basectl config path` | Print the local Base config path. | none |
 | `basectl config show` | Show local Base config as redacted JSON. | none |
 | `basectl config doctor` | Diagnose local Base config. | none |

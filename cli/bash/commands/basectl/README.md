@@ -82,8 +82,9 @@ such command directories exist. Optional utility CLIs such as `caff` and
 - `basectl setup/check/doctor --profile <list>` manage opt-in prerequisite
   profiles. `sre` is the first additional built-in profile, and profiles compose
   as comma-separated lists such as `--profile dev,sre`.
-- `basectl clean --older-than <age>` removes old runtime artifacts from the Base cache root.
-- `basectl clean --keep-last <count>` keeps the newest log files per CLI log directory.
+- `basectl clean --older-than <age>` previews old completed runtime artifacts from the Base cache root.
+- `basectl clean --keep-last <count>` keeps the newest completed run bundles per owner namespace.
+- `basectl clean ... --yes` applies the reviewed cleanup plan; active runs are always retained and reported.
 - `basectl logs` lists recent Base CLI runtime logs and can print, open, or tail
   the newest matching log file.
 - `basectl logs last-failed` prints the latest failed command metadata and a bounded

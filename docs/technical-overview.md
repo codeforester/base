@@ -197,7 +197,7 @@ and their own build systems. See [Setup Hooks Boundary](setup-hooks.md).
 | `basectl history [--format json]` | Inspect structured local command history with ordering and time-window filters |
 | `basectl history --report [--format json]` | Summarize local command history and log metadata without raw log dumps |
 | `basectl config path\|show\|doctor` | Machine-local config |
-| `basectl clean [--older-than\|--keep-last]` | Prune cache/logs |
+| `basectl clean [--older-than\|--keep-last] [--yes]` | Preview completed-run/cache pruning; require `--yes` to delete and retain active runs |
 
 ### Workspace
 

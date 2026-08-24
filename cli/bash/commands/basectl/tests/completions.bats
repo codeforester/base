@@ -317,7 +317,7 @@ EOF
     [[ "$output" == *"prompt_names=list product-self-review"* ]]
     [[ "$output" == *"prompt_options=--output --help"* ]]
     [[ "$output" == *"docs_options=--show-url"* ]]
-    [[ "$output" == *"clean_options=--older-than --keep-last --dry-run"* ]]
+    [[ "$output" == *"clean_options=--older-than --keep-last --dry-run --yes"* ]]
     [[ "$output" == *"logs_options=--command --limit --latest --tail --open --lines"* ]]
     [[ "$output" == *"logs_last_options=--command --lines --format"* ]]
     [[ "$output" == *"logs_commands=last-failed"* ]]

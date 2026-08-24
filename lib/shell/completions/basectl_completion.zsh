@@ -886,8 +886,9 @@ _base_basectl_completion() {
             ;;
         clean)
             _arguments '--older-than[Artifact age]:age:' \
-                '--keep-last[Keep newest log files per CLI log directory]:count:' \
-                '--dry-run[Log without removing files]' \
+                '--keep-last[Keep newest completed run bundles per owner namespace]:count:' \
+                '--dry-run[Explicitly preview cleanup without deleting artifacts]' \
+                '--yes[Delete matched artifacts after reviewing the preview]' \
                 '-v[Enable DEBUG logging]' '(-h --help)'{-h,--help}'[Show help text]'
             ;;
         logs)

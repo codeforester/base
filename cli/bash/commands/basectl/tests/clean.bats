@@ -19,11 +19,11 @@ exit 1
 EOF
     chmod +x "$python_bin"
 
-    run_basectl clean --older-than 30d --dry-run
+    run_basectl clean --older-than 30d --yes
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"BASE_PROJECT=base"* ]]
-    [[ "$output" == *"ARGS=--older-than 30d --dry-run"* ]]
+    [[ "$output" == *"ARGS=--older-than 30d --yes"* ]]
 }
 
 @test "basectl clean prints help without requiring the Base Python venv" {
@@ -34,6 +34,8 @@ EOF
     [[ "$output" == *"basectl clean [--older-than <age>] [--keep-last <count>] [options]"* ]]
     [[ "$output" == *"Accepts integer ages with suffix d, h, m, or s"* ]]
     [[ "$output" == *"Examples: 30d, 12h, 45m, 60s."* ]]
+    [[ "$output" == *"--yes"* ]]
+    [[ "$output" == *"Deletion requires --yes"* ]]
 }
 
 @test "basectl clean reports missing cleanup criterion as a usage error" {

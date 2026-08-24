@@ -29,19 +29,30 @@ def main(argv: list[str] | None = None) -> int:
 @app.command(context_settings={"help_option_names": ["-h", "--help"]})
 @base_cli.option(
     "--older-than",
-    help="Remove runtime artifacts older than an age such as 30d, 12h, 45m, or 60s.",
+    help="Select runtime artifacts older than an age such as 30d, 12h, 45m, or 60s.",
 )
 @base_cli.option("--keep-last", help="Keep the newest N run bundles per owner namespace.")
-@base_cli.option("--dry-run", is_flag=True, help="Print what would be removed without deleting anything.")
-def run(ctx: base_cli.Context, older_than: str | None, keep_last: str | None, dry_run: bool) -> int:
+@base_cli.option("--dry-run", is_flag=True, help="Explicitly preview cleanup without deleting anything.")
+@base_cli.option("--yes", is_flag=True, help="Delete matched artifacts after reviewing the preview.")
+def run(  # pylint: disable=too-many-return-statements,too-many-branches
+    ctx: base_cli.Context,
+    older_than: str | None,
+    keep_last: str | None,
+    dry_run: bool,
+    yes: bool,
+) -> int:
     if not older_than and not keep_last:
         ctx.log.error("One of '--older-than' or '--keep-last' is required.")
+        return base_cli.ExitCode.USAGE_ERROR
+    if dry_run and yes:
+        ctx.log.error("Options '--dry-run' and '--yes' cannot be used together.")
         return base_cli.ExitCode.USAGE_ERROR
 
     cache_root = base_cache_root()
     ctx.log.debug("Scanning Base cache root '%s'.", cache_root)
 
     candidates: list[CleanCandidate] = []
+    active_runs: set[Path] = set()
     if older_than:
         try:
             threshold_seconds = parse_age(older_than)
@@ -49,7 +60,14 @@ def run(ctx: base_cli.Context, older_than: str | None, keep_last: str | None, dr
             ctx.log.error(str(exc))
             return base_cli.ExitCode.USAGE_ERROR
         cutoff = time.time() - threshold_seconds
-        candidates.extend(find_clean_candidates(cache_root, cutoff, ctx.log))
+        candidates.extend(
+            find_clean_candidates(
+                cache_root,
+                cutoff,
+                ctx.log,
+                active_runs=active_runs,
+            )
+        )
 
     if keep_last:
         try:
@@ -57,17 +75,24 @@ def run(ctx: base_cli.Context, older_than: str | None, keep_last: str | None, dr
         except ValueError as exc:
             ctx.log.error(str(exc))
             return base_cli.ExitCode.USAGE_ERROR
-        candidates.extend(find_log_retention_candidates(cache_root, keep_count, ctx.log))
+        candidates.extend(
+            find_log_retention_candidates(
+                cache_root,
+                keep_count,
+                ctx.log,
+                active_runs=active_runs,
+            )
+        )
 
     unique_candidates = tuple(deduplicate_candidates(candidates))
-
-    if not unique_candidates:
-        ctx.log.info("No Base runtime artifacts matched the clean criteria.")
-        return base_cli.ExitCode.SUCCESS
+    preview = dry_run or not yes
 
     acted_count = 0
     for candidate in unique_candidates:
-        if dry_run:
+        if candidate.category == "run" and run_is_running(candidate.path):
+            active_runs.add(candidate.path)
+            continue
+        if preview:
             if not clean_path_is_safe(cache_root, candidate.path, "candidate", ctx.log):
                 continue
             print(f"Would remove\t{candidate.category}\t{candidate.path}")
@@ -76,13 +101,20 @@ def run(ctx: base_cli.Context, older_than: str | None, keep_last: str | None, dr
             print(f"Removing\t{candidate.category}\t{candidate.path}")
             acted_count += 1
 
+    for active_run in sorted(active_runs, key=str):
+        print(f"Retaining\tactive run\t{active_run}")
+
+    if not unique_candidates:
+        ctx.log.info("No Base runtime artifacts matched the clean criteria.")
+        return base_cli.ExitCode.SUCCESS
+
     if not acted_count:
         ctx.log.info("No safe Base runtime artifacts matched the clean criteria.")
         return base_cli.ExitCode.SUCCESS
 
     ctx.log.info(
         "%s %s Base runtime artifact(s).",
-        "Would remove" if dry_run else "Removed",
+        "Would remove" if preview else "Removed",
         acted_count,
     )
     return base_cli.ExitCode.SUCCESS
@@ -118,7 +150,13 @@ def parse_keep_last(value: str) -> int:
     return amount
 
 
-def find_clean_candidates(cache_root: Path, cutoff: float, logger: object | None = None) -> list[CleanCandidate]:
+def find_clean_candidates(
+    cache_root: Path,
+    cutoff: float,
+    logger: object | None = None,
+    *,
+    active_runs: set[Path] | None = None,
+) -> list[CleanCandidate]:
     candidates: list[CleanCandidate] = []
     for owner_root in runtime_owner_roots(cache_root, logger):
         if logger is not None:
@@ -130,6 +168,7 @@ def find_clean_candidates(cache_root: Path, cutoff: float, logger: object | None
                 "run",
                 cutoff,
                 logger,
+                active_runs=active_runs,
             )
         )
         candidates.extend(
@@ -148,6 +187,8 @@ def find_log_retention_candidates(
     cache_root: Path,
     keep_count: int,
     logger: object | None = None,
+    *,
+    active_runs: set[Path] | None = None,
 ) -> list[CleanCandidate]:
     candidates: list[CleanCandidate] = []
     for owner_root in runtime_owner_roots(cache_root, logger):
@@ -170,7 +211,11 @@ def find_log_retention_candidates(
                 "candidate",
                 logger,
                 require_directory=True,
-            ) or run_is_running(path):
+            ):
+                continue
+            if run_is_running(path):
+                if active_runs is not None:
+                    active_runs.add(path)
                 continue
             try:
                 run_dirs.append((path, run_metadata_mtime(path)))
@@ -377,12 +422,14 @@ def deduplicate_candidates(candidates: list[CleanCandidate]) -> list[CleanCandid
     return sorted(unique.values(), key=lambda candidate: str(candidate.path))
 
 
-def find_category_candidates(
+def find_category_candidates(  # pylint: disable=too-many-arguments
     cache_root: Path,
     category_root: Path,
     category: str,
     cutoff: float,
     logger: object | None = None,
+    *,
+    active_runs: set[Path] | None = None,
 ) -> list[CleanCandidate]:
     if logger is not None:
         logger.debug("Scanning %s runtime artifacts in '%s'.", category, category_root)
@@ -398,6 +445,10 @@ def find_category_candidates(
     candidates = []
     for path in safe_directory_entries(category_root, "category root", logger):
         if not clean_path_is_safe(cache_root, path, "candidate", logger):
+            continue
+        if category == "run" and run_is_running(path):
+            if active_runs is not None:
+                active_runs.add(path)
             continue
         try:
             mtime = run_metadata_mtime(path) if category == "run" else path.stat().st_mtime

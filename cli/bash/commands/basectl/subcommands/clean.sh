@@ -9,16 +9,17 @@ Usage:
   basectl clean [--older-than <age>] [--keep-last <count>] [options]
 
 Options:
-  --older-than <age>  Remove runtime artifacts older than <age>.
+  --older-than <age>  Select runtime artifacts older than <age>.
                       Accepts integer ages with suffix d, h, m, or s.
                       Examples: 30d, 12h, 45m, 60s.
-  --keep-last <count> Keep the newest count log files per CLI log directory.
-  --dry-run           Print what would be removed without deleting anything.
+  --keep-last <count> Keep the newest completed run bundles per owner namespace.
+  --dry-run           Explicitly preview cleanup without deleting anything.
+  --yes               Delete matched artifacts after reviewing the preview.
   -v                  Enable DEBUG logging for this subcommand.
   -h, --help          Show this help text.
 
-Remove old Base CLI runtime logs, temp files, and cache entries. At least one
-cleanup criterion is required.
+Preview cleanup of old Base CLI runtime logs, temp files, and cache entries.
+Deletion requires --yes, and at least one cleanup criterion is required.
 EOF
 }
 
@@ -38,7 +39,7 @@ base_clean_subcommand_main() {
                 args+=(--debug)
                 shift
                 ;;
-            --older-than|--keep-last|--dry-run)
+            --older-than|--keep-last|--dry-run|--yes)
                 args+=("$1")
                 if [[ "$1" == "--older-than" || "$1" == "--keep-last" ]]; then
                     if [[ "$1" == "--older-than" ]]; then

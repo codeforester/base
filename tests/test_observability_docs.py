@@ -34,6 +34,20 @@ def test_cleanup_docs_define_the_symlink_containment_boundary() -> None:
     assert "never follows them during deletion" in " ".join(commands.split())
 
 
+def test_cleanup_docs_define_consent_and_active_run_retention() -> None:
+    observability = OBSERVABILITY_DOC.read_text(encoding="utf-8")
+    cache_layout = (REPO_ROOT / "docs" / "cache-ownership-and-layout.md").read_text(
+        encoding="utf-8"
+    )
+    commands = (REPO_ROOT / ".ai-context" / "COMMANDS.md").read_text(encoding="utf-8")
+
+    assert "dry-run preview by default" in observability
+    assert "`--yes` is required" in observability
+    assert "reported explicitly as retained active runs" in observability
+    assert "requires `--yes` for deletion" in cache_layout
+    assert "reports and retains active runs" in commands
+
+
 def test_run_bundle_docs_define_inherited_context_validation() -> None:
     observability = OBSERVABILITY_DOC.read_text(encoding="utf-8")
     cache_layout = (REPO_ROOT / "docs" / "cache-ownership-and-layout.md").read_text(
