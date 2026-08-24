@@ -19,6 +19,7 @@ COPILOT_INSTRUCTIONS = REPO_ROOT / ".github" / "copilot-instructions.md"
 COPILOT_SETUP_WORKFLOW = WORKFLOW_DIR / "copilot-setup-steps.yml"
 BASE_CHECK_WORKFLOW = WORKFLOW_DIR / "base-check.yml"
 BASE_DEMO_E2E_WORKFLOW = WORKFLOW_DIR / "base-demo-e2e.yml"
+TESTS_WORKFLOW = WORKFLOW_DIR / "tests.yml"
 BASE_PROJECT_CONFIG = REPO_ROOT / ".github" / "base-project.yml"
 ISSUE_BRANCH_POLICY_WORKFLOW = WORKFLOW_DIR / "issue-branch-policy.yml"
 ISSUE_BRANCH_POLICY_TEMPLATE = REPO_ROOT / "templates" / "issue-branch-policy.yml"
@@ -123,6 +124,31 @@ def test_all_workflow_action_uses_are_pinned_to_full_commit_sha() -> None:
     unpinned = workflow_action_references_without_full_sha()
 
     assert not unpinned, unpinned
+
+
+def test_tests_workflow_runs_once_per_pr_commit_and_on_main() -> None:
+    workflow = load_workflow(TESTS_WORKFLOW)
+    triggers = workflow.get("on") or workflow.get(True)
+
+    assert triggers == {
+        "push": {"branches": ["main"]},
+        "pull_request": None,
+    }
+    assert workflow["concurrency"] == {
+        "group": "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}",
+        "cancel-in-progress": True,
+    }
+    assert {
+        job["name"]
+        for job in workflow["jobs"].values()
+    } == {
+        "Python tests (${{ matrix.python-version }})",
+        "BATS tests",
+        "macOS smoke tests",
+        "Integration tests",
+        "Ubuntu source-checkout suite",
+        "Security scanners",
+    }
 
 
 def test_issue_branch_policy_workflow_is_trusted_and_template_backed() -> None:

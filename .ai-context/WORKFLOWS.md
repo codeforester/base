@@ -39,6 +39,11 @@ closure procedure](../docs/github-workflow.md#superseded-pull-requests).
 Prefer the narrowest check that proves the change, then broaden when shared
 behavior is touched.
 
+The `Tests` workflow validates pull requests and pushes to `main`; it does not
+run a duplicate push workflow for feature branches. Its concurrency group uses
+the pull-request number, or the Git ref for default-branch runs, so superseded
+commits cancel without affecting unrelated pull requests.
+
 Common commands:
 
 ```bash

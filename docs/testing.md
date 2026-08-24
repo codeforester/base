@@ -3,6 +3,12 @@
 Base uses three test layers. Prefer the narrowest layer that proves the behavior,
 then broaden when a change crosses command or runtime boundaries.
 
+The `Tests` GitHub Actions workflow runs for every pull request and for pushes
+to `main`. Feature-branch pushes do not start a second copy of the pull-request
+workflow. Concurrency is scoped to the pull-request number, or to the Git ref
+for default-branch runs, so a newer commit cancels only the superseded run for
+the same change.
+
 ## Regression And Completion Evidence
 
 Bug fixes should start with a failing test, fixture, or reproduction whenever
