@@ -160,7 +160,9 @@ Pass `--format json`; text remains the default. Completed inspections keep
 findings in `data` with `error: null`, while controlled usage or upstream
 failures use an `error` object. The canonical field contract and exit semantics
 are documented in `docs/inspection-json.md`.
-- `basectl clean` - remove old Base runtime logs, temp files, and cache entries.
+- `basectl clean` - remove old Base runtime logs, temp files, and cache entries;
+  it rejects symlinked paths below the resolved Base cache root and never
+  follows them during deletion.
 - `basectl logs` - list, print, open, or tail recent Base CLI runtime logs.
 - `basectl history` - list recent structured Base command runs from the local
   history index, with comma-separated OR filters such as

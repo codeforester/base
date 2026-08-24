@@ -189,9 +189,11 @@ the ownership boundary described above.
 
 `basectl clean` operates on completed run bundles, with optional project and
 owner filters. It never removes an active run, durable `~/.base.d` state, or
-another application's cache root. Persistent component caches may be pruned by
-age, while history metadata is retained until an explicit history-retention
-policy is applied.
+another application's cache root. Cleanup rejects symlinks below the resolved
+Base cache root and performs deletion relative to trusted directory descriptors
+so an owner, category, or candidate path cannot redirect removal elsewhere.
+Persistent component caches may be pruned by age, while history metadata is
+retained until an explicit history-retention policy is applied.
 
 ## Implementation boundary
 

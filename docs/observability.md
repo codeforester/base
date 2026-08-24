@@ -166,6 +166,10 @@ The retention contract should be:
   caches older than the age.
 - `basectl clean --keep-last <count>` retains the newest completed bundles per
   owner namespace.
+- Cleanup resolves its Base cache boundary before scanning, rejects symlinked
+  owner, category, and candidate path components, and reopens deletion targets
+  relative to trusted directory descriptors. Unsafe or unverifiable paths are
+  left untouched with a warning rather than followed.
 - Per-run temporary data is diagnostic-only: `basectl` removes the complete
   `tmp/` tree after every recognized command, regardless of success or failure,
   unless `basectl --keep-temp <command>` (or the documented Python retention
