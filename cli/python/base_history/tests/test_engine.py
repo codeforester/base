@@ -233,11 +233,37 @@ class BaseHistoryTests(unittest.TestCase):
         self.assertEqual((status, stderr), (0, ""))
         self.assertEqual([record["run_id"] for record in payload], ["included"])
 
-    def test_short_time_forms_are_parsed_in_the_host_timezone(self) -> None:
-        parsed = engine.parse_history_bound("--since", "2026-06-10 10:15")
+    def test_history_bounds_respect_host_and_explicit_timezones(self) -> None:
+        real_datetime = engine.datetime
+        cases = (
+            (
+                engine.timezone(engine.timedelta(hours=5, minutes=30)),
+                real_datetime(2026, 6, 10, 4, 45, tzinfo=engine.timezone.utc),
+            ),
+            (
+                engine.timezone(engine.timedelta(hours=-3, minutes=-30)),
+                real_datetime(2026, 6, 10, 13, 45, tzinfo=engine.timezone.utc),
+            ),
+        )
 
-        self.assertEqual(parsed.tzinfo, engine.timezone.utc)
-        self.assertEqual(parsed.minute, 15)
+        for host_timezone, expected in cases:
+            with self.subTest(host_timezone=host_timezone):
+                host_clock = mock.Mock()
+                host_clock.astimezone.return_value = real_datetime(2026, 8, 24, tzinfo=host_timezone)
+                with mock.patch.object(engine, "datetime", wraps=real_datetime) as datetime_mock:
+                    datetime_mock.now.return_value = host_clock
+                    parsed = engine.parse_history_bound("--since", "2026-06-10 10:15")
+
+                self.assertEqual(parsed, expected)
+
+        self.assertEqual(
+            engine.parse_history_bound("--since", "2026-06-10T10:15:00Z"),
+            engine.datetime(2026, 6, 10, 10, 15, tzinfo=engine.timezone.utc),
+        )
+        self.assertEqual(
+            engine.parse_history_bound("--since", "2026-06-10T10:15:00+05:30"),
+            engine.datetime(2026, 6, 10, 4, 45, tzinfo=engine.timezone.utc),
+        )
 
     def test_invalid_time_filters_report_usage_errors(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
