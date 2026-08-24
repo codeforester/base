@@ -88,15 +88,24 @@ PYTHONPATH=../base-cli/lib/python:lib/python:cli/python \
 python -m pytest \
   --cov=cli/python \
   --cov-report=term-missing \
-  --cov-fail-under=85
+  --cov-report=json:coverage.json
+python -m tests.coverage_gate coverage.json
 ```
 
 The shared [coverage configuration](../.coveragerc) excludes Python test
 modules, package initializers, and `__main__.py` entrypoints from the measured
-source set. The initial floor is 85%, based on an 87% baseline from the full
-Python suite across 11,428 production statements. This is a regression guard,
-not a claim that every module has ideal behavioral coverage; ratchet it upward
-as lower-covered areas gain focused tests.
+source set and enables branch measurement. The ratchet checks the JSON report
+separately at 85% statements, 76% branches, and 84% combined coverage. These
+whole-point floors preserve the existing statement gate and leave a small
+cross-version margin below the measured 87.51%, 76.99%, and 84.94% baseline.
+The terminal report keeps per-file missing lines and partial branches visible,
+while the ratchet prints every metric and names any failed threshold.
+
+This is a regression guard, not a claim that every module has ideal behavioral
+coverage. Raise a floor deliberately as lower-covered areas gain focused tests;
+do not lower one merely to make a change pass. To prove the failure behavior
+locally without changing production code, run
+`python -m pytest tests/test_coverage_gate.py -k fails`.
 
 ## Bash Command And Runtime Tests
 
@@ -143,10 +152,19 @@ resolves to a source checkout. In a packaged install such as Homebrew,
 skips source-checkout-only BATS and integration tests with a message pointing
 back to the source checkout command above.
 
-There is not yet an equivalent Bash/BATS line-coverage floor. The BATS suite
-continues to provide behavior and contract coverage, while a lightweight Bash
-coverage tool (such as `kcov` or `bashcov`) is evaluated separately so it can
-be introduced without making the shell test job platform-dependent.
+Base deliberately uses command-focused BATS regression coverage plus ShellCheck
+as the Bash equivalent instead of a line percentage. Contributors changing a
+public command or runtime branch must add or update a focused BATS assertion,
+then run that test and the full `bin/base-test` suite. Linux CI runs the complete
+BATS command matrix and ShellCheck on tracked shell files, so missing behavioral
+coverage or unsafe shell changes block the pull request.
+
+This policy avoids adding `kcov` or `bashcov`, whose tracing and platform
+requirements would make the macOS/Linux signal inconsistent and whose sourced
+shell-line percentages do not establish command behavior. Revisit the decision
+if a portable tool can report command-path coverage without changing Base's
+runtime behavior; until then, command-focused tests are the reviewed coverage
+unit and the required CI signal.
 
 ## Integration Tests
 

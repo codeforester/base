@@ -53,7 +53,8 @@ jobs:
           python -m pytest \
             --cov=cli/python \
             --cov-report=term-missing \
-            --cov-fail-under=85
+            --cov-report=json:coverage.json
+          python -m tests.coverage_gate coverage.json
 
   bats:
     name: BATS tests

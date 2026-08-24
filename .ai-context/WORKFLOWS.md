@@ -54,6 +54,12 @@ PYTHONPATH=../base-cli/lib/python:lib/python:cli/python \
 python -m pytest
 ```
 
+Python CI also enables branch coverage, writes `coverage.json`, and runs
+`python -m tests.coverage_gate coverage.json`. The gate keeps separate 85%
+statement, 76% branch, and 84% combined floors; see
+[`docs/testing.md`](../docs/testing.md) for the reproducible command and Bash
+coverage policy.
+
 The shared `base_cli` framework is maintained in the standalone `base-cli`
 repository. Source-checkout tests resolve it from `BASE_CLI_SOURCE_DIR`, a
 sibling `../base-cli/lib/python` checkout, or the installed `base-cli`
