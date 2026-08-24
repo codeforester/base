@@ -17,6 +17,8 @@ DEV_REQUIREMENTS = REPO_ROOT / "requirements-dev.txt"
 TESTS_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "tests.yml"
 TESTING_DOC = REPO_ROOT / "docs" / "testing.md"
 PYTHON_COVERAGE_FLOOR = 85
+PYTHON_BRANCH_COVERAGE_FLOOR = 76
+PYTHON_COMBINED_COVERAGE_FLOOR = 84
 CANONICAL_POSITIONING_DOCS = tuple(
     REPO_ROOT / relative_path
     for relative_path in (
@@ -99,12 +101,16 @@ def test_python_coverage_policy_is_wired_and_documented() -> None:
     assert "pytest-cov==7.1.0" in requirements
     assert "--cov=cli/python" in workflow
     assert "--cov-report=term-missing" in workflow
-    assert f"--cov-fail-under={PYTHON_COVERAGE_FLOOR}" in workflow
+    assert "--cov-report=json:coverage.json" in workflow
+    assert "python -m tests.coverage_gate coverage.json" in workflow
+    assert "branch = True" in coverage_config
     assert "source =\n    cli/python" in coverage_config
     assert "cli/python/**/tests/*" in coverage_config
-    assert f"--cov-fail-under={PYTHON_COVERAGE_FLOOR}" in testing_doc
-    assert f"{PYTHON_COVERAGE_FLOOR}%" in testing_doc
-    assert "Bash/BATS" in testing_doc
+    assert f"{PYTHON_COVERAGE_FLOOR}% statements" in testing_doc
+    assert f"{PYTHON_BRANCH_COVERAGE_FLOOR}% branches" in testing_doc
+    assert f"{PYTHON_COMBINED_COVERAGE_FLOOR}% combined" in testing_doc
+    assert "python -m tests.coverage_gate coverage.json" in testing_doc
+    assert "command-focused BATS regression coverage" in testing_doc
 
 
 def test_python_test_docs_and_ci_use_the_standalone_base_cli_source_contract() -> None:
