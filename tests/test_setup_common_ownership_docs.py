@@ -19,6 +19,15 @@ SETUP_VENV_SCRIPT = (
 SETUP_PROFILES_SCRIPT = (
     REPO_ROOT / "cli" / "bash" / "commands" / "basectl" / "subcommands" / "setup_profiles.sh"
 )
+SETUP_PROJECT_ARTIFACTS_SCRIPT = (
+    REPO_ROOT
+    / "cli"
+    / "bash"
+    / "commands"
+    / "basectl"
+    / "subcommands"
+    / "setup_project_artifacts.sh"
+)
 DOCS_README = REPO_ROOT / "docs" / "README.md"
 
 
@@ -39,6 +48,7 @@ def setup_shell_sources() -> str:
             SETUP_MACOS_HOMEBREW_SCRIPT,
             SETUP_VENV_SCRIPT,
             SETUP_PROFILES_SCRIPT,
+            SETUP_PROJECT_ARTIFACTS_SCRIPT,
         )
     )
 
@@ -77,6 +87,7 @@ def test_setup_common_ownership_doc_records_current_strategy() -> None:
     assert "setup_macos_homebrew.sh" in text
     assert "setup_venv.sh" in text
     assert "setup_profiles.sh" in text
+    assert "setup_project_artifacts.sh" in text
     assert "setup_notifications.sh" in text
     assert "#1591" in text
     assert "cohesive functional domain" in text
@@ -124,3 +135,16 @@ def test_setup_common_sources_profiles_helper() -> None:
 
     assert 'source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_profiles.sh"' in common_source
     assert "_base_setup_profiles_sourced" in profiles_source
+
+
+def test_setup_common_sources_project_artifacts_helper() -> None:
+    common_source = setup_common_script()
+    project_artifacts_source = SETUP_PROJECT_ARTIFACTS_SCRIPT.read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        'source "$BASE_HOME/cli/bash/commands/basectl/subcommands/'
+        'setup_project_artifacts.sh"'
+    ) in common_source
+    assert "_base_setup_project_artifacts_sourced" in project_artifacts_source
