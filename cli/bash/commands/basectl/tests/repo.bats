@@ -686,6 +686,29 @@ EOF
     fi
 }
 
+@test "basectl repo init is guarded and lazy-loaded" {
+    local bash_libs_dir
+
+    bash_libs_dir="$(base_bash_libs_fixture_dir)"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_BASH_LIBS_DIR="$bash_libs_dir" \
+        bash -c '
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/repo.sh"
+            [[ "$(type -t base_repo_init)" != "function" ]]
+            base_repo_subcommand_main init --help
+            [[ "$(type -t base_repo_init)" == "function" ]]
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/repo_init.sh"
+            [[ "${_base_repo_init_sourced:-}" == "1" ]]
+        '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"basectl repo init <name> [options]"* ]]
+}
+
 @test "basectl repo init missing name shows focused usage and example" {
     run_basectl repo init --repo codeforester/bankbuddy --pr
 

@@ -1,7 +1,7 @@
 # `basectl repo` Ownership Map
 
 Status: maintained implementation boundary map
-Last reviewed: 2026-07-14
+Last reviewed: 2026-08-25
 
 `basectl repo` has grown from local baseline generation into a mixed local and
 GitHub workflow surface. This page maps the current responsibilities so future
@@ -12,6 +12,7 @@ refactors can reduce `repo.sh` safely without changing public command behavior.
 | Responsibility | Current public commands | Current owner | Direction |
 |---|---|---|---|
 | Command dispatch and usage routing | `basectl repo ...` | Bash | Keep in Bash as the thin public front-end. |
+| `repo init` option parsing and orchestration | `repo init` | `repo_init.sh` | Keep the coordinator command-owned; reuse shared path, Git, dry-run, baseline-writer, and PR primitives from `repo.sh`. |
 | Local path, config, and dry-run plumbing | all repo commands | Bash | Keep small shared Bash helpers until a broader repo command parser exists. |
 | Local baseline file generation | `repo init`, `repo check` | Bash | Keep file writes in Bash for now; extract stable writer groups only when the file set is already well-covered by BATS. |
 | Agent guidance generation | `repo agent-guidance` | Bash helper | Extracted to `repo_agent_guidance.sh`; it still uses shared repo path, write, and PR helpers from `repo.sh`. |
@@ -55,6 +56,14 @@ The helper still reuses shared repo formatting, `gh` readiness, path, and
 project-support file helpers from `repo.sh`; this keeps `repo init` and
 `repo configure` behavior unchanged while separating GitHub-side configuration
 from local baseline generation.
+
+The fourth split moves `repo init` option parsing and orchestration into
+`cli/bash/commands/basectl/subcommands/repo_init.sh`. The helper keeps the
+existing public `base_repo_init()` function and lazy-loads only for the `init`
+command. Its coordinator now separates argument parsing, validation, PR
+planning, baseline writing, PR finishing, and GitHub configuration. Local
+baseline writers, GitHub settings, shared path handling, and PR worktree
+primitives remain in their existing owners.
 
 Follow-up candidates:
 

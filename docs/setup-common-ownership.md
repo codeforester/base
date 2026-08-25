@@ -54,10 +54,11 @@ entry-point functions are the stable anchors for future edits.
 | `setup_common.sh` 414-632 | Base Bash library status, PYTHONPATH, diagnostics JSON bridge, and first-mile text fallback for Base check metadata. | `setup_base_check_metadata()`, `setup_diagnostics_python_bin()`, `setup_run_diagnostics_json()` | Base check metadata and structured diagnostics JSON are Python-primary; keep shell fallback only for pre-runtime text diagnostics. |
 | `setup_common.sh` 636-784 | Project manifest resolution, project route dispatch, check-result recording, user config seeding, and legacy project-venv fallback helpers. | `setup_resolve_project_manifest()`, `setup_resolve_project_route()`, `setup_record_project_check_result()` | Continue moving structured route policy to Python; keep shell dispatch thin. |
 | `setup_common.sh` 790-879 | Doctor visual status and project virtualenv JSON routing for pre-venv failure handling. | `setup_print_doctor_finding()`, `setup_print_project_venv_check_json()`, `setup_print_project_venv_doctor_json()` | Shell owns human doctor text and routes project virtualenv JSON to Python diagnostics. |
-| `setup_common.sh` 892-1179 | Project pre-venv, bootstrap, artifact setup/check/doctor, uv-manager, wrapper, and remote-network dispatch. | `setup_run_project_pre_venv_layer()`, `setup_run_project_bootstrap_layer()`, `setup_run_project_artifact_layer()` | Keep as shell dispatch; reduce by moving project policy and payload shape to Python. |
-| `setup_common.sh` 1188-1267 | Shared probe waiting plus platform/base check dispatch. | `setup_wait_for_base_check_probes()`, `setup_collect_platform_base_check_results()`, `setup_collect_base_check_results()` | Keep dispatch shared until check JSON assembly and probe orchestration have clearer Python boundaries. |
-| `setup_common.sh` 1276-1389 | Base check text rendering, project check result status handling, top-level check orchestration, and raw check-result record routing for JSON. | `setup_run_check()`, `setup_run_check_json()`, `setup_print_check_text_results()` | Python owns JSON item assembly from raw shell result records; keep human text rendering and exit orchestration in shell. |
-| `setup_common.sh` 1392-1416 | Platform install dispatch and top-level setup dispatch. | `setup_run_platform_install()`, `setup_run_install()` | Keep shared dispatch in `setup_common.sh`; install bodies belong in domain helpers. |
+| `setup_common.sh` 933-1026 | Project pre-venv, bootstrap, and the shared project setup entrypoint. | `setup_run_project_pre_venv_layer()`, `setup_run_project_bootstrap_layer()`, `setup_run_project_artifact_setup()` | Keep as shared shell dispatch; project policy and payload shape remain Python-owned. |
+| `setup_project_artifacts.sh` 1-322 | Project artifact setup/check/doctor, uv-manager, wrapper, and remote-network dispatch. | `setup_run_project_artifact_layer()`, `setup_run_project_artifact_check()`, `setup_run_project_artifact_doctor()` | Extracted under #1891; keep public function names and route decisions unchanged. |
+| `setup_common.sh` 1030-1066 | Shared probe waiting plus platform/base check dispatch. | `setup_wait_for_base_check_probes()`, `setup_collect_platform_base_check_results()`, `setup_collect_base_check_results()` | Keep dispatch shared until check JSON assembly and probe orchestration have clearer Python boundaries. |
+| `setup_common.sh` 1068-1276 | Base check text rendering, project check result status handling, top-level check orchestration, and raw check-result record routing for JSON. | `setup_run_check()`, `setup_run_check_json()`, `setup_print_check_text_results()` | Python owns JSON item assembly from raw shell result records; keep human text rendering and exit orchestration in shell. |
+| `setup_common.sh` 1278-1302 | Platform install dispatch and top-level setup dispatch. | `setup_run_platform_install()`, `setup_run_install()` | Keep shared dispatch in `setup_common.sh`; install bodies belong in domain helpers. |
 | `setup_linux_debian.sh` 1-422 | Ubuntu/Debian recovery text, Python finder, runtime tool probes, check collector, apt prerequisites, GitHub CLI apt-repo setup, and Linux install body. | `setup_find_linux_python_bin()`, `setup_collect_linux_debian_base_check_results()`, `setup_run_linux_debian_install()` | Extracted OS/platform helper; keep future Ubuntu/Debian policy here unless it is structured data better owned by Python. |
 | `setup_macos_homebrew.sh` 1-601 | macOS/Homebrew recovery text, Homebrew discovery and installer policy, Xcode command-line tools, macOS Python finder, macOS host probes, and macOS install body. | `setup_find_brew_bin()`, `setup_install_homebrew()`, `setup_collect_macos_base_check_results()`, `setup_run_macos_install()` | Extracted OS/platform helper; keep future macOS/Homebrew policy here unless it is structured data better owned by Python. |
 | `setup_venv.sh` 1-444 | Base runtime virtualenv health, pyvenv inspection, recreate behavior, platform Python dispatch, Base bootstrap package checks/install, venv check probes, CI-runtime checks, and CI-runtime install body. | `setup_virtualenv_healthy_path()`, `setup_create_virtualenv()`, `setup_collect_ci_runtime_check_results()`, `setup_run_ci_runtime_install()` | Extracted Base runtime helper; keep future runtime bootstrap policy here unless structured check output moves to Python. |
@@ -70,9 +71,20 @@ avoid circular shell dependencies.
 
 ### Phase 0: Ownership Map And Guard
 
-This issue slice refreshes the map and adds a documentation guard. It does not
-move runtime code. That keeps the first PR review focused on whether the
-planned boundaries are coherent.
+This issue slice refreshed the map, added a documentation guard, and moved the
+project artifact coordinator into its own guarded helper. The runtime contract
+remains unchanged; the extraction makes the project boundary independently
+reviewable before further setup ownership work.
+
+### #1891: Project Artifact Dispatch
+
+The project artifact orchestration now lives in
+`setup_project_artifacts.sh`. It is a guarded helper sourced by
+`setup_common.sh`; its entry point delegates through context resolution,
+command construction, bootstrap, unhealthy-venv handling, and execution
+phases while reusing shared project resolution, pre-venv, cache, and
+diagnostic-rendering helpers. This is an ownership extraction, not a Python
+rewrite or a change to setup/check/doctor contracts.
 
 ### Phase 1: Linux/Debian Platform Boundary
 

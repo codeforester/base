@@ -206,6 +206,29 @@ run_setup_common_script() {
     [[ "$output" == *"guard=1"* ]]
 }
 
+@test "setup_common sources project artifact helper idempotently" {
+    run_setup_common_script '
+        source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_project_artifacts.sh"
+        source "$BASE_HOME/cli/bash/commands/basectl/subcommands/setup_project_artifacts.sh"
+        for helper in \
+            setup_run_project_artifact_layer \
+            setup_run_project_artifact_setup \
+            setup_run_project_artifact_check \
+            setup_run_project_artifact_check_json \
+            setup_run_project_artifact_doctor \
+            setup_run_project_artifact_doctor_json; do
+            declare -F "$helper" >/dev/null || {
+                printf "missing helper: %s\n" "$helper" >&2
+                exit 24
+            }
+        done
+        printf "guard=%s\n" "${_base_setup_project_artifacts_sourced:-}"
+    '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"guard=1"* ]]
+}
+
 @test "setup_common reports WSL2 host context without changing platform support" {
     run_setup_common_script '
         BASE_TEST_MODE=true

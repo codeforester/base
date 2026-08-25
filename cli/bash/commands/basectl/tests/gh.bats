@@ -288,6 +288,29 @@ run_gh_subcommand() {
     [ "$status" -eq 0 ]
 }
 
+@test "gh issue readiness is guarded and lazy-loaded" {
+    local bash_libs_dir
+
+    bash_libs_dir="$(base_bash_libs_fixture_dir)"
+
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_BASH_LIBS_DIR="$bash_libs_dir" \
+        bash -c '
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh.sh"
+            [[ "$(type -t base_gh_issue_readiness)" != "function" ]]
+            base_gh_subcommand_main issue readiness --help
+            [[ "$(type -t base_gh_issue_readiness)" == "function" ]]
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/gh_issue_readiness.sh"
+            [[ "${_base_gh_issue_readiness_sourced:-}" == "1" ]]
+        '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"basectl gh issue readiness <number> [options]"* ]]
+}
+
 @test "basectl gh auth status reports stored credential state" {
     write_auth_gh_mock
 
