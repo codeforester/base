@@ -27,11 +27,29 @@ changed intentionally.
 
 ## Version Policy
 
-Do not update `VERSION` on every merged pull request.
+Base keeps two related version identities during development:
 
-`VERSION` records the latest published Base release. Ordinary feature, fix,
-documentation, and maintenance PRs leave it unchanged. A release-prep PR updates
-`VERSION` once the next release number has been chosen.
+- `VERSION` records the latest published Base release. Ordinary feature, fix,
+  documentation, and maintenance PRs leave it unchanged.
+- `DEVELOPMENT_VERSION` records the numeric next development line. An untagged
+  Git checkout reports it as `DEVELOPMENT_VERSION-dev+g<short-sha>` and appends
+  `.dirty` when the checkout has local changes.
+
+A clean exact `vX.Y.Z` checkout and a packaged install report `VERSION` without
+a development suffix. A dirty checkout, including one based on a release tag,
+reports the development identity with its revision and `.dirty`. This keeps a
+published release such as `1.8.0` distinct from mutable `main` work targeting
+`1.9.0`, including its prospective license state.
+
+Stable consumer installs must use Homebrew or an explicit release tag. Source
+checkout and `main` installs are contributor or dogfood paths and must name the
+branch or ref intentionally. Do not make a mutable default branch the implicit
+stable consumer input.
+
+At release preparation time, update `VERSION` to the clean release number and
+run the release checks against that exact number. Do not put a development
+suffix or Git revision in a published tag. After the release, update
+`DEVELOPMENT_VERSION` to the next development line on `main`.
 
 Keep upcoming changes under the `Unreleased` section in `CHANGELOG.md` until a
 release-prep PR moves them into a dated release section.

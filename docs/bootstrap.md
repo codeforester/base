@@ -167,16 +167,35 @@ basectl update-profile
 exec "$SHELL" -l
 ```
 
-### Source Checkout Install Recipe
+### Stable Source Install Recipe
 
-Use this path when contributing to Base or running the repository directly:
+Use this path when you want the published release without Homebrew. Keep both
+the installer script and the cloned checkout on the same immutable release ref:
 
 ```bash
-git clone https://github.com/basefoundry/base.git ~/work/base
+git clone --branch v1.8.0 https://github.com/basefoundry/base.git ~/work/base
 ~/work/base/bin/basectl setup
 ~/work/base/bin/basectl update-profile
 exec "$SHELL" -l
 ```
+
+The stable checkout reports `basectl 1.8.0`. For future releases, replace both
+occurrences of `v1.8.0` with the intended published tag.
+
+### Source Checkout Install Recipe
+
+Use this path when contributing to Base or intentionally dogfooding mutable
+development code. Naming `main` makes the moving source identity explicit:
+
+```bash
+git clone --branch main https://github.com/basefoundry/base.git ~/work/base
+~/work/base/bin/basectl setup
+~/work/base/bin/basectl update-profile
+exec "$SHELL" -l
+```
+
+During the 1.9.0 development line, this checkout reports an identity such as
+`basectl 1.9.0-dev+g<short-sha>`. A dirty checkout appends `.dirty`.
 
 ## Relationship To Other Install Paths
 
@@ -188,8 +207,17 @@ For a direct Homebrew install, use the
 [canonical Homebrew install recipe](#homebrew-install-recipe).
 
 Use `install.sh` when you specifically want the source-install script to clone
-or update Base and run setup/profile commands in one path. `bootstrap.sh` is the
-more complete first-mile path for blank machines.
+or update Base and run setup/profile commands in one path. Pin the installer
+script and checkout together for a stable install:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/v1.8.0/install.sh \
+  | bash -s -- --branch v1.8.0
+```
+
+Use the `HEAD` installer only for an intentional contributor or dogfood
+checkout, and pass `--branch main` or another explicit ref. `bootstrap.sh` is
+the more complete first-mile path for blank machines.
 
 ## Boundaries
 

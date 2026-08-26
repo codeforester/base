@@ -583,7 +583,8 @@ EOF
 @test "basectl prints version with --version and version" {
     local expected_version
 
-    expected_version="$(head -n 1 "$BASE_REPO_ROOT/VERSION")"
+    source "$BASE_REPO_ROOT/lib/bash/version/lib_version.sh"
+    expected_version="$(base_read_version "$BASE_REPO_ROOT")"
 
     run_basectl --version
     [ "$status" -eq 0 ]

@@ -3,7 +3,8 @@
 All notable changes to Base will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and Base versions are tracked in the repo-root `VERSION` file.
+Published Base versions are tracked in the repo-root `VERSION` file. The
+numeric next development line is tracked in `DEVELOPMENT_VERSION`.
 
 ## [Unreleased]
 
@@ -15,6 +16,9 @@ and Base versions are tracked in the repo-root `VERSION` file.
 
 ### Changed
 
+- Documented stable release versus contributor source installation and made
+  mutable source checkouts report the next development line with their Git
+  revision instead of reusing the latest published version identity.
 - Aligned `basectl devcontainer` and `basectl devenv-report` option parsing
   with the shared `arg_parse` contract while preserving their public options
   and project validation.

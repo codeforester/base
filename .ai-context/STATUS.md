@@ -3,7 +3,10 @@
 ## Current Release
 
 Base `1.8.0` is the current release. The repo-root `VERSION` file is updated
-only during release-prep PRs, not on every ordinary PR.
+only during release-prep PRs, not on every ordinary PR. `DEVELOPMENT_VERSION`
+records the numeric next development line; an untagged source checkout reports
+that line with a Git revision and `.dirty` when applicable, while tagged and
+packaged installs report the clean published version.
 
 ## Current Implemented Areas
 

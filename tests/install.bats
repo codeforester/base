@@ -108,6 +108,13 @@ assert_base_init_loads() {
     [[ "$output" != *"update-profile"* ]]
 }
 
+@test "installer can pin a stable release ref explicitly" {
+    run_installer --dry-run --dir "$TEST_HOME/work/base" --repo-url https://example.test/base.git --branch v1.8.0 --no-profile
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"[DRY-RUN] Would run: git clone --branch v1.8.0 https://example.test/base.git $TEST_HOME/work/base"* ]]
+}
+
 @test "installer expands tilde install paths" {
     local install_dir
     local tilde="~"
