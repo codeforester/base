@@ -25,6 +25,7 @@ ISSUE_BRANCH_POLICY_WORKFLOW = WORKFLOW_DIR / "issue-branch-policy.yml"
 ISSUE_BRANCH_POLICY_TEMPLATE = REPO_ROOT / "templates" / "issue-branch-policy.yml"
 IMPLEMENTATION_ISSUE_TEMPLATE = REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "implementation.yml"
 FULL_COMMIT_SHA_ACTION_REF = re.compile(r"^[^@]+@[0-9a-f]{40}$")
+BASE_BASH_LIBS_GA_COMMIT = "b4243765726c133499feeabdc50154f99c0fec12"
 
 
 def workflow_files() -> list[Path]:
@@ -149,6 +150,17 @@ def test_tests_workflow_runs_once_per_pr_commit_and_on_main() -> None:
         "Ubuntu source-checkout suite",
         "Security scanners",
     }
+
+
+def test_tests_workflow_pins_all_base_bash_libs_checkouts_to_ga_revision() -> None:
+    refs = [
+        step.get("with", {}).get("ref")
+        for _, _, step in workflow_steps(TESTS_WORKFLOW)
+        if step.get("with", {}).get("repository") == "basefoundry/base-bash-libs"
+    ]
+
+    assert refs
+    assert refs == [BASE_BASH_LIBS_GA_COMMIT] * len(refs)
 
 
 def test_issue_branch_policy_workflow_is_trusted_and_template_backed() -> None:

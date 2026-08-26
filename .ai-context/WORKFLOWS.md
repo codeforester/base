@@ -44,6 +44,10 @@ run a duplicate push workflow for feature branches. Its concurrency group uses
 the pull-request number, or the Git ref for default-branch runs, so superseded
 commits cancel without affecting unrelated pull requests.
 
+Every `base-bash-libs` checkout in that workflow uses one immutable GA revision.
+The workflow contract test guards against an RC or mixed dependency pin
+returning across the platform and source-checkout jobs.
+
 Common commands:
 
 ```bash
