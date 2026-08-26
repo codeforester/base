@@ -6,8 +6,10 @@ loaded.
 ## Public API
 
 - `base_read_version`
-  Read the first line of `$BASE_HOME/VERSION` for a caller-provided Base home,
-  returning `unknown` when the version file is missing or empty.
+  Read the effective version identity for a caller-provided Base home. Tagged
+  releases and packaged installs use `VERSION`; untagged Git checkouts use
+  `DEVELOPMENT_VERSION-dev+g<short-sha>` and append `.dirty` when the checkout
+  has local changes. It returns `unknown` when `VERSION` is missing or empty.
 
 ## Usage
 
@@ -24,6 +26,9 @@ printf 'basectl %s\n' "$(base_read_version "$BASE_HOME")"
   stays available early in startup.
 - The runtime `basectl version` command uses the same helper after Base home has
   been validated.
+- A matching `vX.Y.Z` tag keeps the published `VERSION` identity. A mutable
+  source checkout must carry the numeric next-development line in
+  `DEVELOPMENT_VERSION`.
 
 ## Tests
 

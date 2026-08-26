@@ -1515,15 +1515,25 @@ workspace:
 The standalone installer is also available:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/v1.8.0/install.sh \
+  | bash -s -- --branch v1.8.0
 exec "$SHELL" -l
 ```
 
-This runs a shell script from GitHub, so review the script first if you do not
-already trust this repository:
+This stable consumer path pins both the installer script and the checkout to
+the published `v1.8.0` ref. Review the script first if you do not already
+trust this repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/install.sh
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/v1.8.0/install.sh
+```
+
+For contributor or dogfood installs that intentionally follow development
+`main`, use the mutable installer explicitly:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/install.sh \
+  | bash -s -- --branch main
 ```
 
 By default, the installer clones or updates Base at `~/work/base`, runs
@@ -1533,7 +1543,8 @@ By default, the installer clones or updates Base at `~/work/base`, runs
 installer options with `bash -s --`, for example:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/install.sh | bash -s -- --dir ~/work/base --no-profile
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/v1.8.0/install.sh \
+  | bash -s -- --branch v1.8.0 --dir ~/work/base --no-profile
 ```
 
 Use `--no-profile` to skip shell startup integration and `--dry-run` to print
@@ -1545,6 +1556,16 @@ For the explicit manual source-checkout command sequence, see the canonical
 After the shell restarts, Base's managed startup section adds `~/work/base/bin`
 to `PATH`, so `basectl` can be run without spelling out the full path. Use
 `basectl version` or `basectl --version` to report the installed Base version.
+
+## Version Identity
+
+`VERSION` is the latest published release identity. `DEVELOPMENT_VERSION` is
+the numeric next development line. A clean tagged release or packaged install
+reports the clean `VERSION`, while a mutable Git checkout—including a dirty
+checkout based on a release tag—reports
+`DEVELOPMENT_VERSION-dev+g<short-sha>` and appends `.dirty` when local changes
+are present. For example, Base `1.8.0` and mutable development code targeting
+`1.9.0` cannot report the same identity.
 
 Project-specific onboarding should live in project installers that call Base
 internally. `basectl onboard [project]` can run Base's setup/check/doctor flow

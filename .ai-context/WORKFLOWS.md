@@ -95,8 +95,12 @@ BASE_BASH_LIBS_DIR=~/work/base-bash-libs/lib/bash env -u BASE_HOME ./bin/base-te
 
 ## Release Flow
 
-Base releases are explicit ceremonies. Ordinary PRs do not update `VERSION`.
-Release-prep PRs update `VERSION`, README release text, and `CHANGELOG.md`.
+Base releases are explicit ceremonies. Ordinary PRs do not update `VERSION` or
+`DEVELOPMENT_VERSION`. `VERSION` is the latest published release, while
+`DEVELOPMENT_VERSION` names the next development line used by untagged source
+checkouts. Release-prep PRs update `VERSION`, README release text, and
+`CHANGELOG.md`; after publication, advance `DEVELOPMENT_VERSION` for the next
+development line.
 
 Repositories that publish versioned artifacts can opt into the shared release
 contract with `basectl repo configure --release --repo <owner/name>`. The
