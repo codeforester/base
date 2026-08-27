@@ -27,6 +27,8 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
   MIT and AGPL releases retain their original licenses.
 - Made `basectl repo init` generate Apache-2.0 licenses by default for new
   repositories.
+- Documented the deliberate mutable Homebrew installer default, its runtime
+  disclosure, and the paired URL/SHA-256 override path for managed environments.
 
 ### Fixed
 

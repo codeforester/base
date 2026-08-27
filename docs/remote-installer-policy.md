@@ -48,6 +48,14 @@ instead of pinning a reviewed commit by default. When Base uses a default path,
 it identifies the URL as mutable and explicitly says that the script is not
 checksum-verified.
 
+For Homebrew, this default keeps first-mile setup aligned with the upstream
+installer that Homebrew maintains at `HEAD`. A Base-owned URL and checksum
+would become stale whenever Homebrew changes that installer, forcing a Base
+update for each upstream change or risking a blocked or lagging bootstrap path.
+This is a deliberate availability and trust trade-off; managed environments
+should use the paired Homebrew URL and SHA-256 overrides below when they need
+checksum verification.
+
 Teams that require pinned, mirrored, or managed Homebrew installer content can
 opt in by setting both a
 Homebrew installer location and its expected SHA-256 before running Base:

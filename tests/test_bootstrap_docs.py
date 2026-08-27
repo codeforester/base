@@ -38,6 +38,18 @@ def test_bootstrap_quick_start_surfaces_verified_homebrew_installer_path() -> No
     assert "BASE_HOMEBREW_INSTALLER_SHA256" in quick_start
 
 
+def test_bootstrap_docs_explain_mutable_homebrew_default_rationale() -> None:
+    text = BOOTSTRAP_DOC.read_text(encoding="utf-8")
+    quick_start = section(text, "## Quick Start", "## Install Mode")
+    normalized = " ".join(quick_start.split())
+
+    assert "mutable Homebrew installer default" in normalized
+    assert "become stale" in normalized
+    assert "availability and trust trade-off" in normalized
+    assert "BASE_HOMEBREW_INSTALLER_URL" in normalized
+    assert "BASE_HOMEBREW_INSTALLER_SHA256" in normalized
+
+
 def test_readme_trust_conscious_proof_reviews_manifest_trust_before_demo() -> None:
     text = README.read_text(encoding="utf-8")
     proof = section(text, "### Trust-Conscious Proof, No Dotfile Changes", "### Shell Startup Is Explicit")

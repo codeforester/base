@@ -34,6 +34,16 @@ curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh 
 Use `BASE_HOMEBREW_INSTALLER_URL` and `BASE_HOMEBREW_INSTALLER_SHA256` instead
 when the same pin should apply to all Base Homebrew entry points.
 
+Both `bootstrap.sh` and `install.sh` keep the mutable Homebrew installer
+default and disclose that choice at runtime. Base does not hard-code a
+Homebrew URL and checksum because Homebrew maintains its official installer
+independently at `HEAD`: a fixed digest can become stale as Homebrew changes
+it, forcing Base releases for upstream installer updates or causing first-mile
+installs to fail or lag. This is a deliberate availability and trust trade-off,
+not an integrity guarantee. Managed environments that require verification
+should provide both the installer URL and SHA-256 pair shown above; partial
+pinning fails closed.
+
 On macOS, the bootstrapper verifies macOS, installs missing first-mile
 prerequisites, and then prints the exact commands needed to finish setup. For
 the default source checkout path, the handoff usually looks like:
