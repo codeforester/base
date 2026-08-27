@@ -48,6 +48,12 @@ Every `base-bash-libs` checkout in that workflow uses one immutable GA revision.
 The workflow contract test guards against an RC or mixed dependency pin
 returning across the platform and source-checkout jobs.
 
+First-mile Homebrew installation remains mutable by default and logs that
+policy. Managed environments can opt into checksum verification with paired
+installer URL and SHA-256 overrides; the bootstrap documentation records why
+Base does not hard-code a checksum for Homebrew's independently changing
+`HEAD` installer.
+
 Common commands:
 
 ```bash
