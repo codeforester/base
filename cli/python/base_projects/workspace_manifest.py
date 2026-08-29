@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from base_projects.workspace_repository_url import repository_url_problem
 
 try:
     import yaml
@@ -161,19 +162,21 @@ def _read_optional_string(path: Path, field: str, value: Any) -> str | None:
 
 
 def _validate_repo_url(path: Path, index: int, url: str) -> None:
-    if url.startswith("http://"):
+    problem = repository_url_problem(url)
+    if problem == "insecure_http":
         raise WorkspaceManifestError(
             f"{path}: repos[{index}].url uses insecure cleartext HTTP. "
             "Use HTTPS, SSH, file://, or an absolute local path."
         )
-    if url.startswith(("https://", "git://", "ssh://", "file://")):
-        return
-    if re.match(r"^[^@\s]+@[^:\s]+:.+$", url):
-        return
-    if Path(url).is_absolute():
+    if problem == "sensitive":
+        raise WorkspaceManifestError(
+            f"{path}: repos[{index}].url contains embedded credentials or secret URL parameters. "
+            "Remove them and use a Git credential helper or SSH configuration."
+        )
+    if problem is None:
         return
     raise WorkspaceManifestError(
-        f"{path}: repos[{index}].url does not look like a Git URL or local path: '{url}'."
+        f"{path}: repos[{index}].url does not look like a Git URL or local path."
     )
 
 

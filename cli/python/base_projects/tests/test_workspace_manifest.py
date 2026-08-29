@@ -125,6 +125,62 @@ repos:
             ):
                 read_workspace_manifest(path)
 
+    def test_rejects_repository_url_secrets_without_echoing_them(self) -> None:
+        cases = (
+            ("https://user:USERINFO_SECRET@github.com/example/private.git", "USERINFO_SECRET"),
+            ("oauth2:SCP_SECRET@gitlab.com:example/private.git", "SCP_SECRET"),
+            ("https://github.com/example/private.git?token=QUERY_SECRET", "QUERY_SECRET"),
+            ("ssh://git@github.com/example/private.git#password=FRAGMENT_SECRET", "FRAGMENT_SECRET"),
+        )
+        for url, secret in cases:
+            with self.subTest(url=url):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    path = Path(tmpdir) / "workspace.yaml"
+                    write_workspace_manifest(
+                        path,
+                        "\n".join(
+                            (
+                                "schema_version: 1",
+                                "workspace:",
+                                "  name: demo-workspace",
+                                "repos:",
+                                "  - name: private",
+                                f"    url: '{url}'",
+                                "",
+                            )
+                        ),
+                    )
+
+                    with self.assertRaises(WorkspaceManifestError) as raised:
+                        read_workspace_manifest(path)
+
+                message = str(raised.exception)
+                self.assertIn("contains embedded credentials or secret URL parameters", message)
+                self.assertIn("Git credential helper or SSH configuration", message)
+                self.assertNotIn(secret, message)
+
+    def test_rejects_malformed_repository_url_without_echoing_it(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "workspace.yaml"
+            write_workspace_manifest(
+                path,
+                """
+schema_version: 1
+workspace:
+  name: demo-workspace
+repos:
+  - name: private
+    url: "https://[malformed/private.git?token=MALFORMED_SECRET"
+""",
+            )
+
+            with self.assertRaises(WorkspaceManifestError) as raised:
+                read_workspace_manifest(path)
+
+        message = str(raised.exception)
+        self.assertIn("does not look like a Git URL or local path", message)
+        self.assertNotIn("MALFORMED_SECRET", message)
+
     def test_requires_schema_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "workspace.yaml"

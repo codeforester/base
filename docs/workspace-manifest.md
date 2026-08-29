@@ -199,8 +199,10 @@ stable identifier used in reports.
 accepts HTTPS, SSH, Git protocol, SCP-style SSH, `file://`, and absolute local
 path repository sources so workspace reports can describe GitHub, GitLab,
 Bitbucket, internal Git, and local repositories. Cleartext `http://`
-repository URLs are rejected by default. Base does not parse credentials or
-manage authentication.
+repository URLs, embedded URL credentials, and secret-shaped query or fragment
+parameters are rejected before any report or clone plan is rendered. Keep
+credentials in Git credential helpers or SSH configuration; Base does not
+parse credentials or manage authentication.
 
 The current `basectl workspace clone` implementation only materializes GitHub
 repositories because it delegates to `basectl repo clone`. Non-GitHub URLs
@@ -548,9 +550,10 @@ version `1`, the important state meanings are:
   non-executed validation path, or `null` when unavailable.
 
 The readiness fraction counts expected required repositories only; optional and
-extra local repositories do not change the denominator. Credentials embedded
-in manifest repository URL userinfo and secret-shaped query or fragment
-parameters are redacted from JSON and suggested clone actions. Ordinary
+extra local repositories do not change the denominator. Manifest repository
+URLs with embedded credentials or secret-shaped query or fragment parameters
+are rejected without echoing the secret. Every report and suggested clone
+action also applies the shared repository URL sanitizer defensively. Ordinary
 `git@host:path` SSH URLs remain intact. When only a manifest-declared test
 command supplies validation, the brief recommends `basectl test`; it does not
 expose or execute the raw command.

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from base_projects.project_commands import test_command as manifest_test_command
 from base_projects.workspace_manifest import WorkspaceManifest
+from base_projects.workspace_repository_url import redact_repository_url
 from base_projects.workspace_statuses import WorkspaceProjectStatus
 from base_projects.workspace_statuses import workspace_manifest_project_statuses
 from base_setup.manifest import read_manifest
@@ -73,7 +74,7 @@ def onboarding_repository_from_status(status: WorkspaceProjectStatus) -> Workspa
         venv=status.venv,
         next_action=next_action_for_status(status, status_name),
         manifest_path=status.manifest_path,
-        url=status.url,
+        url=redact_repository_url(status.url) if status.url is not None else None,
         default_branch=status.default_branch,
         setup_command=setup_command,
         validation_command=validation_command,
@@ -109,7 +110,7 @@ def validation_command_for_status(status: WorkspaceProjectStatus) -> str | None:
 def clone_command_for_status(status: WorkspaceProjectStatus) -> str | None:
     if status.repo != "missing" or status.url is None:
         return None
-    return shlex.join(["git", "clone", status.url, str(status.root)])
+    return shlex.join(["git", "clone", redact_repository_url(status.url), str(status.root)])
 
 
 def test_command_for_status(status: WorkspaceProjectStatus) -> str | None:
@@ -140,6 +141,6 @@ def next_action_for_status(status: WorkspaceProjectStatus, status_name: str) -> 
 
 def missing_required_next_action(status: WorkspaceProjectStatus) -> str:
     if status.url is not None:
-        return f"Clone {status.url} into {status.root}, then run setup."
+        return f"Clone {redact_repository_url(status.url)} into {status.root}, then run setup."
     repository = status.repository or status.root.name
     return f"Create or clone repository '{repository}' into {status.root}, then run setup."

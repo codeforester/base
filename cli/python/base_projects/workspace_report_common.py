@@ -8,6 +8,7 @@ from typing import Any
 
 from base_cli_adapters.paths import base_state_root
 from base_projects.workspace_manifest import WorkspaceManifestRepo
+from base_projects.workspace_repository_url import redact_repository_url
 from base_setup.manifest_model import BaseManifest
 from base_setup.project_routing import route_for_manifest
 
@@ -66,7 +67,7 @@ def workspace_repo_check_details(repo: WorkspaceManifestRepo, root: Path, presen
         "present": present,
     }
     if repo.url is not None:
-        details["url"] = repo.url
+        details["url"] = redact_repository_url(repo.url)
     if repo.default_branch is not None:
         details["default_branch"] = repo.default_branch
     return details
@@ -79,7 +80,7 @@ def missing_repo_message(repo: WorkspaceManifestRepo, root: Path) -> str:
 
 def missing_repo_fix(repo: WorkspaceManifestRepo, root: Path) -> str:
     if repo.url:
-        return f"Clone '{repo.url}' into '{root}'."
+        return f"Clone '{redact_repository_url(repo.url)}' into '{root}'."
     return f"Create or clone repository '{repo.name}' into '{root}'."
 
 

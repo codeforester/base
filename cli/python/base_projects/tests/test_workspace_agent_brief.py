@@ -30,7 +30,7 @@ def write_workspace_manifest(path: Path) -> None:
                 "    url: git@github.com:example/ready.git",
                 "  - name: partial",
                 "  - name: missing",
-                "    url: https://agent:supersecret@github.com/example/missing.git",
+                "    url: https://github.com/example/missing.git",
                 "  - name: optional",
                 "    url: git@github.com:example/optional.git",
                 "    required: false",
@@ -190,9 +190,8 @@ class WorkspaceAgentBriefTests(unittest.TestCase):
         self.assertEqual(repositories["partial"]["next_actions"], [])
         self.assertEqual(repositories["missing"]["handoff_status"], "missing_required")
         self.assertIsNone(repositories["missing"]["project"])
-        self.assertEqual(repositories["missing"]["url"], "https://[REDACTED]@github.com/example/missing.git")
-        self.assertNotIn("supersecret", stdout)
-        self.assertIn("https://[REDACTED]@github.com/example/missing.git", repositories["missing"]["next_actions"][0])
+        self.assertEqual(repositories["missing"]["url"], "https://github.com/example/missing.git")
+        self.assertIn("https://github.com/example/missing.git", repositories["missing"]["next_actions"][0])
         self.assertEqual(repositories["missing"]["signals"]["baseline"]["status"], "unavailable")
         self.assertEqual(repositories["optional"]["handoff_status"], "missing_optional")
         self.assertEqual(repositories["local-tool"]["scope"], "local_only")
@@ -231,22 +230,19 @@ class WorkspaceAgentBriefTests(unittest.TestCase):
             {"status", "command", "source"},
         )
 
-    def test_redacts_repository_url_secrets_in_json_and_clone_actions(self) -> None:
+    def test_rejects_unsafe_repository_urls_without_echoing_secrets(self) -> None:
         cases = (
             (
                 "scp userinfo",
                 "oauth2:topsecret@gitlab.com:example/private.git",
-                "[REDACTED]@gitlab.com:example/private.git",
                 ("topsecret",),
+                "contains embedded credentials or secret URL parameters",
             ),
             (
                 "query and fragment",
                 "https://gitlab.com/example/private.git?private_token=querysecret&password=passwordsecret"
                 "&client_secret=clientsecret&api_key=apikeysecret&authorization=authsecret"
                 "&ref=main#access_token=fragmentsecret",
-                "https://gitlab.com/example/private.git?private_token=[REDACTED]&password=[REDACTED]"
-                "&client_secret=[REDACTED]&api_key=[REDACTED]&authorization=[REDACTED]"
-                "&ref=main#access_token=[REDACTED]",
                 (
                     "querysecret",
                     "passwordsecret",
@@ -255,33 +251,34 @@ class WorkspaceAgentBriefTests(unittest.TestCase):
                     "authsecret",
                     "fragmentsecret",
                 ),
+                "contains embedded credentials or secret URL parameters",
             ),
             (
                 "malformed URL",
                 "https://[malformed/private.git?token=malformedsecret",
-                "[REDACTED]",
                 ("malformedsecret",),
+                "does not look like a Git URL or local path",
             ),
             (
                 "missing network authority",
                 "https:///oauth2:authoritysecret@gitlab.com/example/private.git",
-                "[REDACTED]",
                 ("authoritysecret",),
+                "does not look like a Git URL or local path",
             ),
             (
                 "invalid network port",
                 "https://gitlab.com:invalid/example/private.git?token=portsecret",
-                "[REDACTED]",
                 ("portsecret",),
+                "does not look like a Git URL or local path",
             ),
             (
                 "network URL control character",
                 "https://gitlab.com/example/private.git?token=controlsecret\nignored",
-                "[REDACTED]",
                 ("controlsecret",),
+                "does not look like a Git URL or local path",
             ),
         )
-        for label, url, expected_url, secrets in cases:
+        for label, url, secrets, expected_error in cases:
             with self.subTest(label=label):
                 with tempfile.TemporaryDirectory() as tmpdir:
                     root = Path(tmpdir)
@@ -321,14 +318,13 @@ class WorkspaceAgentBriefTests(unittest.TestCase):
                         home,
                     )
 
-                payload = json.loads(stdout)
-                private = payload["repositories"][0]
-                self.assertEqual(status, 0)
-                self.assertEqual(stderr, "")
-                self.assertEqual(private["url"], expected_url)
-                self.assertIn(expected_url, private["next_actions"][0])
+                self.assertEqual(status, 1)
+                self.assertEqual(stdout, "")
+                self.assertIn(expected_error, stderr)
+                if "embedded credentials" in expected_error:
+                    self.assertIn("Git credential helper or SSH configuration", stderr)
                 for secret in secrets:
-                    self.assertNotIn(secret, stdout)
+                    self.assertNotIn(secret, stdout + stderr)
 
     def test_manifest_validation_is_recommended_through_basectl_test(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
