@@ -16,6 +16,9 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
 
 ### Changed
 
+- Align development dependencies and source-checkout CI workflows with the
+  released `base-cli` `0.4.3` provider.
+
 - Documented stable release versus contributor source installation and made
   mutable source checkouts report the next development line with their Git
   revision instead of reusing the latest published version identity.
