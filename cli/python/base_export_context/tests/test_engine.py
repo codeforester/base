@@ -191,6 +191,92 @@ class ExportContextTests(unittest.TestCase):
         self.assertIn("Project 'demo' does not have an .ai-context directory", stderr)
         self.assertIn("Add .ai-context/README.md", stderr)
 
+    def test_all_export_modes_reject_context_file_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            project_root = root / "demo"
+            project_root.mkdir()
+            outside = root / "outside-secret.md"
+            outside.write_text("OUTSIDE_SECRET_SENTINEL\n", encoding="utf-8")
+            context_dir = project_root / ".ai-context"
+            context_dir.mkdir()
+            (context_dir / "STATUS.md").symlink_to(outside)
+
+            invocations = (
+                ["--project-name", "demo", "--project-root", str(project_root), "--print"],
+                ["--project-name", "demo", "--project-root", str(project_root), "--list-files"],
+                [
+                    "--project-name",
+                    "demo",
+                    "--project-root",
+                    str(project_root),
+                    "--format",
+                    "zip",
+                    "--output",
+                    str(root / "bundle.zip"),
+                ],
+            )
+            for args in invocations:
+                with self.subTest(args=args):
+                    status, stdout, stderr = invoke_engine(args, project_root)
+                    self.assertEqual(status, 1)
+                    self.assertNotIn("OUTSIDE_SECRET_SENTINEL", stdout)
+                    self.assertIn("Refusing to export symlink '.ai-context/STATUS.md'", stderr)
+
+            self.assertFalse((root / "bundle.zip").exists())
+
+    def test_export_rejects_symlinked_context_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            project_root = root / "demo"
+            real_context = root / "outside-context"
+            project_root.mkdir()
+            real_context.mkdir()
+            (real_context / "PROJECT.md").write_text("OUTSIDE_SECRET_SENTINEL\n", encoding="utf-8")
+            (project_root / ".ai-context").symlink_to(real_context, target_is_directory=True)
+
+            status, stdout, stderr = invoke_engine(
+                ["--project-name", "demo", "--project-root", str(project_root), "--print"],
+                project_root,
+            )
+
+        self.assertEqual(status, 1)
+        self.assertNotIn("OUTSIDE_SECRET_SENTINEL", stdout)
+        self.assertIn("symlinked .ai-context directory", stderr)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFO validation requires POSIX")
+    def test_list_files_rejects_special_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir) / "demo"
+            project_root.mkdir()
+            write_context_file(project_root, "PROJECT.md", "Project\n")
+            os.mkfifo(project_root / ".ai-context" / "events")
+
+            status, stdout, stderr = invoke_engine(
+                ["--project-name", "demo", "--project-root", str(project_root), "--list-files"],
+                project_root,
+            )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stdout, "")
+        self.assertIn("Refusing to export special file '.ai-context/events'", stderr)
+
+    def test_markdown_read_rejects_file_replaced_by_symlink_after_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            project_root = root / "demo"
+            project_root.mkdir()
+            write_context_file(project_root, "PROJECT.md", "Project\n")
+            files = engine.ordered_context_files("demo", project_root, include_all=False)
+            outside = root / "outside-secret.md"
+            outside.write_text("OUTSIDE_SECRET_SENTINEL\n", encoding="utf-8")
+            project_file = project_root / ".ai-context" / "PROJECT.md"
+            project_file.unlink()
+            project_file.symlink_to(outside)
+
+            with self.assertRaisesRegex(engine.ExportContextError, "without following symlinks"):
+                engine.render_markdown_bundle("demo", files)
+
     def test_zip_export_contains_context_files_only_and_is_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir) / "demo"

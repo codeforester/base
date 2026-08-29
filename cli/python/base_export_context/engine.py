@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import re
+import stat
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -24,6 +26,7 @@ MARKDOWN_CODE_RE = re.compile(r"`([^`]+)`")
 class ContextFile:
     path: Path
     relative_path: PurePosixPath
+    context_dir: Path
 
     @property
     def display_path(self) -> str:
@@ -148,6 +151,11 @@ def resolve_output_path(project_name: str, output_path: str | None, extension: s
 
 def ordered_context_files(project_name: str, project_root: Path, include_all: bool) -> tuple[ContextFile, ...]:
     context_dir = project_root / CONTEXT_DIR_NAME
+    if context_dir.is_symlink():
+        raise ExportContextError(
+            f"Project '{project_name}' has a symlinked .ai-context directory. "
+            "Replace it with a real directory inside the project before exporting."
+        )
     if not context_dir.exists():
         raise ExportContextError(
             f"Project '{project_name}' does not have an .ai-context directory. "
@@ -166,7 +174,7 @@ def ordered_context_files(project_name: str, project_root: Path, include_all: bo
 
     by_relative_path = {context_file.relative_path.as_posix(): context_file for context_file in files}
     ordered_paths: list[str] = []
-    for referenced_path in index_references(context_dir, by_relative_path):
+    for referenced_path in index_references(by_relative_path):
         if referenced_path not in ordered_paths:
             ordered_paths.append(referenced_path)
     ordered_paths.extend(path for path in sorted(by_relative_path) if path not in ordered_paths)
@@ -176,22 +184,37 @@ def ordered_context_files(project_name: str, project_root: Path, include_all: bo
 def discover_context_files(context_dir: Path, include_all: bool) -> tuple[ContextFile, ...]:
     files: list[ContextFile] = []
     for path in context_dir.rglob("*"):
-        if not path.is_file():
+        relative_path = PurePosixPath(path.relative_to(context_dir).as_posix())
+        display_path = f"{CONTEXT_DIR_NAME}/{relative_path.as_posix()}"
+        if path.is_symlink():
+            raise ExportContextError(
+                f"Refusing to export symlink '{display_path}'. "
+                "AI context exports only include regular files stored inside .ai-context."
+            )
+        try:
+            mode = path.stat(follow_symlinks=False).st_mode
+        except OSError as exc:
+            raise ExportContextError(f"Unable to inspect '{display_path}': {exc}") from exc
+        if stat.S_ISDIR(mode):
             continue
+        if not stat.S_ISREG(mode):
+            raise ExportContextError(
+                f"Refusing to export special file '{display_path}'. "
+                "AI context exports only include regular files."
+            )
         if not include_all and path.suffix.lower() != ".md":
             continue
-        relative_path = PurePosixPath(path.relative_to(context_dir).as_posix())
-        files.append(ContextFile(path=path, relative_path=relative_path))
+        files.append(ContextFile(path=path, relative_path=relative_path, context_dir=context_dir))
     return tuple(sorted(files, key=lambda context_file: context_file.relative_path.as_posix()))
 
 
-def index_references(context_dir: Path, known_paths: dict[str, ContextFile]) -> tuple[str, ...]:
-    index_path = context_dir / "INDEX.md"
-    if "INDEX.md" not in known_paths or not index_path.is_file():
+def index_references(known_paths: dict[str, ContextFile]) -> tuple[str, ...]:
+    index_file = known_paths.get("INDEX.md")
+    if index_file is None:
         return ()
 
     try:
-        content = index_path.read_text(encoding="utf-8")
+        content = read_context_file_bytes(index_file).decode("utf-8")
     except UnicodeDecodeError as exc:
         raise ExportContextError("Unable to read .ai-context/INDEX.md as UTF-8.") from exc
 
@@ -235,7 +258,7 @@ def render_markdown_bundle(project_name: str, files: tuple[ContextFile, ...]) ->
         parts.append(f"## `{context_file.display_path}`")
         parts.append("")
         try:
-            content = context_file.path.read_text(encoding="utf-8")
+            content = read_context_file_bytes(context_file).decode("utf-8")
         except UnicodeDecodeError as exc:
             raise ExportContextError(f"Unable to read {context_file.display_path} as UTF-8.") from exc
         parts.append(content.rstrip("\n"))
@@ -258,6 +281,42 @@ def write_zip_file(destination: Path, files: tuple[ContextFile, ...]) -> None:
                 info = zipfile.ZipInfo(context_file.relative_path.as_posix(), ZIP_TIMESTAMP)
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
-                archive.writestr(info, context_file.path.read_bytes())
+                archive.writestr(info, read_context_file_bytes(context_file))
     except OSError as exc:
         raise ExportContextError(f"Unable to write Zip AI context export to '{destination}': {exc}") from exc
+
+
+def read_context_file_bytes(context_file: ContextFile) -> bytes:
+    parts = context_file.relative_path.parts
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise ExportContextError(f"Refusing invalid AI context path '{context_file.display_path}'.")
+
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    directory_flags = os.O_RDONLY | nofollow | getattr(os, "O_DIRECTORY", 0)
+    file_flags = os.O_RDONLY | nofollow
+    directory_descriptors: list[int] = []
+    file_descriptor: int | None = None
+    try:
+        current_descriptor = os.open(context_file.context_dir, directory_flags)
+        directory_descriptors.append(current_descriptor)
+        for part in parts[:-1]:
+            current_descriptor = os.open(part, directory_flags, dir_fd=current_descriptor)
+            directory_descriptors.append(current_descriptor)
+        file_descriptor = os.open(parts[-1], file_flags, dir_fd=current_descriptor)
+        if not stat.S_ISREG(os.fstat(file_descriptor).st_mode):
+            raise ExportContextError(
+                f"Refusing to export special file '{context_file.display_path}'. "
+                "AI context exports only include regular files."
+            )
+        with os.fdopen(file_descriptor, "rb") as source_file:
+            file_descriptor = None
+            return source_file.read()
+    except OSError as exc:
+        raise ExportContextError(
+            f"Unable to read '{context_file.display_path}' without following symlinks: {exc}"
+        ) from exc
+    finally:
+        if file_descriptor is not None:
+            os.close(file_descriptor)
+        for descriptor in reversed(directory_descriptors):
+            os.close(descriptor)
