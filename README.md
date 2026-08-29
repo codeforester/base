@@ -1056,6 +1056,9 @@ Base-managed project. Markdown exports combine context Markdown files with
 stable source headings, using `.ai-context/INDEX.md` order when available and
 falling back to deterministic filename order for unlisted files. Zip exports
 contain only files from `.ai-context/` so they can be uploaded manually.
+Exports fail closed on a symlinked context root, symlinked descendants, and
+special files; only regular files stored inside the real context directory are
+eligible.
 
 Preview a Dev Containers configuration from a project manifest with:
 
