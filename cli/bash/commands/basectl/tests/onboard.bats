@@ -12,6 +12,7 @@ load ./basectl_helpers.bash
     [[ "$output" == *"--profile <list>"* ]]
     [[ "$output" != *"--dev"* ]]
     [[ "$output" == *"--dry-run"* ]]
+    [[ "$output" == *"--allow-project-ide-mutations"* ]]
     [[ "$output" == *"--no-profile"* ]]
     [[ "$output" == *"Defaults to 'base'."* ]]
     [[ "$output" == *"manifest command trust"* ]]
@@ -176,7 +177,7 @@ load ./basectl_helpers.bash
 @test "basectl onboard accepted flow runs setup profile doctor and projects" {
     local tty_input="$TEST_TMPDIR/onboard-tty"
 
-    printf 'y\ny\n' > "$tty_input"
+    printf 'y\ny\ny\n' > "$tty_input"
 
     run env \
         HOME="$TEST_HOME" \
@@ -192,7 +193,8 @@ load ./basectl_helpers.bash
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"RUN:check base --profile dev"* ]]
-    [[ "$output" == *"RUN:setup base --profile dev"* ]]
+    [[ "$output" == *"Allow project-originated IDE mutations if requested by the manifest? [y/N]"* ]]
+    [[ "$output" == *"RUN:setup base --profile dev --allow-project-ide-mutations"* ]]
     [[ "$output" == *"RUN:update-profile"* ]]
     [[ "$output" == *"RUN:doctor base --profile dev"* ]]
     [[ "$output" == *"RUN:projects list"* ]]
@@ -239,10 +241,28 @@ load ./basectl_helpers.bash
     [[ "$output" == *"This installs or verifies Base platform prerequisites, Base Python, and Base-managed artifacts."* ]]
     [[ "$output" != *"This installs or verifies Homebrew, Xcode Command Line Tools"* ]]
     [[ "$output" == *"RUN:setup base --yes"* ]]
+    [[ "$output" == *"Project-originated IDE mutations remain unapproved because --yes does not grant them."* ]]
+    [[ "$output" != *"RUN:setup base --yes --allow-project-ide-mutations"* ]]
     [[ "$output" == *"Shell profile updates skipped because --no-profile was set."* ]]
     [[ "$output" == *"RUN:trust status"* ]]
     [[ "$output" != *"RUN:trust allow"* ]]
     [[ "$output" != *"RUN:update-profile"* ]]
+}
+
+@test "basectl onboard explicit IDE mutation approval is forwarded with --yes" {
+    run env \
+        HOME="$TEST_HOME" \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        bash -c '
+            source "$BASE_HOME/base_init.sh"
+            source "$BASE_HOME/cli/bash/commands/basectl/subcommands/onboard.sh"
+            base_onboard_run_command() { printf "RUN:%s\n" "$*"; return 0; }
+            base_onboard_subcommand_main --yes --allow-project-ide-mutations --no-profile
+        '
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"RUN:setup base --yes --allow-project-ide-mutations"* ]]
+    [[ "$output" != *"remain unapproved"* ]]
 }
 
 @test "basectl onboard --yes satisfies the Ubuntu Debian setup consent boundary" {

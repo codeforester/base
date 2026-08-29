@@ -50,6 +50,7 @@ class ManifestAction:
     output_format: str
     write: bool = False
     remote_network: bool = False
+    allow_project_ide_mutations: bool = False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -73,6 +74,11 @@ def main(argv: list[str] | None = None) -> int:
     is_flag=True,
     help="Opt in to bounded network reachability diagnostics for project Git origin.",
 )
+@base_cli.option(
+    "--allow-project-ide-mutations",
+    is_flag=True,
+    help="Approve project-originated IDE app, extension, and user-setting mutations for setup.",
+)
 # pylint: disable=too-many-arguments,too-many-positional-arguments
 def run(
     ctx: base_cli.Context,
@@ -84,6 +90,7 @@ def run(
     action: str,
     output_format: str,
     remote_network: bool,
+    allow_project_ide_mutations: bool,
 ) -> int:
     manifest_path = Path(manifest).resolve() if manifest else discover_manifest(Path(start_dir))
     if manifest_path is not None:
@@ -99,7 +106,14 @@ def run(
         base_manifest = read_manifest(manifest_path)
         ctx.bind_project(base_manifest.project_name, manifest_path.parent, manifest_path)
         validate_project_name(base_manifest, project)
-        manifest_action = ManifestAction(action, dry_run, output_format, write, remote_network)
+        manifest_action = ManifestAction(
+            action,
+            dry_run,
+            output_format,
+            write,
+            remote_network,
+            allow_project_ide_mutations,
+        )
         if action == "route":
             status = route_manifest(ctx, manifest_action, base_manifest)
         elif action == "devcontainer":
@@ -137,7 +151,13 @@ def run_manifest_action(
 ) -> int:
     action = manifest_action.action
     if action == "setup":
-        reconcile_manifest(ctx, default_manifest, base_manifest, dry_run=manifest_action.dry_run)
+        reconcile_manifest(
+            ctx,
+            default_manifest,
+            base_manifest,
+            dry_run=manifest_action.dry_run,
+            allow_project_ide_mutations=manifest_action.allow_project_ide_mutations,
+        )
         status = 0
     elif action == "bootstrap":
         reconcile_bootstrap_artifacts(ctx, default_manifest, base_manifest, dry_run=manifest_action.dry_run)

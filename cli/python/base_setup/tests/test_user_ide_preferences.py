@@ -12,6 +12,7 @@ from unittest import mock
 from base_cli_adapters.config import UserConfig, UserIdeConfig, UserIdePreference
 from base_setup import engine, ide
 from base_setup.github_manifest import GithubConfig, GithubPrConfig
+from base_setup.errors import ArtifactError
 from base_setup.manifest import BaseManifest, IdeConfig, read_manifest
 from base_setup.tests.helpers import fake_context
 
@@ -223,6 +224,76 @@ class UserIdePreferenceMergeTests(unittest.TestCase):
 
         effective_manifest = reconcile_ide_installs.call_args.args[1]
         self.assertEqual(effective_manifest.ide, {})
+
+    def test_reconcile_manifest_blocks_project_ide_mutations_without_explicit_consent(self) -> None:
+        default_manifest = BaseManifest(
+            path=Path("default_manifest.yaml"),
+            project_name="base-defaults",
+            brewfile=None,
+            artifacts=(),
+        )
+        manifest = BaseManifest(
+            path=Path("base_manifest.yaml"),
+            project_name="demo",
+            brewfile=None,
+            artifacts=(),
+            ide={
+                "vscode": IdeConfig(
+                    install=True,
+                    extensions=("ms-python.python",),
+                    settings={"editor.formatOnSave": True},
+                )
+            },
+        )
+        ctx = fake_context()
+
+        with mock.patch("base_setup.setup_reconcile.reconcile_brewfile") as reconcile_brewfile:
+            with self.assertRaisesRegex(ArtifactError, "--allow-project-ide-mutations"):
+                engine.reconcile_manifest(ctx, default_manifest, manifest, dry_run=False)
+
+        reconcile_brewfile.assert_not_called()
+
+    def test_reconcile_manifest_applies_project_ide_mutations_with_explicit_consent(self) -> None:
+        default_manifest = BaseManifest(
+            path=Path("default_manifest.yaml"),
+            project_name="base-defaults",
+            brewfile=None,
+            artifacts=(),
+        )
+        manifest = BaseManifest(
+            path=Path("base_manifest.yaml"),
+            project_name="demo",
+            brewfile=None,
+            artifacts=(),
+            ide={
+                "vscode": IdeConfig(
+                    install=True,
+                    extensions=("ms-python.python",),
+                    settings={"editor.formatOnSave": True},
+                )
+            },
+        )
+        ctx = fake_context()
+
+        with (
+            mock.patch("base_setup.setup_reconcile.reconcile_brewfile"),
+            mock.patch("base_setup.setup_reconcile.reconcile_mise"),
+            mock.patch("base_setup.setup_reconcile.reconcile_ide_installs") as reconcile_ide_installs,
+            mock.patch("base_setup.setup_reconcile.reconcile_ide_extensions") as reconcile_ide_extensions,
+            mock.patch("base_setup.setup_reconcile.reconcile_ide_settings") as reconcile_ide_settings,
+            mock.patch("base_setup.setup_reconcile.reconcile_uv_project"),
+        ):
+            engine.reconcile_manifest(
+                ctx,
+                default_manifest,
+                manifest,
+                dry_run=False,
+                allow_project_ide_mutations=True,
+            )
+
+        reconcile_ide_installs.assert_called_once_with(ctx, mock.ANY, dry_run=False)
+        reconcile_ide_extensions.assert_called_once_with(ctx, mock.ANY, dry_run=False)
+        reconcile_ide_settings.assert_called_once_with(ctx, mock.ANY, dry_run=False)
 
     def test_manifest_checks_accepts_injected_user_config(self) -> None:
         default_manifest = BaseManifest(

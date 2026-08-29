@@ -21,6 +21,7 @@ load ./setup_helpers.bash
     [[ "$output" == *"--recreate-venv"* ]]
     [[ "$output" == *"--upgrade-pip"* ]]
     [[ "$output" == *"--yes"* ]]
+    [[ "$output" == *"--allow-project-ide-mutations"* ]]
     [[ "$output" == *"Prepare the local Base CLI environment on supported setup platforms."* ]]
     [[ "$output" == *"On Ubuntu/Debian Linux, setup can install apt prerequisites with"* ]]
     [[ "$output" == *"interactive consent or --yes."* ]]
@@ -809,13 +810,13 @@ EOF
     create_project_setup_venv_stub "$demo_venv_dir"
     printf 'project:\n  name: demo\nartifacts: []\n' > "$manifest_path"
 
-    run_base_command setup --dry-run --manifest "$manifest_path" demo
+    run_base_command setup --dry-run --allow-project-ide-mutations --manifest "$manifest_path" demo
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"Running Python project setup layer."* ]]
     [ -f "$TEST_STATE_DIR/project-setup-ran" ]
     [ "$(cat "$TEST_STATE_DIR/project-setup-project")" = "demo" ]
-    [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --dry-run --manifest "$manifest_path" --action setup demo)" ]
+    [ "$(cat "$TEST_STATE_DIR/project-setup-args")" = "$(printf '%s\n' --dry-run --manifest "$manifest_path" --action setup --allow-project-ide-mutations demo)" ]
 }
 
 @test "basectl setup --upgrade-pip upgrades a pip-managed project virtualenv" {

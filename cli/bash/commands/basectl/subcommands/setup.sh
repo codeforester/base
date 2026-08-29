@@ -26,6 +26,8 @@ Options:
   --upgrade-pip      Upgrade pip in the selected Base-managed or pip-managed
                      project virtual environment. uv-managed projects are left unchanged.
   --yes              Apply setup changes that require explicit confirmation.
+  --allow-project-ide-mutations
+                     Approve project-originated IDE app, extension, and user-setting mutations.
   -v                 Enable DEBUG logging for this subcommand.
   -h, --help         Show this help text.
 
@@ -168,6 +170,9 @@ base_setup_subcommand_main() {
                 ;;
             --yes)
                 setup_enable_yes
+                ;;
+            --allow-project-ide-mutations)
+                setup_enable_project_ide_mutations
                 ;;
             --profile)
                 shift

@@ -48,9 +48,12 @@ without executing project-owned shell code:
 - `basectl check [project]` and `basectl doctor [project]`
 - `basectl export-context [project]`
 
-Setup delegates such as Brewfiles, `mise install`, IDE setup, and artifacts are
-separate trust boundaries. They should not be folded into this first manifest
-command allow flow unless a later issue explicitly expands the scope.
+Setup delegates such as Brewfiles, `mise install`, and artifacts are separate
+trust boundaries. Project-originated IDE mutations have their own explicit
+approval boundary: `basectl setup --dry-run` shows the complete app, extension,
+and user-settings plan, and applying that plan requires
+`--allow-project-ide-mutations`. `--yes` never supplies this approval. This
+keeps command execution trust and machine-wide IDE mutation consent separate.
 
 ## Trust Identity
 
@@ -67,8 +70,14 @@ command contract. The identity includes:
 
 The enforcement key includes the canonical project root, manifest path, and
 manifest digest. The remote URL and Git HEAD are stored for display and audit,
-but the manifest digest is the signal that forces re-approval after command
-declarations change.
+but the manifest digest is the only repository input that forces re-approval
+after command declarations change. Status, allow, and blocked-command output
+prints the following warning so the boundary is visible:
+
+> Approval is bound to the `base_manifest.yaml` SHA-256 only. Manifest changes
+> invalidate approval; referenced scripts, direct executable files, Git HEAD,
+> and uncommitted working-tree changes are not independently verified or bound
+> to approval. Re-review those inputs before execution after repository changes.
 
 This intentionally resembles `direnv allow`: approval is local to the machine
 and is invalidated by a content change in the trusted file. It does not try to
@@ -192,6 +201,14 @@ step, and then call `trust allow` with that digest.
     "origin": "https://github.com/example/demo.git",
     "head": "<commit-sha>"
   },
+  "trust_scope": {
+    "approval_basis": "base_manifest.yaml_sha256",
+    "manifest_changes_invalidate": true,
+    "referenced_script_changes_invalidate": false,
+    "direct_executable_file_changes_invalidate": false,
+    "git_head_changes_invalidate": false,
+    "working_tree_changes_invalidate": false
+  },
   "allow_command": "basectl trust allow demo --manifest-sha256 <sha256>"
 }
 ```
@@ -228,5 +245,7 @@ Execution commands print the text block above and exit non-zero; JSON remains on
 2. [#1382](https://github.com/basefoundry/base/issues/1382): add Bash
    enforcement before `test`, `run`, `build`, `demo`, and activation source
    execution. Preserve `--dry-run` and `--list` inspection paths.
-3. After enforcement lands, decide whether setup delegates need a separate
-   approval surface.
+3. [#1973](https://github.com/basefoundry/base/issues/1973): require explicit
+   consent for project-originated IDE app, extension, and user-setting
+   mutations; show the complete dry-run plan; and document that command trust
+   is bound to the manifest digest only.

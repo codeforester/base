@@ -13,6 +13,38 @@ from base_setup.tests.helpers import fake_context
 
 class IdeSettingsTests(unittest.TestCase):
 
+    def test_project_ide_mutation_plan_lists_apps_extensions_and_settings(self) -> None:
+        ctx = fake_context()
+        manifest = BaseManifest(
+            path=Path("base_manifest.yaml"),
+            project_name="demo",
+            brewfile=None,
+            artifacts=(),
+            ide={
+                "vscode": IdeConfig(
+                    install=True,
+                    extensions=("ms-python.python",),
+                    settings={"editor.formatOnSave": True},
+                )
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as home_dir, mock.patch.dict(os.environ, {"HOME": home_dir}):
+            plans = ide.log_project_ide_mutation_plan(ctx, manifest, manifest)
+            expected_settings_file = ide.ide_settings_file(ide.IDE_DEFINITIONS["vscode"])
+
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(plans[0].definition, ide.IDE_DEFINITIONS["vscode"])
+        info_messages = [call.args[0] % call.args[1:] for call in ctx.log.info.call_args_list]
+        self.assertIn("Project 'demo' requests project-originated IDE mutations:", info_messages)
+        self.assertIn("  VS Code app: brew install --cask visual-studio-code", info_messages)
+        self.assertIn("  VS Code extension: ms-python.python", info_messages)
+        self.assertIn(
+            f"  VS Code user settings file: {expected_settings_file}",
+            info_messages,
+        )
+        self.assertIn("    editor.formatOnSave = true", info_messages)
+
     def test_resolve_ide_settings_auto_interpreter_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             venv_dir = Path(tmpdir) / "demo-venv"

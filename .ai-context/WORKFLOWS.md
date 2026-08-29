@@ -136,6 +136,14 @@ Setup parallelism should follow `docs/setup-parallelism.md`: model setup as a
 deterministic plan and parallelize only read-only preflight/planning work before
 considering mutating installers.
 
+Project-originated IDE app, extension, and global user-setting mutations are a
+separate setup consent boundary. `basectl setup --dry-run` must be reviewed,
+and applying the plan requires `--allow-project-ide-mutations`; `--yes` alone
+does not authorize it. Manifest command trust remains bound to the
+`base_manifest.yaml` SHA-256 only, so status and execution guidance warns that
+referenced scripts, direct executable files, Git HEAD, and uncommitted working
+tree changes are not independently verified or invalidating inputs.
+
 ## AI Context Maintenance
 
 Every meaningful PR should evaluate whether `.ai-context/` needs an update.
