@@ -701,7 +701,7 @@ def test_base_demo_e2e_workflow_covers_the_external_project_loop() -> None:
         "basefoundry/base-bash-libs",
     ]
     assert "b4243765726c133499feeabdc50154f99c0fec12" in str(steps)
-    assert "v0.4.2" in str(steps)
+    assert "v0.4.3" in str(steps)
 
     for command in (
         "basectl setup --ci base-demo",
