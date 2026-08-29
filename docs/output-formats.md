@@ -32,6 +32,11 @@ basectl workspace status | tee status.tsv # headerless TSV rows
 basectl workspace status --format json   # one stable JSON document
 ```
 
+The JSON document emitted by `basectl workspace status --format json` includes
+a top-level aggregate `status` alongside `workspace`, `project_count`, and
+`projects`. The aggregate uses `error` over `warn` over `ok` precedence; each
+project record retains its existing `status` field.
+
 The terminal check is made on stdout, so redirecting stdout changes only the
 default `text` presentation. An explicitly selected `--format text` follows
 the same rule. Logging, warnings, and usage errors stay on stderr and never

@@ -11,6 +11,7 @@ from base_projects.workspace_agent_brief import WorkspaceAgentBriefRepository
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_onboarding import WorkspaceOnboardingRepository
 from base_projects.workspace_onboarding import WorkspaceOnboardingSummary
+from base_projects.workspace_report_common import most_severe_status
 from base_setup.checks import ArtifactCheck
 from base_setup.checks import DIAGNOSTIC_JSON_SCHEMA_VERSION
 from base_setup.checks import check_to_json
@@ -24,6 +25,7 @@ def workspace_status_to_json(
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "workspace": str(workspace_root),
+        "status": most_severe_status(*(status.status for status in statuses)),
         "project_count": workspace_project_count(statuses, workspace_manifest),
         "projects": [workspace_status_item_to_json(status, workspace_manifest) for status in statuses],
     }

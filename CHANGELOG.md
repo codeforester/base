@@ -16,6 +16,10 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
 
 ### Changed
 
+- Added a top-level aggregate status to `basectl workspace status --format
+  json`, using the existing `error`, `warn`, and `ok` precedence while
+  preserving per-project fields.
+
 - Align development dependencies and source-checkout CI workflows with the
   released `base-cli` `0.4.3` provider.
 

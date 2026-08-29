@@ -538,6 +538,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertEqual(stderr, "")
         self.assertEqual(payload["projects"][0]["status"], "ok")
+        self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["projects"][0]["venv"], "not_applicable")
         self.assertEqual(payload["projects"][0]["issues"], [])
 
@@ -590,6 +591,7 @@ class ProjectDiscoveryTests(unittest.TestCase):
         self.assertEqual(stderr, "")
         self.assertTrue(stdout.startswith("{\n"))
         self.assertIn('  "workspace": ', stdout)
+        self.assertEqual(payload["status"], "warn")
         self.assertEqual(payload["workspace"], str(workspace.resolve()))
         self.assertEqual(payload["project_count"], 1)
         self.assertEqual(payload["projects"][0]["name"], "demo")
@@ -679,6 +681,35 @@ class ProjectDiscoveryTests(unittest.TestCase):
         self.assertIn("broken               error  unknown        invalid", stdout)
         self.assertIn("demo                 warn   missing        valid", stdout)
         self.assertIn("2 project(s) need attention", stdout)
+
+    def test_workspace_status_json_aggregates_mixed_project_states(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            self.manifest_factory.write_shell(workspace / "healthy", "healthy")
+            self.manifest_factory.write_project(workspace / "attention", "attention")
+            broken_root = workspace / "broken"
+            broken_root.mkdir(parents=True)
+            (broken_root / "base_manifest.yaml").write_text("project: [", encoding="utf-8")
+
+            status, stdout, stderr = invoke_engine(
+                ["status", "--workspace", str(workspace), "--format", "json"],
+                base_home,
+                home,
+            )
+
+        payload = json.loads(stdout)
+        projects_by_name = {project["name"]: project for project in payload["projects"]}
+        self.assertEqual(status, 1)
+        self.assertEqual(stderr, "")
+        self.assertEqual(payload["status"], "error")
+        self.assertEqual(projects_by_name["healthy"]["status"], "ok")
+        self.assertEqual(projects_by_name["attention"]["status"], "warn")
+        self.assertEqual(projects_by_name["broken"]["status"], "error")
 
     def test_projects_list_reuses_project_cache_when_manifests_are_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
