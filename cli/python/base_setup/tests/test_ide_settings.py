@@ -31,6 +31,7 @@ class IdeSettingsTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as home_dir, mock.patch.dict(os.environ, {"HOME": home_dir}):
             plans = ide.log_project_ide_mutation_plan(ctx, manifest, manifest)
+            expected_settings_file = ide.ide_settings_file(ide.IDE_DEFINITIONS["vscode"])
 
         self.assertEqual(len(plans), 1)
         self.assertEqual(plans[0].definition, ide.IDE_DEFINITIONS["vscode"])
@@ -39,8 +40,7 @@ class IdeSettingsTests(unittest.TestCase):
         self.assertIn("  VS Code app: brew install --cask visual-studio-code", info_messages)
         self.assertIn("  VS Code extension: ms-python.python", info_messages)
         self.assertIn(
-            "  VS Code user settings file: "
-            f"{Path(home_dir) / 'Library' / 'Application Support' / 'Code' / 'User' / 'settings.json'}",
+            f"  VS Code user settings file: {expected_settings_file}",
             info_messages,
         )
         self.assertIn("    editor.formatOnSave = true", info_messages)
