@@ -74,10 +74,14 @@ basectl release notes --version X.Y.Z
 ```
 
 Use `check` before publishing to validate the version file, changelog section,
-Git worktree cleanliness, current branch, GitHub CLI authentication, and local
-and remote tag availability. Use `plan` to print the GitHub release target and
-downstream handoff requirements. Use `notes` to print the changelog body
-intended for the GitHub Release.
+Git worktree cleanliness, GitHub CLI authentication, and local and remote tag
+availability. It also requires every `origin` fetch and push URL to identify
+`release.github.repository`, resolves the live remote default branch through
+`git ls-remote --symref`, and requires the checked-out branch and full local
+`HEAD` SHA to match that current remote commit exactly. A stale local
+`origin/<branch>` tracking ref is not accepted as release evidence. Use `plan`
+to print the GitHub release target and downstream handoff requirements. Use
+`notes` to print the changelog body intended for the GitHub Release.
 The JSON check uses the stable shared v1 envelope documented in
 [Inspection JSON](inspection-json.md); readiness blockers stay in `data.findings`
 with `error: null`.
@@ -91,9 +95,13 @@ basectl release publish --version X.Y.Z --yes
 ```
 
 `publish` reuses the release checks, refuses existing tags or GitHub Releases,
-creates an annotated tag, pushes the tag, and creates the GitHub Release from
-the changelog section. It does not update the Homebrew tap; it prints the tap
-handoff checklist when `release.homebrew` is declared.
+and rechecks the repository, branch, and full commit SHA immediately before its
+first mutation. It creates an annotated tag, verifies the local peeled SHA,
+pushes the tag, verifies the remote peeled SHA, and creates the GitHub Release
+with `--verify-tag` in the configured repository. The successful command then
+verifies GitHub's annotated tag object resolves to the same commit SHA. It does
+not update the Homebrew tap; it prints the tap handoff checklist when
+`release.homebrew` is declared.
 
 ## Base Release Checklist
 
@@ -119,7 +127,10 @@ Complete these steps in `basefoundry/base`:
    ```
 
 5. Merge the release-prep PR into `main`.
-6. Sync local `main`.
+6. Sync local `main` and confirm `HEAD` exactly matches the current live
+   `origin/main`. Do not publish from a feature branch, detached checkout,
+   ahead/behind/diverged branch, stale remote-tracking ref, or a checkout whose
+   `origin` does not match `release.github.repository`.
 7. Dry-run the guarded publish command:
 
    ```bash

@@ -178,7 +178,7 @@ daily project loop commands from the local checkout.
 | `basectl release check --version <version>` | Inspect release readiness without publishing. Supports all five report formats; JSON uses the shared v1 inspection envelope. | `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl release plan --version <version>` | Print the release plan and downstream handoff details. | `--manifest <path>` |
 | `basectl release notes --version <version>` | Extract release notes for the requested version. | `--manifest <path>` |
-| `basectl release publish --version <version>` | Create the annotated Git tag and GitHub Release after checks pass. | `--manifest <path>`, `--dry-run`, `--yes` |
+| `basectl release publish --version <version>` | Create the annotated Git tag and GitHub Release only after the configured repository, origin fetch/push URLs, live remote default branch, and local full `HEAD` SHA match; recheck before tagging and verify the local, pushed, and GitHub tag SHAs. | `--manifest <path>`, `--dry-run`, `--yes` |
 | `basectl docs` | Open the Base documentation home page on GitHub. | `--show-url` |
 | `basectl export-context [project]` | Export a project's `.ai-context/` directory as Markdown or Zip. | `--workspace <path>`, `--format <markdown\|zip>`, `--output <path>`, `--print`, `--list-files` |
 | `basectl prompt list` | List repo-owned Markdown prompts that Base can render for AI-assisted workflows. | none |

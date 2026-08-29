@@ -31,6 +31,12 @@ READY_FINDINGS = (
     ReleaseFinding("ok", "local_tag", "Local tag is available."),
     ReleaseFinding("ok", "remote_tag", "Remote tag is available."),
 )
+READY_SHA = "a" * 40
+READY_PROVENANCE_FINDINGS = (
+    ReleaseFinding("ok", "origin_repository", "Origin repository matches."),
+    ReleaseFinding("ok", "default_branch", "Current branch is main."),
+    ReleaseFinding("ok", "release_commit", f"Release commit is {READY_SHA}."),
+)
 
 
 @contextmanager
@@ -368,11 +374,16 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
             root = Path(tmpdir)
             manifest_path = self.manifest_factory.write_release(root)
 
-            with mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS), mock.patch(
-                "base_release.engine.github_release_finding",
-                return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
-                create=True,
-            ), mock.patch("base_release.engine.run_release_step", create=True) as run_step:
+            with (
+                mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS),
+                mock.patch(
+                    "base_release.engine.github_release_finding",
+                    return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
+                    create=True,
+                ),
+                mock.patch("base_release.engine.require_release_provenance", return_value=READY_SHA),
+                mock.patch("base_release.engine.run_release_step", create=True) as run_step,
+            ):
                 status, stdout, stderr = run_engine(
                     ["publish", "--dry-run", "--version", "1.2.3", "--manifest", str(manifest_path)],
                     root,
@@ -380,6 +391,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
 
         self.assertEqual(status, 0, stderr)
         self.assertIn("DRY RUN", stdout)
+        self.assertIn(f"Verified reviewed release commit: {READY_SHA}", stdout)
         self.assertIn("Would create annotated tag: v1.2.3", stdout)
         self.assertIn("Would push tag to origin: v1.2.3", stdout)
         self.assertIn("Would create GitHub Release: Demo v1.2.3", stdout)
@@ -418,14 +430,22 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
                     self.assertIn("Added the release assistant.", notes_path.read_text(encoding="utf-8"))
                 commands.append((command, cwd))
 
-            with mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS), mock.patch(
-                "base_release.engine.github_release_finding",
-                return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
-                create=True,
-            ), mock.patch(
-                "base_release.engine.run_release_step",
-                side_effect=fake_run_release_step,
-                create=True,
+            with (
+                mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS),
+                mock.patch(
+                    "base_release.engine.github_release_finding",
+                    return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
+                    create=True,
+                ),
+                mock.patch("base_release.engine.require_release_provenance", return_value=READY_SHA),
+                mock.patch("base_release.engine.verify_local_annotated_tag") as verify_local,
+                mock.patch("base_release.engine.verify_remote_annotated_tag") as verify_remote,
+                mock.patch("base_release.engine.verify_github_release") as verify_github,
+                mock.patch(
+                    "base_release.engine.run_release_step",
+                    side_effect=fake_run_release_step,
+                    create=True,
+                ),
             ):
                 status, stdout, stderr = run_engine(
                     ["publish", "--yes", "--version", "1.2.3", "--manifest", str(manifest_path)],
@@ -433,14 +453,16 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
                 )
 
         self.assertEqual(status, 0, stderr)
-        self.assertEqual(commands[0][0], ["git", "tag", "-a", "v1.2.3", "-m", "Release v1.2.3"])
+        self.assertEqual(
+            commands[0][0],
+            ["git", "tag", "-a", "v1.2.3", READY_SHA, "-m", "Release v1.2.3"],
+        )
         self.assertEqual(commands[0][1], root.resolve())
         self.assertEqual(commands[1][0], ["git", "push", "origin", "v1.2.3"])
         self.assertEqual(commands[1][1], root.resolve())
-        self.assertEqual(
-            commands[2][0][:7],
-            ["gh", "release", "create", "v1.2.3", "--repo", "codeforester/demo", "--title"],
-        )
+        self.assertEqual(commands[2][0][:8], [
+            "gh", "release", "create", "v1.2.3", "--verify-tag", "--repo", "codeforester/demo", "--title"
+        ])
         self.assertEqual(
             commands[2][1],
             root.resolve(),
@@ -448,6 +470,10 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertIn("GitHub Release published: https://github.com/codeforester/demo/releases/tag/v1.2.3", stdout)
         self.assertIn("Tag URL: https://github.com/codeforester/demo/tree/v1.2.3", stdout)
         self.assertIn("Homebrew handoff required after GitHub release", stdout)
+        self.assertIn(f"Release commit verified: {READY_SHA}", stdout)
+        verify_local.assert_called_once_with(root.resolve(), "v1.2.3", READY_SHA)
+        verify_remote.assert_called_once_with(root.resolve(), "v1.2.3", READY_SHA)
+        verify_github.assert_called_once()
 
 
     def test_publish_yes_reports_recovery_when_github_release_create_fails_after_tag_push(self) -> None:
@@ -461,14 +487,21 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
                 if command[:3] == ["gh", "release", "create"]:
                     raise ReleaseError("Release command failed: gh release create v1.2.3: network unavailable")
 
-            with mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS), mock.patch(
-                "base_release.engine.github_release_finding",
-                return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
-                create=True,
-            ), mock.patch(
-                "base_release.engine.run_release_step",
-                side_effect=fake_run_release_step,
-                create=True,
+            with (
+                mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS),
+                mock.patch(
+                    "base_release.engine.github_release_finding",
+                    return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
+                    create=True,
+                ),
+                mock.patch("base_release.engine.require_release_provenance", return_value=READY_SHA),
+                mock.patch("base_release.engine.verify_local_annotated_tag"),
+                mock.patch("base_release.engine.verify_remote_annotated_tag"),
+                mock.patch(
+                    "base_release.engine.run_release_step",
+                    side_effect=fake_run_release_step,
+                    create=True,
+                ),
             ):
                 status, stdout, stderr = run_engine(
                     ["publish", "--yes", "--version", "1.2.3", "--manifest", str(manifest_path)],
@@ -477,7 +510,10 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
 
         self.assertEqual(status, 1)
         self.assertEqual(stdout, "")
-        self.assertEqual(commands[0][0], ["git", "tag", "-a", "v1.2.3", "-m", "Release v1.2.3"])
+        self.assertEqual(
+            commands[0][0],
+            ["git", "tag", "-a", "v1.2.3", READY_SHA, "-m", "Release v1.2.3"],
+        )
         self.assertEqual(commands[1][0], ["git", "push", "origin", "v1.2.3"])
         stderr_lines = stderr.splitlines()
         self.assertEqual(
@@ -487,7 +523,7 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertIn("Recovery guidance:", stderr_lines)
         self.assertIn("Release publish already created and pushed tag v1.2.3", stderr)
         self.assertIn("basectl release notes --version 1.2.3", stderr)
-        self.assertIn("gh release create v1.2.3 --repo codeforester/demo", stderr)
+        self.assertIn("gh release create v1.2.3 --verify-tag --repo codeforester/demo", stderr)
         self.assertIn("git push origin :refs/tags/v1.2.3", stderr)
 
 
@@ -509,6 +545,33 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertIn("Release publish blocked by readiness findings", stdout)
         self.assertIn("error  git", stdout)
         self.assertEqual(stderr, "")
+        run_step.assert_not_called()
+
+    def test_publish_rechecks_provenance_before_first_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_path = self.manifest_factory.write_release(root)
+
+            with (
+                mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS),
+                mock.patch(
+                    "base_release.engine.github_release_finding",
+                    return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
+                ),
+                mock.patch(
+                    "base_release.engine.require_release_provenance",
+                    side_effect=ReleaseError("Local HEAD changed after readiness."),
+                ),
+                mock.patch("base_release.engine.run_release_step") as run_step,
+            ):
+                status, stdout, stderr = run_engine(
+                    ["publish", "--yes", "--version", "1.2.3", "--manifest", str(manifest_path)],
+                    root,
+                )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stdout, "")
+        self.assertIn("Local HEAD changed after readiness", stderr)
         run_step.assert_not_called()
 
 
@@ -578,9 +641,18 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
             manifest_path = self.manifest_factory.write_release(root)
             add_origin(root)
 
-            with mock.patch(
-                "base_release.engine.gh_cli_finding",
-                return_value=ReleaseFinding("ok", "gh", "GitHub CLI is authenticated for github.com."),
+            with (
+                mock.patch(
+                    "base_release.engine.gh_cli_finding",
+                    return_value=ReleaseFinding("ok", "gh", "GitHub CLI is authenticated for github.com."),
+                ),
+                mock.patch(
+                    "base_release.release_readiness.inspect_release_provenance",
+                    return_value=release_readiness.ReleaseProvenanceInspection(
+                        findings=READY_PROVENANCE_FINDINGS,
+                        commit_sha=READY_SHA,
+                    ),
+                ),
             ):
                 status, stdout, stderr = run_engine(
                     ["check", "--version", "1.2.3", "--manifest", str(manifest_path)],
@@ -660,6 +732,172 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
 
 
 class ReleaseHelperTests(unittest.TestCase):
+    def test_origin_repository_requires_matching_fetch_and_push_identities(self) -> None:
+        matching = (
+            ("https://github.com/codeforester/demo.git",),
+            ("git@github.com:codeforester/demo.git",),
+        )
+        with mock.patch("base_release.release_readiness.git_remote_urls", side_effect=matching):
+            finding = release_readiness.origin_repository_finding(Path("/repo"), "codeforester/demo")
+
+        self.assertEqual(finding.status, "ok")
+
+        mismatched_push = (
+            ("https://github.com/codeforester/demo.git",),
+            ("git@github.com:other/wrong.git",),
+        )
+        with mock.patch("base_release.release_readiness.git_remote_urls", side_effect=mismatched_push):
+            finding = release_readiness.origin_repository_finding(Path("/repo"), "codeforester/demo")
+
+        self.assertEqual(finding.status, "error")
+        self.assertIn("other/wrong", finding.message)
+        self.assertIn("codeforester/demo", finding.message)
+
+    def test_remote_default_branch_uses_live_origin_head_not_tracking_refs(self) -> None:
+        output = f"ref: refs/heads/main\tHEAD\n{READY_SHA}\tHEAD\n"
+        completed = subprocess.CompletedProcess(["git", "ls-remote"], 0, stdout=output)
+        with mock.patch("base_release.release_readiness.subprocess.run", return_value=completed) as run_git:
+            remote, error = release_readiness.remote_default_branch(Path("/repo"))
+
+        self.assertEqual((remote, error), (("main", READY_SHA), None))
+        self.assertEqual(run_git.call_args.args[0], ["git", "ls-remote", "--symref", "origin", "HEAD"])
+
+    def test_remote_default_branch_rejects_ambiguous_or_incomplete_responses(self) -> None:
+        cases = (
+            (f"{READY_SHA}\tHEAD\n", "did not advertise HEAD as a branch"),
+            ("ref: refs/heads/main\tHEAD\ndeadbeef\tHEAD\n", "full commit SHA"),
+            ("", "did not advertise HEAD as a branch"),
+        )
+        for output, expected_error in cases:
+            with self.subTest(output=output):
+                remote, error = release_readiness.parse_remote_default_branch(output)
+                self.assertIsNone(remote)
+                self.assertIn(expected_error, error or "")
+
+    def test_feature_detached_and_unsynchronized_release_commits_fail_closed(self) -> None:
+        branch_cases = (
+            ("feature/release", "not origin's default branch"),
+            ("", "detached"),
+            (None, "Unable to inspect"),
+        )
+        for branch, expected in branch_cases:
+            with self.subTest(branch=branch):
+                finding = release_readiness.release_default_branch_finding(branch, "main")
+                self.assertEqual(finding.status, "error")
+                self.assertIn(expected, finding.message)
+
+        for local_head in ("b" * 40, "c" * 40):
+            with self.subTest(local_head=local_head):
+                finding = release_readiness.release_commit_finding(local_head, "main", READY_SHA)
+                self.assertEqual(finding.status, "error")
+                self.assertIn(f"Local HEAD {local_head}", finding.message)
+                self.assertIn(f"origin/main {READY_SHA}", finding.message)
+                self.assertIn("behind, ahead, or diverged", finding.message)
+
+    def test_provenance_recheck_returns_only_an_exact_ready_commit(self) -> None:
+        ctx = mock.Mock()
+        ctx.manifest_path = Path("/repo/base_manifest.yaml")
+        ctx.release.github.repository = "codeforester/demo"
+        with (
+            mock.patch(
+                "base_release.release_readiness.origin_repository_finding",
+                return_value=READY_PROVENANCE_FINDINGS[0],
+            ),
+            mock.patch(
+                "base_release.release_readiness.remote_default_branch",
+                return_value=(("main", READY_SHA), None),
+            ),
+            mock.patch("base_release.release_readiness.current_git_branch", return_value="main"),
+            mock.patch("base_release.release_readiness.current_git_head", return_value=READY_SHA),
+        ):
+            inspection = release_readiness.inspect_release_provenance(ctx)
+            commit_sha = release_readiness.require_release_provenance(ctx)
+
+        self.assertEqual(inspection.commit_sha, READY_SHA)
+        self.assertEqual(commit_sha, READY_SHA)
+        self.assertTrue(all(finding.status == "ok" for finding in inspection.findings))
+
+    def test_local_and_remote_tag_verification_requires_annotated_expected_sha(self) -> None:
+        tag_object_sha = "b" * 40
+        remote_output = (
+            f"{tag_object_sha}\trefs/tags/v1.2.3\n"
+            f"{READY_SHA}\trefs/tags/v1.2.3^{{}}\n"
+        )
+        with mock.patch(
+            "base_release.release_publish.capture_release_step",
+            side_effect=("tag", READY_SHA, remote_output),
+        ):
+            release_publish.verify_local_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA)
+            release_publish.verify_remote_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA)
+
+        with mock.patch(
+            "base_release.release_publish.capture_release_step",
+            return_value=f"{tag_object_sha}\trefs/tags/v1.2.3\n",
+        ):
+            with self.assertRaisesRegex(ReleaseError, "missing or is not an annotated tag"):
+                release_publish.verify_remote_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA)
+
+    def test_tag_verifiers_accept_a_real_annotated_tag_at_one_full_sha(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            checkout = root / "checkout"
+            remote = root / "remote.git"
+            subprocess.run(["git", "init", "-b", "main", str(checkout)], check=True, stdout=subprocess.DEVNULL)
+            subprocess.run(["git", "config", "user.name", "Base Test"], cwd=checkout, check=True)
+            subprocess.run(["git", "config", "user.email", "base@example.invalid"], cwd=checkout, check=True)
+            checkout.joinpath("README.md").write_text("release fixture\n", encoding="utf-8")
+            subprocess.run(["git", "add", "README.md"], cwd=checkout, check=True)
+            subprocess.run(["git", "commit", "-m", "Initial"], cwd=checkout, check=True, stdout=subprocess.DEVNULL)
+            expected_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=checkout,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.DEVNULL)
+            subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=checkout, check=True)
+            subprocess.run(
+                ["git", "tag", "-a", "v1.2.3", expected_sha, "-m", "Release v1.2.3"],
+                cwd=checkout,
+                check=True,
+            )
+            subprocess.run(["git", "push", "origin", "v1.2.3"], cwd=checkout, check=True, stdout=subprocess.DEVNULL)
+
+            release_publish.verify_local_annotated_tag(checkout, "v1.2.3", expected_sha)
+            release_publish.verify_remote_annotated_tag(checkout, "v1.2.3", expected_sha)
+
+    def test_github_release_verification_resolves_same_repository_tag_and_commit(self) -> None:
+        ctx = mock.Mock()
+        ctx.tag_name = "v1.2.3"
+        ctx.manifest_path = Path("/repo/base_manifest.yaml")
+        ctx.release.github.repository = "codeforester/demo"
+        tag_object_sha = "b" * 40
+        with mock.patch(
+            "base_release.release_publish.capture_release_step",
+            side_effect=(
+                "v1.2.3",
+                f"tag\t{tag_object_sha}",
+                f"commit\t{READY_SHA}",
+            ),
+        ) as capture:
+            release_publish.verify_github_release(ctx, READY_SHA)
+
+        commands = [call.args[0] for call in capture.call_args_list]
+        self.assertIn("repos/codeforester/demo/git/ref/tags/v1.2.3", commands[1])
+        self.assertIn(f"repos/codeforester/demo/git/tags/{tag_object_sha}", commands[2])
+
+        with mock.patch(
+            "base_release.release_publish.capture_release_step",
+            side_effect=(
+                "v1.2.3",
+                f"tag\t{tag_object_sha}",
+                f"commit\t{'c' * 40}",
+            ),
+        ):
+            with self.assertRaisesRegex(ReleaseError, "expected commit"):
+                release_publish.verify_github_release(ctx, READY_SHA)
+
     def test_run_release_step_uses_bounded_timeout(self) -> None:
         completed = subprocess.CompletedProcess(["git", "tag"], 0, stdout="")
 

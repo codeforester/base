@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import quote
 
 import base_cli
 from base_setup import process
@@ -13,6 +14,7 @@ from .release_model import ReleaseContext, ReleaseError
 from .release_readiness import last_non_empty_line
 
 RELEASE_STEP_TIMEOUT_SECONDS = 120
+FULL_GIT_SHA_LENGTHS = frozenset((40, 64))
 
 
 def release_publish_recovery_guidance(ctx: ReleaseContext, title: str) -> str:
@@ -23,15 +25,15 @@ def release_publish_recovery_guidance(ctx: ReleaseContext, title: str) -> str:
         f"--manifest {shlex.quote(str(ctx.manifest_path))}"
     )
     create_release_command = (
-        f"gh release create {shlex.quote(ctx.tag_name)} "
+        f"gh release create {shlex.quote(ctx.tag_name)} --verify-tag "
         f"--repo {shlex.quote(ctx.release.github.repository)} "
         f"--title {shlex.quote(title)} "
         f"--notes-file {shlex.quote(notes_file)}"
     )
     return (
         f"Release publish already created and pushed tag {ctx.tag_name}, "
-        "but GitHub Release creation failed.\n"
-        "To complete the release after fixing GitHub access, create the GitHub Release from the pushed tag:\n"
+        "but GitHub Release creation or verification did not complete cleanly.\n"
+        "After confirming the pushed annotated tag resolves to the intended commit, complete the GitHub Release:\n"
         f"  {notes_command} > {shlex.quote(notes_file)}\n"
         f"  {create_release_command}\n"
         "To abandon this release attempt, remove the local and remote tag after confirming no one else is using it:\n"
@@ -52,6 +54,10 @@ def require_interactive_publish_confirmation(ctx: ReleaseContext, title: str) ->
 
 
 def run_release_step(command: list[str], *, cwd: Path | None = None) -> None:
+    capture_release_step(command, cwd=cwd)
+
+
+def capture_release_step(command: list[str], *, cwd: Path | None = None) -> str:
     joined = shlex.join(command)
     try:
         result = process.run_capture(
@@ -69,6 +75,119 @@ def run_release_step(command: list[str], *, cwd: Path | None = None) -> None:
         if detail:
             raise ReleaseError(f"Release command failed: {joined}: {detail}")
         raise ReleaseError(f"Release command failed: {joined}")
+    return result.stdout.strip()
+
+
+def verify_local_annotated_tag(root: Path, tag_name: str, expected_sha: str) -> None:
+    object_type = capture_release_step(["git", "cat-file", "-t", f"refs/tags/{tag_name}"], cwd=root)
+    if object_type != "tag":
+        raise ReleaseError(f"Local release tag {tag_name} is not an annotated tag.")
+    peeled_sha = capture_release_step(["git", "rev-parse", f"refs/tags/{tag_name}^{{}}"], cwd=root).lower()
+    if peeled_sha != expected_sha:
+        raise ReleaseError(
+            f"Local annotated tag {tag_name} resolves to {peeled_sha or 'no commit'}, expected {expected_sha}."
+        )
+
+
+def verify_remote_annotated_tag(root: Path, tag_name: str, expected_sha: str) -> None:
+    output = capture_release_step(
+        [
+            "git",
+            "ls-remote",
+            "--tags",
+            "origin",
+            f"refs/tags/{tag_name}",
+            f"refs/tags/{tag_name}^{{}}",
+        ],
+        cwd=root,
+    )
+    tag_object_sha: str | None = None
+    peeled_sha: str | None = None
+    for line in output.splitlines():
+        value, separator, ref_name = line.partition("\t")
+        normalized = value.lower()
+        if not separator or not valid_full_git_sha(normalized):
+            continue
+        if ref_name == f"refs/tags/{tag_name}":
+            tag_object_sha = normalized
+        elif ref_name == f"refs/tags/{tag_name}^{{}}":
+            peeled_sha = normalized
+    if tag_object_sha is None or peeled_sha is None:
+        raise ReleaseError(f"Remote tag {tag_name} is missing or is not an annotated tag on origin.")
+    if peeled_sha != expected_sha:
+        raise ReleaseError(
+            f"Remote annotated tag {tag_name} resolves to {peeled_sha}, expected release commit {expected_sha}."
+        )
+
+
+def verify_github_release(ctx: ReleaseContext, expected_sha: str) -> None:
+    release_tag = capture_release_step(
+        [
+            "gh",
+            "release",
+            "view",
+            ctx.tag_name,
+            "--repo",
+            ctx.release.github.repository,
+            "--json",
+            "tagName",
+            "--jq",
+            ".tagName",
+        ],
+        cwd=ctx.manifest_path.parent,
+    )
+    if release_tag != ctx.tag_name:
+        raise ReleaseError(
+            f"GitHub Release resolved tag '{release_tag or 'none'}', expected '{ctx.tag_name}'."
+        )
+
+    encoded_tag = quote(ctx.tag_name, safe="")
+    ref_type, tag_object_sha = parse_github_object(
+        capture_release_step(
+            [
+                "gh",
+                "api",
+                f"repos/{ctx.release.github.repository}/git/ref/tags/{encoded_tag}",
+                "--jq",
+                '.object.type + "\\t" + .object.sha',
+            ],
+            cwd=ctx.manifest_path.parent,
+        ),
+        description=f"GitHub tag ref {ctx.tag_name}",
+    )
+    if ref_type != "tag":
+        raise ReleaseError(f"GitHub tag {ctx.tag_name} is not annotated.")
+
+    tag_target_type, github_sha = parse_github_object(
+        capture_release_step(
+            [
+                "gh",
+                "api",
+                f"repos/{ctx.release.github.repository}/git/tags/{tag_object_sha}",
+                "--jq",
+                '.object.type + "\\t" + .object.sha',
+            ],
+            cwd=ctx.manifest_path.parent,
+        ),
+        description=f"GitHub annotated tag {ctx.tag_name}",
+    )
+    if tag_target_type != "commit" or github_sha != expected_sha:
+        raise ReleaseError(
+            f"GitHub annotated tag {ctx.tag_name} resolves to {tag_target_type} {github_sha}, "
+            f"expected commit {expected_sha}."
+        )
+
+
+def parse_github_object(output: str, *, description: str) -> tuple[str, str]:
+    object_type, separator, object_sha = output.strip().partition("\t")
+    normalized_sha = object_sha.lower()
+    if not separator or object_type not in {"commit", "tag"} or not valid_full_git_sha(normalized_sha):
+        raise ReleaseError(f"{description} did not resolve to an unambiguous full Git object.")
+    return object_type, normalized_sha
+
+
+def valid_full_git_sha(value: str) -> bool:
+    return len(value) in FULL_GIT_SHA_LENGTHS and all(character in "0123456789abcdef" for character in value)
 
 
 def write_temp_release_notes(notes: str) -> Path:
