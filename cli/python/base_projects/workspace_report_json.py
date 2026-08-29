@@ -17,6 +17,18 @@ from base_setup.checks import check_to_json
 from base_setup.checks import checks_status
 
 
+
+
+def workspace_aggregate_status(statuses: tuple[Any, ...]) -> str:
+    """Overall workspace health using the same rule as the text renderer.
+
+    Returns ``ok`` when every project reports ``ok``, otherwise ``attention``.
+    An empty workspace is ``ok`` (nothing needs attention).
+    """
+    if any(getattr(status, "status", None) != "ok" for status in statuses):
+        return "attention"
+    return "ok"
+
 def workspace_status_to_json(
     workspace_root: Path,
     statuses: tuple[Any, ...],
@@ -24,6 +36,7 @@ def workspace_status_to_json(
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "workspace": str(workspace_root),
+        "status": workspace_aggregate_status(statuses),
         "project_count": workspace_project_count(statuses, workspace_manifest),
         "projects": [workspace_status_item_to_json(status, workspace_manifest) for status in statuses],
     }
