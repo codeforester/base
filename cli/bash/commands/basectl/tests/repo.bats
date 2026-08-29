@@ -253,8 +253,8 @@ run_repo_command_with_mocks() {
 workspace:
   root: $workspace_root
 github:
-  default_owner: codeforester
-  clone_protocol: ssh
+  default_owner: "codeforester" # repo owner
+  clone_protocol: "ssh" # clone transport
 EOF
 
     cd "$nested_dir"
@@ -290,6 +290,42 @@ EOF
     [ "$status" -eq 0 ]
     [ "$(line_at "$output" 1)" = "[DRY-RUN] Would clone codeforester/base-demo (git@github.com:codeforester/base-demo.git) into $repo_dir." ]
     [ "$(line_at "$output" 2)" = "[DRY-RUN] Would run: gh repo clone codeforester/base-demo $repo_dir" ]
+}
+
+@test "basectl repo clone preserves spaces and hash characters in quoted workspace roots" {
+    local nested_dir="$TEST_TMPDIR/nested/current"
+    local workspace_root="$TEST_TMPDIR/workspace root#one"
+    local repo_dir="$workspace_root/base-demo"
+
+    mkdir -p "$TEST_HOME/.base.d" "$nested_dir" "$workspace_root"
+    cat > "$TEST_HOME/.base.d/config.yaml" <<EOF
+workspace:
+  root: "$workspace_root" # local workspace
+github:
+  default_owner: codeforester
+  clone_protocol: ssh
+EOF
+
+    cd "$nested_dir"
+    run_basectl repo clone base-demo --dry-run
+
+    [ "$status" -eq 0 ]
+    [ "$(line_at "$output" 1)" = "[DRY-RUN] Would clone codeforester/base-demo (git@github.com:codeforester/base-demo.git) into \"$repo_dir\"." ]
+    [ "$(line_at "$output" 2)" = "[DRY-RUN] Would run: gh repo clone codeforester/base-demo \"$repo_dir\"" ]
+}
+
+@test "basectl repo clone fails closed on malformed quoted GitHub defaults" {
+    mkdir -p "$TEST_HOME/.base.d"
+    cat > "$TEST_HOME/.base.d/config.yaml" <<'EOF'
+github:
+  default_owner: "codeforester
+EOF
+
+    run_basectl repo clone base-demo --dry-run
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"github.default_owner has invalid quoted YAML syntax"* ]]
+    [[ "$output" != *"[DRY-RUN] Would clone"* ]]
 }
 
 @test "basectl repo clone supports explicit owner and path dry-run" {
@@ -1341,6 +1377,100 @@ EOF
     [[ "$output" != *"$nested_dir/base-demo"* ]]
     [[ "$output" == *"[DRY-RUN] Would not create or configure a GitHub repository because no GitHub repo was provided or inferred."* ]]
     [ ! -e "$repo_dir" ]
+}
+
+@test "basectl repo init preserves spaces and hash characters in quoted workspace roots" {
+    local nested_dir="$TEST_TMPDIR/nested/current"
+    local workspace_root="$TEST_TMPDIR/workspace root#one"
+    local repo_dir="$workspace_root/base-demo"
+
+    mkdir -p "$TEST_HOME/.base.d" "$nested_dir" "$workspace_root"
+    cat > "$TEST_HOME/.base.d/config.yaml" <<EOF
+workspace:
+  root: "$workspace_root" # local workspace
+EOF
+
+    cd "$nested_dir"
+    run_basectl repo init base-demo --dry-run
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"[DRY-RUN] Would create '$repo_dir/README.md'."* ]]
+    [[ "$output" != *"$nested_dir/README.md"* ]]
+    [ ! -e "$repo_dir" ]
+}
+
+@test "basectl repo init fails before dry-run or apply actions when workspace root is relative" {
+    local nested_dir="$TEST_TMPDIR/nested/current"
+
+    mkdir -p "$TEST_HOME/.base.d" "$nested_dir"
+    cat > "$TEST_HOME/.base.d/config.yaml" <<'EOF'
+workspace:
+  root: relative/work
+EOF
+
+    cd "$nested_dir"
+    run_basectl repo init unsafe-target --dry-run
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"workspace.root must be an absolute path or start with '~'"* ]]
+    [[ "$output" != *"[DRY-RUN] Would create"* ]]
+    [ ! -e "$nested_dir/README.md" ]
+    [ ! -e "$nested_dir/base_manifest.yaml" ]
+
+    run_basectl repo init unsafe-target
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"workspace.root must be an absolute path or start with '~'"* ]]
+    [ ! -e "$nested_dir/README.md" ]
+    [ ! -e "$nested_dir/base_manifest.yaml" ]
+}
+
+@test "basectl repo init fails closed when configured workspace root is empty" {
+    local nested_dir="$TEST_TMPDIR/nested/current"
+
+    mkdir -p "$TEST_HOME/.base.d" "$nested_dir"
+    printf 'workspace:\n  root: # missing\n' > "$TEST_HOME/.base.d/config.yaml"
+
+    cd "$nested_dir"
+    run_basectl repo init unsafe-target --dry-run
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"workspace.root must be a non-empty path"* ]]
+    [[ "$output" != *"[DRY-RUN] Would create"* ]]
+    [ ! -e "$nested_dir/README.md" ]
+}
+
+@test "basectl repo init accepts explicit current-directory targets" {
+    local physical_repo_dir
+    local repo_dir="$TEST_TMPDIR/explicit-current"
+
+    mkdir -p "$TEST_HOME/.base.d" "$repo_dir"
+    cat > "$TEST_HOME/.base.d/config.yaml" <<'EOF'
+workspace:
+  root: relative/work
+EOF
+
+    cd "$repo_dir"
+    physical_repo_dir="$(pwd -P)"
+    run_basectl repo init explicit-current --path . --no-configure
+
+    [ "$status" -eq 0 ]
+    [ -f "$repo_dir/README.md" ]
+    [ -f "$repo_dir/base_manifest.yaml" ]
+    [[ "$output" == *"Created '$physical_repo_dir/README.md'."* ]]
+}
+
+@test "basectl repo init rejects an empty path assignment before repo actions" {
+    local nested_dir="$TEST_TMPDIR/nested/current"
+
+    mkdir -p "$nested_dir"
+    cd "$nested_dir"
+    run_basectl repo init unsafe-target --path= --dry-run
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"Option '--path' uses unsupported equals syntax"* ]]
+    [[ "$output" != *"[DRY-RUN] Would create"* ]]
+    [ ! -e "$nested_dir/README.md" ]
 }
 
 @test "basectl repo init falls back to BASE_HOME parent when workspace root is not configured" {

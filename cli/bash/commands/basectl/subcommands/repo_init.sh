@@ -320,9 +320,19 @@ base_repo_init_validate() {
         base_repo_init_usage_error "Unsupported repository license '$license_id'. Expected: $(base_repo_license_display)"
         return 2
     fi
-    [[ -n "$path" ]] || path="$(base_repo_default_target_path "$name")"
+    if [[ -z "$path" ]]; then
+        path="$(base_repo_default_target_path "$name")" || return $?
+        [[ -n "$path" ]] || {
+            base_std_log_error "Unable to resolve a non-empty default repository target for '$name'."
+            return 2
+        }
+    fi
     [[ -n "$description" ]] || description="$(base_repo_default_description "$name")"
-    root="$(base_repo_target_path "$path")"
+    root="$(base_repo_target_path "$path")" || return $?
+    [[ -n "$root" ]] || {
+        base_std_log_error "Unable to resolve a non-empty repository target for '$name'."
+        return 2
+    }
     if [[ -n "$issue" ]] && ! base_github_issue_number_is_valid "$issue"; then
         base_repo_init_usage_error "Option '--issue' must be a positive integer."
         return $?

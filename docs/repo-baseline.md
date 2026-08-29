@@ -84,7 +84,11 @@ workspace root:
 
 That keeps `repo init base-demo` stable even when it is run from inside another
 repository or from a nested directory such as `~/work/base/docs`. Use
-`--path <path>` when the new repository should live somewhere else.
+`--path <path>` when the new repository should live somewhere else. Base
+validates configured workspace and GitHub defaults before planning or applying
+any repository action. Invalid, empty, or malformed values fail closed instead
+of falling back to the current directory. Quoted workspace paths may contain
+spaces and `#`; use the explicit `--path .` form to target the current checkout.
 
 Open the generated baseline through a pull request when the target repository
 already exists:
