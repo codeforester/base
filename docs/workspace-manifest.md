@@ -65,6 +65,23 @@ check date in the `LAST CHECK` column, while JSON output includes the full
 timestamp and check status. Projects without a recorded check show `-` in text
 output and `null` in JSON output.
 
+JSON status output includes a top-level `status` aggregate in addition to each
+project's status. It uses the same status vocabulary and precedence as workspace
+reports: `error` takes precedence over `warn`, which takes precedence over `ok`.
+An empty workspace has aggregate status `ok`.
+
+```json
+{
+  "workspace": "/Users/example/work",
+  "status": "warn",
+  "project_count": 2,
+  "projects": [
+    {"name": "base", "status": "ok"},
+    {"name": "demo", "status": "warn"}
+  ]
+}
+```
+
 The latest-check record is optional persistence state. If a check succeeds but
 cannot save that record, the check result remains authoritative and workspace
 status reports the missing record as `-` or `null` until a later check can save
