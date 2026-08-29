@@ -17,8 +17,11 @@ from .release_parser import parse_release_args
 from .release_parser import print_usage
 from .release_parser import selected_release_check_format
 from .release_publish import release_publish_recovery_guidance, require_interactive_publish_confirmation
-from .release_publish import run_release_step, write_temp_release_notes
+from .release_publish import run_release_step, verify_github_release
+from .release_publish import verify_local_annotated_tag, verify_remote_annotated_tag
+from .release_publish import write_temp_release_notes
 from .release_readiness import extract_changelog_section, gh_cli_finding, github_release_finding
+from .release_readiness import require_release_provenance
 
 app = base_cli_app(name="base_release")
 
@@ -203,8 +206,10 @@ def release_publish_command(ctx: ReleaseContext, args: ReleaseArguments) -> int:
     notes = extract_changelog_section(ctx.changelog, ctx.version)
 
     if args.dry_run:
+        expected_sha = require_release_provenance(ctx)
         print(f"DRY RUN: release publish for {ctx.manifest.project_name} v{ctx.version}")
         print("")
+        print(f"Verified reviewed release commit: {expected_sha}")
         print(f"Would create annotated tag: {ctx.tag_name}")
         print(f"Would push tag to origin: {ctx.tag_name}")
         print(f"Would create GitHub Release: {title}")
@@ -218,17 +223,25 @@ def release_publish_command(ctx: ReleaseContext, args: ReleaseArguments) -> int:
         require_interactive_publish_confirmation(ctx, title)
 
     project_root = ctx.manifest_path.parent
-    run_release_step(["git", "tag", "-a", ctx.tag_name, "-m", f"Release {ctx.tag_name}"], cwd=project_root)
+    expected_sha = require_release_provenance(ctx)
+    run_release_step(
+        ["git", "tag", "-a", ctx.tag_name, expected_sha, "-m", f"Release {ctx.tag_name}"],
+        cwd=project_root,
+    )
+    verify_local_annotated_tag(project_root, ctx.tag_name, expected_sha)
     run_release_step(["git", "push", "origin", ctx.tag_name], cwd=project_root)
 
-    notes_path = write_temp_release_notes(notes)
+    notes_path = None
     try:
+        verify_remote_annotated_tag(project_root, ctx.tag_name, expected_sha)
+        notes_path = write_temp_release_notes(notes)
         run_release_step(
             [
                 "gh",
                 "release",
                 "create",
                 ctx.tag_name,
+                "--verify-tag",
                 "--repo",
                 ctx.release.github.repository,
                 "--title",
@@ -238,16 +251,19 @@ def release_publish_command(ctx: ReleaseContext, args: ReleaseArguments) -> int:
             ],
             cwd=project_root,
         )
+        verify_github_release(ctx, expected_sha)
     except ReleaseError as exc:
         raise ReleaseError(
             str(exc),
             guidance=release_publish_recovery_guidance(ctx, title),
         ) from exc
     finally:
-        notes_path.unlink(missing_ok=True)
+        if notes_path is not None:
+            notes_path.unlink(missing_ok=True)
 
     print(f"GitHub Release published: {github_release_url(ctx.release.github.repository, ctx.tag_name)}")
     print(f"Tag URL: {github_tag_url(ctx.release.github.repository, ctx.tag_name)}")
+    print(f"Release commit verified: {expected_sha}")
     print("")
     print_homebrew_handoff(ctx, after_publish=True)
     return base_cli.ExitCode.SUCCESS

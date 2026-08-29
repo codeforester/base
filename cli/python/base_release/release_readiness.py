@@ -3,13 +3,23 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
+
+from base_setup.git_remote_parse import parse_origin_remote
 
 from .release_model import ReleaseContext, ReleaseError, ReleaseFinding
 
 CHANGELOG_HEADER_RE = re.compile(r"^##\s+(?:\[(?P<bracket>[^\]]+)\]|(?P<plain>\S+))(?:\s+-.*)?$")
 GIT_INSPECTION_TIMEOUT_SECONDS = 10
+FULL_GIT_SHA_RE = re.compile(r"^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$")
+
+
+@dataclass(frozen=True)
+class ReleaseProvenanceInspection:
+    findings: tuple[ReleaseFinding, ...]
+    commit_sha: str | None = None
 
 
 def release_findings(
@@ -23,12 +33,233 @@ def release_findings(
         version_file_finding(ctx),
         changelog_finding(ctx),
         git_worktree_finding(ctx.manifest_path.parent),
-        git_branch_finding(ctx.manifest_path.parent),
+        *inspect_release_provenance(ctx).findings,
         gh_check(),
         local_tag_finding(ctx.manifest_path.parent, ctx.tag_name),
         remote_tag_finding(ctx.manifest_path.parent, ctx.tag_name),
     ]
     return tuple(findings)
+
+
+def inspect_release_provenance(ctx: ReleaseContext) -> ReleaseProvenanceInspection:
+    root = ctx.manifest_path.parent
+    origin_finding = origin_repository_finding(root, ctx.release.github.repository)
+    if origin_finding.status != "ok":
+        return ReleaseProvenanceInspection(
+            findings=(
+                origin_finding,
+                ReleaseFinding(
+                    "error",
+                    "default_branch",
+                    "Unable to verify the remote default branch until origin matches the configured repository.",
+                ),
+                ReleaseFinding(
+                    "error",
+                    "release_commit",
+                    "Unable to verify the release commit until origin matches the configured repository.",
+                ),
+            )
+        )
+
+    remote_default, remote_error = remote_default_branch(root)
+    current_branch = current_git_branch(root)
+    local_head = current_git_head(root)
+    if remote_default is None:
+        detail = remote_error or "the remote did not advertise a symbolic default branch and full commit SHA"
+        return ReleaseProvenanceInspection(
+            findings=(
+                origin_finding,
+                ReleaseFinding(
+                    "error",
+                    "default_branch",
+                    f"Unable to resolve origin's current default branch: {detail}. "
+                    "Confirm origin is reachable and its default branch is configured, then retry.",
+                ),
+                ReleaseFinding(
+                    "error",
+                    "release_commit",
+                    "Unable to compare local HEAD with the current remote default-branch commit.",
+                ),
+            )
+        )
+
+    default_branch, remote_head = remote_default
+    branch_finding = release_default_branch_finding(current_branch, default_branch)
+    commit_finding = release_commit_finding(local_head, default_branch, remote_head)
+    commit_sha = remote_head if branch_finding.status == "ok" and commit_finding.status == "ok" else None
+    return ReleaseProvenanceInspection(
+        findings=(origin_finding, branch_finding, commit_finding),
+        commit_sha=commit_sha,
+    )
+
+
+def require_release_provenance(ctx: ReleaseContext) -> str:
+    inspection = inspect_release_provenance(ctx)
+    if inspection.commit_sha is not None and all(finding.status == "ok" for finding in inspection.findings):
+        return inspection.commit_sha
+    detail = "; ".join(finding.message for finding in inspection.findings if finding.status != "ok")
+    raise ReleaseError(f"Release provenance changed or could not be verified before tagging: {detail}")
+
+
+def origin_repository_finding(root: Path, configured_repository: str) -> ReleaseFinding:
+    fetch_urls = git_remote_urls(root, push=False)
+    push_urls = git_remote_urls(root, push=True)
+    if fetch_urls is None or push_urls is None or not fetch_urls or not push_urls:
+        return ReleaseFinding(
+            "error",
+            "origin_repository",
+            "Unable to resolve every origin fetch and push URL. Configure origin for the release repository and retry.",
+        )
+
+    configured = configured_repository.casefold()
+    for remote_url in (*fetch_urls, *push_urls):
+        remote = parse_origin_remote(remote_url, root)
+        if not remote.valid or remote.provider != "github" or not remote.repository:
+            return ReleaseFinding(
+                "error",
+                "origin_repository",
+                f"Origin must use the configured GitHub repository '{configured_repository}' for fetch and push. "
+                "Update origin and retry.",
+            )
+        if remote.repository.casefold() != configured:
+            return ReleaseFinding(
+                "error",
+                "origin_repository",
+                f"Origin resolves to GitHub repository '{remote.repository}', but release.github.repository is "
+                f"'{configured_repository}'. Update origin or the manifest before publishing.",
+            )
+
+    return ReleaseFinding(
+        "ok",
+        "origin_repository",
+        f"Every origin fetch and push URL matches GitHub repository '{configured_repository}'.",
+    )
+
+
+def git_remote_urls(root: Path, *, push: bool) -> tuple[str, ...] | None:
+    command = ["git", "remote", "get-url", "--all"]
+    if push:
+        command.append("--push")
+    command.append("origin")
+    try:
+        result = subprocess.run(
+            command,
+            cwd=root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=GIT_INSPECTION_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return tuple(line.strip() for line in result.stdout.splitlines() if line.strip())
+
+
+def remote_default_branch(root: Path) -> tuple[tuple[str, str] | None, str | None]:
+    try:
+        result = subprocess.run(
+            ["git", "ls-remote", "--symref", "origin", "HEAD"],
+            cwd=root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=GIT_INSPECTION_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return None, "the remote inspection timed out"
+    except OSError:
+        return None, "Git could not inspect origin"
+    if result.returncode != 0:
+        return None, "Git could not read origin HEAD"
+    return parse_remote_default_branch(result.stdout)
+
+
+def parse_remote_default_branch(output: str) -> tuple[tuple[str, str] | None, str | None]:
+    branch: str | None = None
+    commit_sha: str | None = None
+    for line in output.splitlines():
+        if line.startswith("ref: refs/heads/") and line.endswith("\tHEAD"):
+            branch = line.removeprefix("ref: refs/heads/").removesuffix("\tHEAD")
+            continue
+        value, separator, ref_name = line.partition("\t")
+        if separator and ref_name == "HEAD" and FULL_GIT_SHA_RE.fullmatch(value):
+            commit_sha = value.lower()
+    if not branch:
+        return None, "origin did not advertise HEAD as a branch"
+    if not commit_sha:
+        return None, "origin did not advertise HEAD as a full commit SHA"
+    return (branch, commit_sha), None
+
+
+def current_git_head(root: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD"],
+            cwd=root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=GIT_INSPECTION_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    value = result.stdout.strip().lower()
+    if result.returncode != 0 or not FULL_GIT_SHA_RE.fullmatch(value):
+        return None
+    return value
+
+
+def release_default_branch_finding(current_branch: str | None, default_branch: str) -> ReleaseFinding:
+    if current_branch is None:
+        return ReleaseFinding(
+            "error",
+            "default_branch",
+            "Unable to inspect the current Git branch. Check out the remote default branch and retry.",
+        )
+    if not current_branch:
+        return ReleaseFinding(
+            "error",
+            "default_branch",
+            f"Git HEAD is detached. Check out origin's default branch '{default_branch}' and retry.",
+        )
+    if current_branch != default_branch:
+        return ReleaseFinding(
+            "error",
+            "default_branch",
+            f"Current branch '{current_branch}' is not origin's default branch '{default_branch}'. "
+            f"Merge the reviewed release PR, check out '{default_branch}', synchronize it, and retry.",
+        )
+    return ReleaseFinding(
+        "ok",
+        "default_branch",
+        f"Current branch '{current_branch}' matches origin's default branch.",
+    )
+
+
+def release_commit_finding(local_head: str | None, default_branch: str, remote_head: str) -> ReleaseFinding:
+    if local_head is None:
+        return ReleaseFinding(
+            "error",
+            "release_commit",
+            "Unable to resolve local HEAD to a full commit SHA. Repair the checkout and retry.",
+        )
+    if local_head != remote_head:
+        return ReleaseFinding(
+            "error",
+            "release_commit",
+            f"Local HEAD {local_head} does not match current origin/{default_branch} {remote_head}. "
+            "Fetch origin, reconcile any behind, ahead, or diverged commits, and retry from the synchronized branch.",
+        )
+    return ReleaseFinding(
+        "ok",
+        "release_commit",
+        f"Local HEAD and origin/{default_branch} resolve to reviewed commit {local_head}.",
+    )
 
 
 def version_file_finding(ctx: ReleaseContext) -> ReleaseFinding:
