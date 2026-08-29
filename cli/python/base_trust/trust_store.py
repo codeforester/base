@@ -17,6 +17,25 @@ from base_setup.manifest import read_manifest
 SCHEMA_VERSION = 1
 ALLOWED_COMMANDS = ["test", "run", "build", "demo", "activate"]
 TRUST_RELATIVE_ROOT = Path("trust") / "manifest-commands"
+TRUST_SCOPE_WARNING = (
+    "Approval is bound to the base_manifest.yaml SHA-256 only. Manifest changes "
+    "invalidate approval; referenced scripts, direct executable files, Git HEAD, "
+    "and uncommitted working-tree changes are not independently verified or bound "
+    "to approval. Re-review those inputs before execution after repository changes."
+)
+TRUST_SCOPE = {
+    "approval_basis": "base_manifest.yaml_sha256",
+    "manifest_changes_invalidate": True,
+    "referenced_script_changes_invalidate": False,
+    "direct_executable_file_changes_invalidate": False,
+    "git_head_changes_invalidate": False,
+    "working_tree_changes_invalidate": False,
+    "warning": TRUST_SCOPE_WARNING,
+}
+
+
+def trust_scope_payload() -> dict[str, object]:
+    return dict(TRUST_SCOPE)
 
 
 @dataclass(frozen=True)

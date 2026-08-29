@@ -17,6 +17,8 @@ Options:
   --profile <list>  Include named prerequisite profiles. Known profiles: dev, sre, ai, linux-lab.
   --dry-run     Explain planned onboarding steps without making changes.
   --yes         Approve setup changes and the shell-profile prompt; never grant manifest trust.
+  --allow-project-ide-mutations
+                Approve project-originated IDE app, extension, and user-setting mutations.
   --no-profile  Skip shell profile updates.
   -v            Enable DEBUG logging for underlying commands.
   -h, --help    Show this help text.
@@ -156,6 +158,7 @@ base_onboard_subcommand_main() {
     local projects_status=0
     local setup_status=0
     local trust_status=0
+    local allow_project_ide_mutations=0
     local check_args=()
     local doctor_args=()
     local setup_args=()
@@ -181,6 +184,9 @@ base_onboard_subcommand_main() {
                 ;;
             --yes)
                 yes=1
+                ;;
+            --allow-project-ide-mutations)
+                allow_project_ide_mutations=1
                 ;;
             --no-profile)
                 no_profile=1
@@ -232,6 +238,9 @@ base_onboard_subcommand_main() {
     if ((yes)); then
         setup_args+=(--yes)
     fi
+    if ((allow_project_ide_mutations)); then
+        setup_args+=(--allow-project-ide-mutations)
+    fi
     if ((dry_run)); then
         setup_args+=(--dry-run)
         profile_args+=(--dry-run)
@@ -257,6 +266,15 @@ base_onboard_subcommand_main() {
     if ((dry_run)); then
         base_onboard_execute "$dry_run" "${setup_args[@]}" || return $?
     elif base_onboard_confirm "$yes" "Proceed with setup?"; then
+        if ((allow_project_ide_mutations)); then
+            :
+        elif ((yes)); then
+            printf '%s\n' "Project-originated IDE mutations remain unapproved because --yes does not grant them."
+        elif base_onboard_confirm 0 "Allow project-originated IDE mutations if requested by the manifest?"; then
+            setup_args+=(--allow-project-ide-mutations)
+        else
+            printf '%s\n' "Project-originated IDE mutations were not approved; setup will stop if the manifest requests them."
+        fi
         base_onboard_print_next "${setup_args[@]}"
         base_onboard_run_command "${setup_args[@]}"
         setup_status=$?

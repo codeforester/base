@@ -11,9 +11,11 @@ from .artifacts import reconcile_artifacts
 from .artifacts import resolve_artifact_definitions
 from .delegates import reconcile_brewfile
 from .delegates import reconcile_mise
+from .errors import ArtifactError
 from .ide import effective_ide_config
 from .ide import ide_preference_warning_checks
 from .ide import log_ide_preference_warnings
+from .ide import log_project_ide_mutation_plan
 from .ide_extensions import reconcile_ide_extensions
 from .ide_installs import reconcile_ide_installs
 from .ide_settings import reconcile_ide_settings
@@ -29,12 +31,21 @@ def reconcile_manifest(
     default_manifest: BaseManifest,
     manifest: BaseManifest,
     dry_run: bool,
+    allow_project_ide_mutations: bool = False,
 ) -> None:
     ctx.log.info("Reading Base manifest at '%s'.", manifest.path)
     ctx.log.info("Setting up project '%s'.", manifest.project_name)
     user_config = ctx.user_config
     log_ide_preference_warnings(ctx, ide_preference_warning_checks(manifest, user_config))
     effective_manifest = effective_manifest_with_user_config(manifest, user_config)
+
+    ide_mutation_plans = log_project_ide_mutation_plan(ctx, manifest, effective_manifest)
+    if ide_mutation_plans and not dry_run and not allow_project_ide_mutations:
+        raise ArtifactError(
+            f"Project '{manifest.project_name}' requests project-originated IDE mutations. "
+            "Review the exact plan with 'basectl setup --dry-run', then rerun with "
+            "'--allow-project-ide-mutations' to apply it. '--yes' does not grant this approval."
+        )
 
     artifacts = setup_artifacts(default_manifest, effective_manifest)
     definitions = resolve_artifact_definitions(artifacts)

@@ -97,6 +97,8 @@ class ManifestCommandTrustTests(unittest.TestCase):
             "ManifestCommandTrustStore",
             "SCHEMA_VERSION",
             "TRUST_RELATIVE_ROOT",
+            "TRUST_SCOPE",
+            "TRUST_SCOPE_WARNING",
             "TrustStatus",
             "compute_identity_key",
             "compute_trust_identity_for_manifest",
@@ -106,6 +108,7 @@ class ManifestCommandTrustTests(unittest.TestCase):
             "identity_key_from_record",
             "manifest_command_surfaces",
             "sha256_file",
+            "trust_scope_payload",
             "write_json_atomic",
         )
 
@@ -197,6 +200,10 @@ class ManifestCommandTrustTests(unittest.TestCase):
         self.assertEqual(payload["schema_version"], 1)
         self.assertEqual(payload["status"], "blocked")
         self.assertEqual(payload["reason"], "not_allowed")
+        self.assertEqual(payload["trust_scope"]["approval_basis"], "base_manifest.yaml_sha256")
+        self.assertTrue(payload["trust_scope"]["manifest_changes_invalidate"])
+        self.assertFalse(payload["trust_scope"]["referenced_script_changes_invalidate"])
+        self.assertFalse(payload["trust_scope"]["git_head_changes_invalidate"])
         self.assertEqual(payload["project"]["name"], "demo")
         self.assertEqual(payload["project"]["manifest_sha256"], expected_digest)
         self.assertEqual(
@@ -377,6 +384,8 @@ class ManifestCommandTrustTests(unittest.TestCase):
         self.assertIn(f"Manifest SHA-256: {expected_digest}", stderr.getvalue())
         self.assertIn("Review first:", stderr.getvalue())
         self.assertIn("  basectl test demo --dry-run", stderr.getvalue())
+        self.assertIn("Trust scope:", stderr.getvalue())
+        self.assertIn("referenced scripts", stderr.getvalue())
         self.assertNotIn("  basectl run demo --list", stderr.getvalue())
         self.assertIn("Allow after review:", stderr.getvalue())
         self.assertIn(f"  basectl trust allow demo --manifest-sha256 {expected_digest}", stderr.getvalue())
@@ -406,6 +415,8 @@ class ManifestCommandTrustTests(unittest.TestCase):
         self.assertIn("basectl demo demo --dry-run", result.stdout)
         self.assertIn(f"Inspect activate.source entries in {manifest_path.resolve()}", result.stdout)
         self.assertIn("basectl trust allow demo --manifest-sha256", result.stdout)
+        self.assertIn("Trust scope:", result.stdout)
+        self.assertIn("Git HEAD", result.stdout)
 
     def test_changed_manifest_status_shows_recorded_digest_and_reapproval_guidance(self) -> None:
         from base_trust import engine
@@ -440,6 +451,40 @@ class ManifestCommandTrustTests(unittest.TestCase):
             f"basectl trust allow demo --manifest-sha256 {current_digest}",
             result.stdout,
         )
+
+    def test_referenced_script_and_git_head_changes_do_not_invalidate_manifest_trust(self) -> None:
+        from base_trust import engine
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            project_root = root / "work" / "demo"
+            manifest_path = self.manifest_factory.write_command_surfaces(project_root)
+            referenced_script = project_root / "demo.sh"
+            referenced_script.write_text("#!/bin/sh\nprintf 'before\\n'\n", encoding="utf-8")
+            initial_head = init_git_repo(project_root, "https://github.com/example/demo.git")
+            identity = engine.compute_trust_identity_for_manifest(manifest_path)
+            engine.ManifestCommandTrustStore(home=home).allow(identity, base_version="9.9.9")
+
+            referenced_script.write_text("#!/bin/sh\nprintf 'after\\n'\n", encoding="utf-8")
+            subprocess.run(["git", "add", "demo.sh"], cwd=project_root, check=True, stdout=subprocess.PIPE)
+            subprocess.run(
+                ["git", "commit", "-m", "Change referenced script"],
+                cwd=project_root,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            current_identity = engine.compute_trust_identity_for_manifest(manifest_path)
+            status = engine.ManifestCommandTrustStore(home=home).status(current_identity)
+            payload = engine.status_payload(status)
+
+        self.assertNotEqual(current_identity.head, initial_head)
+        self.assertEqual(current_identity.manifest_sha256, identity.manifest_sha256)
+        self.assertTrue(status.is_allowed)
+        self.assertEqual(payload["status"], "allowed")
+        self.assertFalse(payload["trust_scope"]["referenced_script_changes_invalidate"])
+        self.assertFalse(payload["trust_scope"]["git_head_changes_invalidate"])
 
     def test_require_allows_matching_trust_record_for_manifest_path(self) -> None:
         from base_trust import engine

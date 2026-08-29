@@ -311,7 +311,7 @@ EOF
     [[ "$output" == *"workspace_init_options=--owner --path --workspace --manifest --include-optional --dry-run"* ]]
     [[ "$output" == *"workspace_configure_options=--workspace --manifest --dry-run"* ]]
     [[ "$output" == *"workspace_setup_options=--workspace --manifest --dry-run --yes"* ]]
-    [[ "$output" == *"onboard_options=--profile --dry-run --yes --no-profile"* ]]
+    [[ "$output" == *"onboard_options=--profile --dry-run --yes --allow-project-ide-mutations --no-profile"* ]]
     [[ "$output" == *"onboard_projects=base demo"* ]]
     [[ "$output" == *"onboard_profiles=dev sre ai linux-lab dev,sre dev,ai dev,linux-lab sre,ai sre,linux-lab ai,linux-lab dev,sre,ai dev,sre,linux-lab dev,ai,linux-lab sre,ai,linux-lab dev,sre,ai,linux-lab"* ]]
     [[ "$output" == *"prompt_names=list product-self-review"* ]]

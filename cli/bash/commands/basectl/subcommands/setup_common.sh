@@ -58,7 +58,7 @@ setup_ensure_cached_paths() {
 setup_clear_run_state() {
     # Clear legacy lowercase state too so inherited environments cannot trigger
     # lib_std.sh dry-run behavior unless this command explicitly enables it.
-    unset BASE_BASH_LIBS_DRY_RUN BASE_SETUP_CHECK_STATUS_FILE BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_UPGRADE_PIP BASE_SETUP_YES
+    unset BASE_BASH_LIBS_DRY_RUN BASE_SETUP_CHECK_STATUS_FILE BASE_SETUP_PROFILE_ERROR BASE_SETUP_PROFILES BASE_SETUP_PROJECT_NAME BASE_SETUP_MANIFEST BASE_SETUP_REMOTE_NETWORK BASE_SETUP_RECREATE_VENV BASE_SETUP_UPGRADE_PIP BASE_SETUP_YES BASE_SETUP_ALLOW_PROJECT_IDE_MUTATIONS
     setup_refresh_cached_paths
 }
 
@@ -89,6 +89,14 @@ setup_enable_yes() {
 
 setup_yes_enabled() {
     [[ "${BASE_SETUP_YES:-false}" == true ]]
+}
+
+setup_enable_project_ide_mutations() {
+    export BASE_SETUP_ALLOW_PROJECT_IDE_MUTATIONS=true
+}
+
+setup_project_ide_mutations_allowed() {
+    [[ "${BASE_SETUP_ALLOW_PROJECT_IDE_MUTATIONS:-false}" == true ]]
 }
 
 setup_test_assume_interactive() {

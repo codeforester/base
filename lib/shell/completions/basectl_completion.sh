@@ -600,7 +600,7 @@ _base_basectl_completion_help() {
 _base_basectl_completion() {
     local command cur
     local commands="activate setup check test export-context devcontainer devenv-report build demo run repo ci release prompt docs clean logs history config trust doctor gh onboard update-profile update projects workspace version help"
-    local setup_options="--ci --format --profile --dry-run --manifest --notify --no-notify --recreate-venv --upgrade-pip --yes -v -h --help"
+    local setup_options="--ci --format --profile --dry-run --manifest --notify --no-notify --recreate-venv --upgrade-pip --yes --allow-project-ide-mutations -v -h --help"
     local check_options="--ci --profile --format --manifest --remote-network -v -h --help"
     local doctor_options="--ci --profile --format --manifest --remote-network --no-color -v -h --help"
 
@@ -925,7 +925,7 @@ _base_basectl_completion() {
         onboard)
             _base_basectl_completion_project_profiles_or_options \
                 "$cur" \
-                "--profile --dry-run --yes --no-profile -v -h --help" \
+                "--profile --dry-run --yes --allow-project-ide-mutations --no-profile -v -h --help" \
                 2 ""
             ;;
         update-profile)

@@ -19,6 +19,8 @@ from base_setup.manifest_loader import ManifestError
 from .trust_store import ALLOWED_COMMANDS  # pylint: disable=unused-import
 from .trust_store import SCHEMA_VERSION
 from .trust_store import TRUST_RELATIVE_ROOT  # pylint: disable=unused-import
+from .trust_store import TRUST_SCOPE  # pylint: disable=unused-import
+from .trust_store import TRUST_SCOPE_WARNING
 from .trust_store import ManifestCommandTrustIdentity
 from .trust_store import ManifestCommandTrustStore
 from .trust_store import TrustStatus
@@ -32,6 +34,7 @@ from .trust_store import identity_key_from_record  # pylint: disable=unused-impo
 from .trust_store import manifest_command_surfaces
 from .trust_store import manifest_command_surfaces_from_manifest
 from .trust_store import sha256_file  # pylint: disable=unused-import
+from .trust_store import trust_scope_payload
 from .trust_store import write_json_atomic  # pylint: disable=unused-import
 
 
@@ -140,6 +143,7 @@ def allow_command(ctx: base_cli.Context, project: str, workspace: str | None, ma
         return base_cli.ExitCode.USAGE_ERROR
 
     print_identity("Allowing manifest command trust", identity)
+    print_trust_scope_warning()
     ManifestCommandTrustStore().allow(identity, base_version=read_base_version(ctx.application_home))
     print(f"Allowed manifest commands for project '{identity.project_name}'.")
     return base_cli.ExitCode.SUCCESS
@@ -286,6 +290,7 @@ def status_payload(trust_status: TrustStatus) -> dict[str, Any]:
         "status": trust_status.status,
         "reason": trust_status.reason,
         "project": trust_status.identity.project_payload(),
+        "trust_scope": trust_scope_payload(),
     }
     if trust_status.is_allowed:
         payload["record"] = trust_status.record
@@ -324,6 +329,8 @@ def print_status_text(trust_status: TrustStatus, surfaces: tuple[str, ...]) -> N
     if trust_status.is_allowed:
         print(f"Manifest command trust is allowed for project '{identity.project_name}'.")
         print_identity("Trusted identity", identity)
+        print()
+        print_trust_scope_warning()
         return
 
     if trust_status.reason == "manifest_changed":
@@ -334,6 +341,8 @@ def print_status_text(trust_status: TrustStatus, surfaces: tuple[str, ...]) -> N
     else:
         print(f"Manifest command trust is blocked for project '{identity.project_name}'.")
     print_identity("Current identity", identity)
+    print()
+    print_trust_scope_warning()
     print()
     print_review_guidance(identity, surfaces, stream=sys.stdout)
     print()
@@ -369,6 +378,8 @@ def print_blocked_command_text(
     print(f"Manifest SHA-256: {identity.manifest_sha256}", file=stream)
     if identity.origin is not None:
         print(f"Origin: {identity.origin}", file=stream)
+    print(file=stream)
+    print_trust_scope_warning(stream=stream)
     print(file=stream)
     print_review_guidance(identity, surfaces, stream=stream)
     print(file=stream)
@@ -409,6 +420,13 @@ def print_identity(title: str, identity: ManifestCommandTrustIdentity) -> None:
         print(f"  Origin: {identity.origin}")
     if identity.head is not None:
         print(f"  HEAD: {identity.head}")
+
+
+def print_trust_scope_warning(*, stream: Any | None = None) -> None:
+    if stream is None:
+        stream = sys.stdout
+    print("Trust scope:", file=stream)
+    print(f"  {TRUST_SCOPE_WARNING}", file=stream)
 
 
 if __name__ == "__main__":

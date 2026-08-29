@@ -508,6 +508,9 @@ How Base should coexist:
 - install declared extensions through `code` or `cursor`
 - add missing user-level settings without overwriting user values
 - report missing app, CLI, extension, and settings state through check/doctor
+- show the complete project-originated IDE mutation plan in `setup --dry-run`
+  and require `--allow-project-ide-mutations` before applying it; `--yes` alone
+  does not authorize these app, extension, or global user-setting changes
 
 Current stance: strong coexistence, Base as IDE-readiness orchestrator rather
 than IDE owner.

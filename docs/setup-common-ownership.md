@@ -23,7 +23,8 @@ breaking up the file into domain-scoped helpers or Python-owned surfaces.
 - Preserve the top-level setup contract: `basectl check` inspects,
   `basectl setup` applies, `basectl setup --dry-run` previews, and
   `basectl setup --yes` is consent for prompts, not an automatic "fix
-  everything" mode.
+  everything" mode. Project-originated IDE app, extension, and user-setting
+  mutations additionally require `--allow-project-ide-mutations`.
 - Preserve public function names and call sites during shell extraction. Move
   code first; rename only in later, separately reviewed cleanup.
 - Keep Bash responsible for host bootstrap, shell process orchestration, prompt

@@ -111,6 +111,10 @@ setup_project_artifact_build_command() {
         _BASE_SETUP_PROJECT_ARTIFACT_ARGS+=(--remote-network)
         _BASE_SETUP_PROJECT_ARTIFACT_REMOTE_NETWORK=true
     fi
+    if [[ "$_BASE_SETUP_PROJECT_ARTIFACT_ACTION" == setup ]] &&
+        setup_project_ide_mutations_allowed; then
+        _BASE_SETUP_PROJECT_ARTIFACT_ARGS+=(--allow-project-ide-mutations)
+    fi
     _BASE_SETUP_PROJECT_ARTIFACT_ARGS+=("$_BASE_SETUP_PROJECT_ARTIFACT_PROJECT")
     _BASE_SETUP_PROJECT_ARTIFACT_PLATFORM="$(setup_current_platform)" || return 1
 

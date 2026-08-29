@@ -29,6 +29,12 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
   repositories.
 - Documented the deliberate mutable Homebrew installer default, its runtime
   disclosure, and the paired URL/SHA-256 override path for managed environments.
+- Added explicit project-originated IDE mutation consent through
+  `--allow-project-ide-mutations`, with complete app, extension, and user-setting
+  plans in setup dry-run output; `--yes` does not grant this consent.
+- Documented and exposed the manifest-only command-trust scope, including
+  warnings that referenced scripts and Git state are not independently bound
+  to approval.
 
 ### Fixed
 

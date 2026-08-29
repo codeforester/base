@@ -14,7 +14,8 @@ slower, friendlier, and more explanatory because that is its purpose.
 commands:
 
 1. runs `basectl check [project]`
-2. prompts before running `basectl setup [project]`
+2. prompts before running `basectl setup [project]`, including a separate
+   consent prompt if the project manifest requests IDE mutations
 3. prompts before running `basectl update-profile`, unless profile updates are
    disabled
 4. runs `basectl doctor [project]`
@@ -39,6 +40,8 @@ Options:
   --profile <list> Include named prerequisite profiles.
   --dry-run        Explain and show planned actions without making changes.
   --yes            Accept setup/profile prompts; never grant manifest trust.
+  --allow-project-ide-mutations
+                   Approve project-originated IDE app, extension, and user-setting mutations.
   --no-profile     Skip shell profile updates.
   -v               Enable DEBUG logging for underlying commands.
   -h, --help       Show help text.
@@ -98,6 +101,8 @@ boundary.
 - `basectl check [project]` for quick environment state
 - `basectl doctor [project]` for human-readable diagnosis and suggested fixes
 - `basectl setup [project]` for actual reconciliation
+- `basectl setup --allow-project-ide-mutations` when the user has reviewed and
+  approved the exact project-originated IDE mutation plan
 - `basectl setup --profile <list>` when the user opts into Base prerequisite
   profiles
 - `basectl update-profile` for shell startup integration
@@ -126,15 +131,19 @@ The shipped flow is simple and checklist-oriented:
 2. Run `basectl check`.
 3. If checks fail, explain that setup can reconcile the missing pieces.
 4. Ask for confirmation before running `basectl setup`.
-5. If `--profile` was requested, include those prerequisite profiles in setup.
-6. Ask for confirmation before running `basectl update-profile`, unless
+5. If the manifest requests project-originated IDE app, extension, or
+   user-setting changes, show the exact plan and ask for separate approval.
+   `--yes` does not answer this prompt; `--allow-project-ide-mutations` is the
+   explicit non-interactive approval.
+6. If `--profile` was requested, include those prerequisite profiles in setup.
+7. Ask for confirmation before running `basectl update-profile`, unless
    `--no-profile` was set.
-7. Run `basectl doctor` to summarize the final state.
-8. Print discovered projects with `basectl projects list` when available.
-9. Run the read-only `basectl trust status` workspace view, which filters out
+8. Run `basectl doctor` to summarize the final state.
+9. Print discovered projects with `basectl projects list` when available.
+10. Run the read-only `basectl trust status` workspace view, which filters out
    manifests without executable command surfaces and prints exact review and
    digest-bound allow guidance for those that need it.
-10. Suggest `basectl` or `basectl activate base` after any required trust
+11. Suggest `basectl` or `basectl activate base` after any required trust
     review.
 
 The command shows the exact Base command before it runs it. For example:
@@ -155,8 +164,13 @@ Prompts should be explicit but sparse:
 - Treat Enter as the conservative answer when there is risk.
 - `--yes` may accept normal setup/profile prompts, but should not bypass fatal
   safety checks such as unsupported operating systems or grant manifest
-  command trust. It is forwarded to setup so package-manager consent does not
-  unexpectedly remain interactive on Ubuntu/Debian.
+  command trust. It also never grants project-originated IDE mutation consent.
+  It is forwarded to setup so package-manager consent does not unexpectedly
+  remain interactive on Ubuntu/Debian.
+- Project-originated IDE app, extension, and global user-setting changes need
+  a separate approval through the interactive IDE prompt or
+  `--allow-project-ide-mutations`. Setup prints the exact dry-run plan first;
+  without this approval it stops before project setup reconcilers run.
 - `--dry-run` should not prompt for actions it will not perform.
 
 ## Output Style
@@ -177,6 +191,9 @@ Failures are recoverable and specific:
 - If `basectl check` fails, continue to the setup prompt.
 - If `basectl setup` fails, run or recommend `basectl doctor` and stop before
   profile updates.
+- If IDE mutation consent is not supplied, explain that `--yes` is insufficient
+  and recommend reviewing `basectl setup --dry-run` before rerunning with
+  `--allow-project-ide-mutations`.
 - If `basectl update-profile` fails, leave setup success intact and explain how
   to rerun that step.
 - If `basectl doctor` reports remaining findings, preserve its output and
@@ -217,6 +234,8 @@ Tests should cover:
 - declined setup prompt
 - accepted setup prompt
 - `--yes` non-interactive flow
+- separate project-originated IDE mutation consent, including `--yes` not
+  implying that consent
 - `--profile <list>` passing through to setup and doctor
 - `--no-profile` skipping profile updates
 - setup failure stopping later steps
