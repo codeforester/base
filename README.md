@@ -5,15 +5,27 @@
 ![Platform: macOS + Ubuntu/Debian](https://img.shields.io/badge/platform-macOS%20%2B%20Ubuntu%2FDebian-lightgrey)
 ![Version](https://img.shields.io/badge/version-1.8.0-blue)
 
-Base is a local operating contract: a shared, explicit set of project setup,
-readiness, trusted-execution, and handoff rules for developers and platform
-engineers. It gives a repeatable way to prepare, verify, test, build, and hand
-off a project, whether that project lives in one repository or spans multiple
-independent Git repositories.
+> Base is an AI-ready GitHub workspace control plane for repository setup, local
+> development, and verified pull requests.
 
-It makes that project or repository set easier to inventory, prepare, verify, trust,
-onboard, and hand off without turning it into a monorepo or moving
-project-specific logic into Base.
+Base is the local operating contract that makes a project workspace explicit
+and repeatable. It gives developers and platform engineers a shared way to
+prepare repositories, inspect readiness, approve trusted project commands, and
+hand off work across one or more independent Git repositories.
+
+Use Base when you need to:
+
+- create or configure a GitHub repository and its local workspace;
+- make setup, readiness, tests, builds, and trusted execution inspectable before
+  work starts;
+- carry enough evidence from issue and implementation work to a verified,
+  handoff-ready pull request.
+
+Base owns workspace orchestration, policy, trust, readiness, and handoff. Your
+repositories own their source code, tests, and project behavior; GitHub owns
+hosting and pull requests; environment managers and AI tools remain adapters.
+That boundary lets Base coordinate the workflow without turning your projects
+into a monorepo or moving project-specific logic into Base.
 
 ```text
 inventory -> prepare -> verify -> trust -> onboard -> hand off
