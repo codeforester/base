@@ -116,6 +116,7 @@ push and pull request. Unless --no-configure is set, repo init also applies the
 GitHub-side settings handled by repo configure.
 
 For the current checkout, pass its repository name and --path .
+Invalid configured workspace or GitHub defaults fail before any repository action.
 Plain repo init writes local baseline files but does not commit or push them.
 With --pr, repo init requires --issue, commits baseline changes on the canonical
 issue branch, pushes that branch to origin, and opens a pull request.
@@ -366,18 +367,58 @@ base_repo_target_path() {
 
 base_repo_strip_config_value() {
     local value="$1"
+    local quote character previous remainder
+    local result=""
+    local index length escaped=0 closed=0
 
-    value="${value%%#*}"
     base_str_trim value
 
-    case "$value" in
-        \"*\")
-            value="${value#\"}"
-            value="${value%\"}"
+    quote="${value:0:1}"
+    case "$quote" in
+        \"|\')
+            length="${#value}"
+            for ((index = 1; index < length; index++)); do
+                character="${value:index:1}"
+                if [[ "$quote" == \" && "$character" == \\ && "$escaped" == "0" ]]; then
+                    result+="$character"
+                    escaped=1
+                    continue
+                fi
+                if ((escaped)); then
+                    result+="$character"
+                    escaped=0
+                    continue
+                fi
+                if [[ "$quote" == \' && "$character" == \' && "${value:index+1:1}" == \' ]]; then
+                    result+="$character"
+                    ((index++))
+                    continue
+                fi
+                if [[ "$character" == "$quote" ]]; then
+                    closed=1
+                    remainder="${value:index+1}"
+                    break
+                fi
+                result+="$character"
+            done
+            ((closed)) || return 2
+            base_str_trim remainder
+            [[ -z "$remainder" || "$remainder" == \#* ]] || return 2
+            value="$result"
             ;;
-        \'*\')
-            value="${value#\'}"
-            value="${value%\'}"
+        *)
+            length="${#value}"
+            for ((index = 0; index < length; index++)); do
+                character="${value:index:1}"
+                previous=""
+                ((index > 0)) && previous="${value:index-1:1}"
+                if [[ "$character" == "#" && ( -z "$previous" || "$previous" =~ [[:space:]] ) ]]; then
+                    break
+                fi
+                result+="$character"
+            done
+            base_str_trim result
+            value="$result"
             ;;
     esac
 
@@ -419,7 +460,10 @@ base_repo_configured_workspace_root() {
         fi
 
         if ((in_workspace)) && [[ "$line" =~ ^[[:space:]]+root:[[:space:]]*(.*)$ ]]; then
-            value="$(base_repo_strip_config_value "${BASH_REMATCH[1]}")"
+            value="$(base_repo_strip_config_value "${BASH_REMATCH[1]}")" || {
+                base_std_log_error "$config_path: workspace.root has invalid quoted YAML syntax."
+                return 2
+            }
             [[ -n "$value" ]] || {
                 base_std_log_error "$config_path: workspace.root must be a non-empty path."
                 return 2
@@ -458,7 +502,10 @@ base_repo_configured_github_value() {
         fi
 
         if ((in_github)) && [[ "$line" =~ ^[[:space:]]+${key}:[[:space:]]*(.*)$ ]]; then
-            value="$(base_repo_strip_config_value "${BASH_REMATCH[1]}")"
+            value="$(base_repo_strip_config_value "${BASH_REMATCH[1]}")" || {
+                base_std_log_error "$config_path: github.$key has invalid quoted YAML syntax."
+                return 2
+            }
             [[ -n "$value" ]] || {
                 base_std_log_error "$config_path: github.$key must be a non-empty value."
                 return 2
