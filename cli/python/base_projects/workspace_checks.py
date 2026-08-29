@@ -15,6 +15,7 @@ from base_projects.workspace_report_common import missing_repo_message
 from base_projects.workspace_report_common import project_venv_dir
 from base_projects.workspace_report_common import project_venv_ready
 from base_projects.workspace_report_common import workspace_repo_check_details
+from base_projects.workspace_repository_url import redact_repository_url
 from base_projects.workspace_scanner import ManifestEntry
 from base_projects.workspace_scanner import workspace_manifest_entries
 from base_setup.checks import ArtifactCheck
@@ -138,7 +139,7 @@ def workspace_expected_repo_check_result(
             required=repo.required,
             repo="present",
             repository=repo.name,
-            url=repo.url,
+            url=redact_repository_url(repo.url) if repo.url is not None else None,
             default_branch=repo.default_branch,
         )
 
@@ -154,7 +155,7 @@ def workspace_expected_repo_check_result(
         required=repo.required,
         repo="missing",
         repository=repo.name,
-        url=repo.url,
+        url=redact_repository_url(repo.url) if repo.url is not None else None,
         default_branch=repo.default_branch,
     )
 
@@ -173,7 +174,7 @@ def attach_check_result_repo_metadata(
         required=repo.required,
         repo="present",
         repository=repo.name,
-        url=repo.url,
+        url=redact_repository_url(repo.url) if repo.url is not None else None,
         default_branch=repo.default_branch,
     )
 

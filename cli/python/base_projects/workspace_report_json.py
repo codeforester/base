@@ -12,6 +12,7 @@ from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_onboarding import WorkspaceOnboardingRepository
 from base_projects.workspace_onboarding import WorkspaceOnboardingSummary
 from base_projects.workspace_report_common import most_severe_status
+from base_projects.workspace_repository_url import redact_repository_url
 from base_setup.checks import ArtifactCheck
 from base_setup.checks import DIAGNOSTIC_JSON_SCHEMA_VERSION
 from base_setup.checks import check_to_json
@@ -121,7 +122,7 @@ def workspace_agent_brief_item_to_json(repository: WorkspaceAgentBriefRepository
         "next_actions": list(repository.next_actions),
     }
     if repository.url is not None:
-        payload["url"] = repository.url
+        payload["url"] = redact_repository_url(repository.url)
     if repository.default_branch is not None:
         payload["default_branch"] = repository.default_branch
     return payload
@@ -160,7 +161,7 @@ def workspace_onboarding_item_to_json(repository: WorkspaceOnboardingRepository)
         "clone_command": repository.clone_command,
     }
     if repository.url is not None:
-        payload["url"] = repository.url
+        payload["url"] = redact_repository_url(repository.url)
     if repository.default_branch is not None:
         payload["default_branch"] = repository.default_branch
     return payload
@@ -207,7 +208,7 @@ def workspace_manifest_item_metadata(item: Any) -> dict[str, Any]:
         "repo": item.repo,
     }
     if item.url is not None:
-        metadata["url"] = item.url
+        metadata["url"] = redact_repository_url(item.url)
     if item.default_branch is not None:
         metadata["default_branch"] = item.default_branch
     return metadata

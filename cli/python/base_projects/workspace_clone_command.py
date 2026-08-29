@@ -15,6 +15,7 @@ from base_projects.workspace_context import resolve_workspace_root
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestError
 from base_projects.workspace_manifest import WorkspaceManifestRepo
+from base_projects.workspace_repository_url import redact_repository_url
 from base_projects.workspace_scanner import ProjectDiscoveryError
 
 
@@ -118,7 +119,7 @@ def clone_workspace_repo(
         ctx.log.error(
             "Repository '%s' has unsupported clone URL '%s'. Only github.com repository URLs are supported.",
             repo.name,
-            repo.url,
+            redact_repository_url(repo.url) if repo.url is not None else None,
         )
         return base_cli.ExitCode.FAILURE
 
