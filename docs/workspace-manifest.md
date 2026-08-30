@@ -237,9 +237,11 @@ Teams can also configure a canonical manifest source in
 `workspace.manifest_source` and refresh the local manifest with the explicit
 `basectl workspace pull` command. Pull supports local paths, `file://` URLs,
 and raw `https://` file URLs; cleartext `http://` sources are rejected by
-default. Remote source fetching is therefore an explicit manifest-file update,
-not passive workspace discovery, and it does not clone, pull, reset, or rewrite
-project repositories.
+default. Local file URLs percent-decode the path exactly once, accept only an
+empty or `localhost` authority, and reject malformed escapes or remote
+authorities. Remote source fetching is therefore an explicit manifest-file
+update, not passive workspace discovery, and it does not clone, pull, reset, or
+rewrite project repositories.
 
 ### Update Existing Checkouts
 
@@ -390,9 +392,11 @@ basectl workspace init base-workspace --owner basefoundry --path ~/work/base-wor
 ```
 
 The positional argument is a workspace source, not the workspace name. The
-source can be a local path, a GitHub URL, `owner/repo`, or a short repository
-name resolved by `--owner <owner>` or `github.default_owner`. `--path` controls
-where the workspace configuration repository is checked out or read.
+source can be a local path or local `file://` URL, a GitHub URL, `owner/repo`,
+or a short repository name resolved by `--owner <owner>` or
+`github.default_owner`. Init uses the same one-time percent decoding and
+empty-or-`localhost` authority policy as workspace pull. `--path` controls where
+the workspace configuration repository is checked out or read.
 `--workspace` controls where member repositories are cloned. If neither
 `--workspace` nor configured `workspace.root` is available, init uses the parent
 of the workspace configuration repo path as the workspace root.

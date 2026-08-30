@@ -4,7 +4,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Protocol
-from urllib.parse import urlparse
 
 import base_cli
 from base_cli_adapters.config import load_user_config
@@ -15,6 +14,7 @@ from base_projects.command_helpers import github_repo_spec
 from base_projects.command_helpers import run_project_command
 from base_projects.command_helpers import write_project_command_output
 from base_projects.workspace_context import resolve_workspace_manifest
+from base_projects.workspace_file_url import resolve_workspace_file_url
 from base_projects.workspace_manifest import WorkspaceManifestError
 from base_projects.workspace_scanner import ProjectDiscoveryError
 
@@ -105,11 +105,10 @@ def resolve_workspace_init_source(
     owner: str | None,
 ) -> WorkspaceInitSource:
     source_path = Path(workspace_source).expanduser()
-    if workspace_source.startswith("file://"):
-        parsed = urlparse(workspace_source)
+    if workspace_source[:5].lower() == "file:":
         return WorkspaceInitSource(
             display=workspace_source,
-            local_path=Path(parsed.path).expanduser().resolve(strict=False),
+            local_path=resolve_workspace_file_url(workspace_source),
         )
     if is_workspace_init_path_source(workspace_source) or source_path.exists():
         return WorkspaceInitSource(
