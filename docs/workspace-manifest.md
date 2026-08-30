@@ -85,7 +85,10 @@ An empty workspace has aggregate status `ok`.
 The latest-check record is optional persistence state. If a check succeeds but
 cannot save that record, the check result remains authoritative and workspace
 status reports the missing record as `-` or `null` until a later check can save
-one.
+one. Text output emits one warning per affected project with the record path;
+JSON and YAML expose the same details in the top-level `record_warnings`
+collection. Persistence warnings do not change the workspace health status or
+command exit code.
 
 With `--manifest <path>`, the same commands also report expected repositories,
 missing required and optional repositories, and discovered Base-managed

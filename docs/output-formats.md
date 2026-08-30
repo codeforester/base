@@ -37,6 +37,12 @@ a top-level aggregate `status` alongside `workspace`, `project_count`, and
 `projects`. The aggregate uses `error` over `warn` over `ok` precedence; each
 project record retains its existing `status` field.
 
+`basectl workspace check --format json|yaml` also includes a top-level
+`record_warnings` collection. Each warning names the affected project and
+latest-check record path and supplies stable `status`, `message`, and `fix`
+fields. The collection is empty when every record is saved. These optional
+persistence warnings do not alter the diagnostic `status` or command exit code.
+
 The terminal check is made on stdout, so redirecting stdout changes only the
 default `text` presentation. An explicitly selected `--format text` follows
 the same rule. Logging, warnings, and usage errors stay on stderr and never

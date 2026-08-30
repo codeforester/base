@@ -43,6 +43,7 @@ from base_projects.workspace_clone_command import should_skip_optional_clone  # 
 from base_projects.workspace_clone_command import workspace_clone_command
 from base_projects.workspace_clone_command import workspace_clone_repo_spec  # pylint: disable=unused-import
 from base_projects.workspace_checks import persist_workspace_check_records
+from base_projects.workspace_checks import workspace_check_record_warning
 from base_projects.workspace_checks import workspace_error_count
 from base_projects.workspace_checks import workspace_project_check_results
 from base_projects.workspace_configure import workspace_configure_from_options
@@ -317,9 +318,14 @@ def workspace_check_command(
         ctx.log.error(str(exc))
         return base_cli.ExitCode.FAILURE
 
+    record_failures = persist_workspace_check_records(results)
+    record_warnings = [workspace_check_record_warning(failure) for failure in record_failures]
+    document = workspace_check_to_json(workspace_root, results, manifest)
+    document["record_warnings"] = record_warnings
+
     if not emit_workspace_report(
         ctx,
-        workspace_check_to_json(workspace_root, results, manifest),
+        document,
         output_format,
         records_key="projects",
         columns=(("PROJECT", "name"), ("STATUS", "status"), ("PATH", "path"), ("MANIFEST", "manifest")),
@@ -327,8 +333,16 @@ def workspace_check_command(
     ):
         return base_cli.ExitCode.USAGE_ERROR
 
-    for project_name, exc in persist_workspace_check_records(results):
-        ctx.log.warning("Could not record workspace check for project '%s': %s", project_name, exc)
+    resolved_output_format = base_cli.resolve_output_format(output_format)
+    if resolved_output_format not in ("json", "yaml"):
+        for warning in record_warnings:
+            ctx.log.warning(
+                "%s Project '%s'; path: '%s'. %s",
+                warning["message"],
+                warning["project"],
+                warning["path"],
+                warning["fix"],
+            )
 
     if any(result.status == "error" for result in results):
         return base_cli.ExitCode.FAILURE

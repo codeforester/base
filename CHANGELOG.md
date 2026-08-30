@@ -49,6 +49,10 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
 
 ### Fixed
 
+- Workspace checks now surface each failed latest-check record write, including
+  stable JSON/YAML warnings, while preserving project-health exit semantics and
+  successful records from the same run.
+
 - Prevented rejected `basectl` usage invocations from retaining run bundles,
   logs, or history rows; an explicitly named nonexistent `basectl test` project
   now returns usage status `2`, while accepted-command failures remain
