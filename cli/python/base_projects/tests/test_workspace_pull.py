@@ -157,7 +157,7 @@ class WorkspacePullTests(unittest.TestCase):
             root = Path(tmpdir)
             home = root / "home"
             base_home = root / "base"
-            source = root / "canonical.yaml"
+            source = root / "Canonical Workspace-雪-%20.yaml"
             target = root / "workspace.yaml"
             home.mkdir()
             base_home.mkdir()
@@ -175,6 +175,63 @@ class WorkspacePullTests(unittest.TestCase):
         self.assertEqual(target_content, WORKSPACE_MANIFEST)
         self.assertIn(f"Source: {source.as_uri()}", stdout)
         self.assertIn("Status: created", stdout)
+
+    def test_workspace_pull_accepts_localhost_file_url_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            source = root / "canonical.yaml"
+            target = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            source.write_text(WORKSPACE_MANIFEST, encoding="utf-8")
+            source_url = source.as_uri().replace("file:///", "file://localhost/", 1)
+
+            status, stdout, stderr = invoke_engine(
+                ["pull", "--source", source_url, "--manifest", str(target)],
+                base_home,
+                home,
+            )
+            target_content = target.read_text(encoding="utf-8") if target.exists() else ""
+
+        self.assertEqual(status, 0)
+        self.assertEqual(stderr, "")
+        self.assertEqual(target_content, WORKSPACE_MANIFEST)
+        self.assertIn(f"Source: {source_url}", stdout)
+
+    def test_workspace_pull_rejects_remote_and_malformed_file_urls(self) -> None:
+        cases = (
+            (
+                "file://files.example.test/private/workspace.yaml",
+                "support only an empty or localhost authority",
+            ),
+            (
+                "file:///private/tmp/Base%2Workspace.yaml",
+                "malformed percent encoding",
+            ),
+        )
+        for source_url, expected_message in cases:
+            with self.subTest(source_url=source_url):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    root = Path(tmpdir)
+                    home = root / "home"
+                    base_home = root / "base"
+                    target = root / "workspace.yaml"
+                    home.mkdir()
+                    base_home.mkdir()
+
+                    status, stdout, stderr = invoke_engine(
+                        ["pull", "--source", source_url, "--manifest", str(target)],
+                        base_home,
+                        home,
+                    )
+                    target_exists = target.exists()
+
+                self.assertEqual(status, 2)
+                self.assertEqual(stdout, "")
+                self.assertFalse(target_exists)
+                self.assertIn(expected_message, stderr)
 
     def test_workspace_pull_rejects_cleartext_http_source_before_fetching(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

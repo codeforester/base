@@ -49,6 +49,10 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
 
 ### Fixed
 
+- Workspace init and pull now share one local `file://` parser that decodes
+  spaces, Unicode, and literal percent signs exactly once while rejecting
+  malformed encodings and remote authorities.
+
 - Workspace checks now surface each failed latest-check record write, including
   stable JSON/YAML warnings, while preserving project-health exit semantics and
   successful records from the same run.

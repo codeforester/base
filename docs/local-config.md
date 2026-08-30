@@ -138,8 +138,10 @@ edit that value to make commands such as
 uses it as the canonical manifest source unless the command supplies
 `--source <url-or-path>`. Supported sources are local paths, `file://` URLs, and
 `https://` raw file URLs. Cleartext `http://` sources are rejected by default.
-Pull validates fetched content as a workspace manifest before updating
-`workspace.manifest`.
+Local file URLs decode percent-encoded UTF-8 paths exactly once and support only
+an empty or `localhost` authority; remote authorities and malformed escapes are
+rejected. Pull validates fetched content as a workspace manifest before
+updating `workspace.manifest`.
 
 `workspace.root` and `workspace.manifest` must be absolute paths or start with
 `~`. `workspace.manifest_source` must be a non-empty string when provided.

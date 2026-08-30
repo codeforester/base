@@ -4,7 +4,7 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler
 from urllib.request import Request
 from urllib.request import build_opener
@@ -12,6 +12,7 @@ from urllib.request import build_opener
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestError
 from base_projects.workspace_manifest import read_workspace_manifest
+from base_projects.workspace_file_url import resolve_workspace_file_url
 
 
 MAX_WORKSPACE_MANIFEST_SOURCE_BYTES = 2 * 1024 * 1024
@@ -76,6 +77,10 @@ def workspace_manifest_change_status(existing_content: bytes | None, content: by
 
 
 def fetch_workspace_manifest_source(source: str) -> bytes:
+    if source[:5].lower() == "file:":
+        path = resolve_workspace_file_url(source)
+        return read_workspace_manifest_source_file(source, path)
+
     parsed = urlparse(source)
     if parsed.scheme == "http":
         raise WorkspaceManifestError(
@@ -100,11 +105,7 @@ def fetch_workspace_manifest_source(source: str) -> bytes:
         except OSError as exc:
             raise WorkspaceManifestError(f"Unable to fetch workspace manifest source '{source}': {exc}") from exc
 
-    if parsed.scheme == "file":
-        path = Path(unquote(parsed.path)).expanduser()
-        return read_workspace_manifest_source_file(source, path)
-
-    if parsed.scheme and parsed.scheme not in {"", "file"}:
+    if parsed.scheme:
         raise WorkspaceManifestError(
             f"Unsupported workspace manifest source '{source}'. Expected a local path, file:// URL, or https:// URL."
         )

@@ -81,6 +81,8 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
     `workspace pull` mutates only the local workspace manifest after validating
     the source; `workspace init` can clone the workspace configuration repo,
     update `~/.base.d/config.yaml`, and materialize manifest repositories;
+    init and pull share one local `file://` parser that percent-decodes once,
+    accepts empty or `localhost` authority, and rejects remote authorities;
     `workspace update` runs `git pull --ff-only` across present repositories in
     manifest order, including the active Base checkout when it is the
     manifest's `base` target;

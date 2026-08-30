@@ -187,6 +187,98 @@ class WorkspaceInitTests(unittest.TestCase):
             ],
         )
 
+    def test_workspace_init_decodes_file_url_paths_once(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            workspace = root / "workspace"
+            source = root / "Base Workspace-雪-%20"
+            state_file = root / "basectl-calls"
+            home.mkdir()
+            base_home.mkdir()
+            workspace.mkdir()
+            source.mkdir()
+            write_workspace_manifest(source / "workspace.yaml")
+            write_fake_basectl(base_home, state_file)
+            source_url = source.as_uri()
+
+            status, stdout, stderr = invoke_engine(
+                [
+                    "init",
+                    source_url,
+                    "--workspace",
+                    str(workspace),
+                    "--dry-run",
+                ],
+                base_home,
+                home,
+            )
+
+        self.assertEqual(status, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn(f"Workspace source: {source_url}", stdout)
+        self.assertIn(f"Workspace config repo: {source.resolve()}", stdout)
+        self.assertIn(f"Workspace manifest: {(source / 'workspace.yaml').resolve()} (demo-suite)", stdout)
+
+    def test_workspace_init_accepts_localhost_file_url_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            workspace = root / "workspace"
+            source = root / "base-workspace"
+            state_file = root / "basectl-calls"
+            home.mkdir()
+            base_home.mkdir()
+            workspace.mkdir()
+            source.mkdir()
+            write_workspace_manifest(source / "workspace.yaml")
+            write_fake_basectl(base_home, state_file)
+            source_url = source.as_uri().replace("file:///", "file://localhost/", 1)
+
+            status, stdout, stderr = invoke_engine(
+                ["init", source_url, "--workspace", str(workspace), "--dry-run"],
+                base_home,
+                home,
+            )
+
+        self.assertEqual(status, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn(f"Workspace config repo: {source.resolve()}", stdout)
+
+    def test_workspace_init_rejects_remote_and_malformed_file_urls(self) -> None:
+        cases = (
+            (
+                "file://files.example.test/private/workspace",
+                "support only an empty or localhost authority",
+            ),
+            (
+                "file:///private/tmp/Base%2Workspace",
+                "malformed percent encoding",
+            ),
+        )
+        for source_url, expected_message in cases:
+            with self.subTest(source_url=source_url):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    root = Path(tmpdir)
+                    home = root / "home"
+                    base_home = root / "base"
+                    workspace = root / "workspace"
+                    home.mkdir()
+                    base_home.mkdir()
+                    workspace.mkdir()
+
+                    status, stdout, stderr = invoke_engine(
+                        ["init", source_url, "--workspace", str(workspace), "--dry-run"],
+                        base_home,
+                        home,
+                    )
+
+                self.assertEqual(status, 2)
+                self.assertEqual(stdout, "")
+                self.assertIn(expected_message, stderr)
+
     def test_workspace_init_writes_config_and_clones_repositories_under_workspace_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
