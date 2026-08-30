@@ -83,8 +83,9 @@ potential, and engineering evidence, see
 [Product Assessment](docs/product-assessment.md).
 
 Common first-run and product questions are answered in [FAQ.md](FAQ.md).
-Contributions should follow [CONTRIBUTING.md](CONTRIBUTING.md). Release notes
-are tracked in [CHANGELOG.md](CHANGELOG.md).
+Contributions should follow [CONTRIBUTING.md](CONTRIBUTING.md). Report security
+issues and handle detected credentials according to [SECURITY.md](SECURITY.md).
+Release notes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Source Control And Forge Support
 

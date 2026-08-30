@@ -53,6 +53,12 @@ Every `base-bash-libs` checkout in that workflow uses one immutable GA revision.
 The workflow contract test guards against an RC or mixed dependency pin
 returning across the platform and source-checkout jobs.
 
+The `Security scanners` job is a required merge check. In addition to Bandit,
+pip-audit, and ShellCheck, it runs the checksum-pinned Gitleaks release through
+`tests/scan-secrets.sh`; findings are fully redacted. GitHub secret scanning and
+provider push protection are the repository-native first layer, while Gitleaks
+covers generic patterns unavailable through this repository's GitHub plan.
+
 First-mile Homebrew installation remains mutable by default and logs that
 policy. Managed environments can opt into checksum verification with paired
 installer URL and SHA-256 overrides; the bootstrap documentation records why
