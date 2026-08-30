@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from base_projects import engine
+from base_projects import workspace_checks
 
 
 def write_manifest(project_root: Path, name: str) -> None:
@@ -168,6 +169,197 @@ class WorkspaceCheckTests(unittest.TestCase):
         self.assertIn("demo", stdout + stderr)
         self.assertEqual(record["command"], "basectl workspace check")
         self.assertEqual(record["status"], "error")
+
+    def test_workspace_check_json_reports_a_false_record_write(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_shell_manifest(workspace / "demo", "demo")
+
+            with mock.patch.object(workspace_checks, "write_check_record", return_value=False):
+                status, stdout, stderr = invoke_engine(
+                    ["check", "--workspace", str(workspace), "--format", "json"],
+                    base_home,
+                    home,
+                )
+
+            expected_path = home / ".base.d" / "demo" / "checks" / "last.json"
+
+        payload = json.loads(stdout)
+        self.assertEqual(status, 0)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(stderr, "")
+        self.assertEqual(
+            payload["record_warnings"],
+            [
+                {
+                    "project": "demo",
+                    "status": "warn",
+                    "message": "Latest check record could not be saved.",
+                    "fix": "Ensure the Base state directory is writable, then rerun the check.",
+                    "path": str(expected_path),
+                }
+            ],
+        )
+
+    def test_workspace_check_text_reports_a_record_write_failure_once(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_shell_manifest(workspace / "demo", "demo")
+
+            with mock.patch.object(workspace_checks, "write_check_record", return_value=False):
+                status, stdout, stderr = invoke_engine(
+                    ["check", "--workspace", str(workspace)],
+                    base_home,
+                    home,
+                )
+
+            expected_path = home / ".base.d" / "demo" / "checks" / "last.json"
+
+        self.assertEqual(status, 0)
+        self.assertIn("Project: demo [ok]", stdout)
+        self.assertEqual(stderr.count("Latest check record could not be saved."), 1)
+        self.assertIn("Project 'demo'", stderr)
+        self.assertIn(str(expected_path), stderr)
+        self.assertNotIn("Traceback", stderr)
+
+    def test_workspace_check_reports_an_unwritable_record_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_shell_manifest(workspace / "demo", "demo")
+            write_record = workspace_checks.write_check_record
+
+            def reject_record_directory(*args, **kwargs) -> bool:
+                with mock.patch.object(Path, "mkdir", side_effect=PermissionError("read-only")):
+                    return write_record(*args, **kwargs)
+
+            with mock.patch.object(
+                workspace_checks,
+                "write_check_record",
+                side_effect=reject_record_directory,
+            ):
+                status, stdout, stderr = invoke_engine(
+                    ["check", "--workspace", str(workspace), "--format", "json"],
+                    base_home,
+                    home,
+                )
+
+        payload = json.loads(stdout)
+        self.assertEqual(status, 0)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(stderr, "")
+        self.assertEqual([warning["project"] for warning in payload["record_warnings"]], ["demo"])
+
+    def test_workspace_check_preserves_error_exit_when_record_replace_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_manifest(workspace / "demo", "demo")
+            old_record_path = home / ".base.d" / "demo" / "checks" / "last.json"
+            old_record_path.parent.mkdir(parents=True)
+            old_record_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "project": "demo",
+                        "command": "basectl workspace check",
+                        "status": "warn",
+                        "checked_at": "2026-01-01T00:00:00Z",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(Path, "replace", side_effect=OSError("read-only")):
+                status, stdout, stderr = invoke_engine(
+                    ["check", "--workspace", str(workspace), "--format", "json"],
+                    base_home,
+                    home,
+                )
+            retained_record = json.loads(old_record_path.read_text(encoding="utf-8"))
+
+        payload = json.loads(stdout)
+        self.assertEqual(status, 1)
+        self.assertEqual(payload["status"], "error")
+        self.assertEqual(stderr, "")
+        self.assertEqual([warning["project"] for warning in payload["record_warnings"]], ["demo"])
+        self.assertEqual(retained_record["checked_at"], "2026-01-01T00:00:00Z")
+        self.assertEqual(retained_record["status"], "warn")
+
+    def test_workspace_check_keeps_successful_records_when_one_write_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            write_default_manifest(base_home)
+            write_shell_manifest(workspace / "alpha", "alpha")
+            write_shell_manifest(workspace / "beta", "beta")
+            write_record = workspace_checks.write_check_record
+
+            def write_partially(
+                path: Path,
+                project: str,
+                result_status: str,
+                checked_at: str,
+                *,
+                command: str,
+            ) -> bool:
+                if project == "beta":
+                    return False
+                return write_record(
+                    path,
+                    project,
+                    result_status,
+                    checked_at,
+                    command=command,
+                )
+
+            with mock.patch.object(
+                workspace_checks,
+                "write_check_record",
+                side_effect=write_partially,
+            ):
+                status, stdout, stderr = invoke_engine(
+                    ["check", "--workspace", str(workspace), "--format", "json"],
+                    base_home,
+                    home,
+                )
+
+            alpha_record = read_last_check(home, "alpha")
+            beta_record_path = home / ".base.d" / "beta" / "checks" / "last.json"
+            beta_record_exists = beta_record_path.exists()
+
+        payload = json.loads(stdout)
+        self.assertEqual(status, 0)
+        self.assertEqual(stderr, "")
+        self.assertEqual(alpha_record["status"], "ok")
+        self.assertFalse(beta_record_exists)
+        self.assertEqual([warning["project"] for warning in payload["record_warnings"]], ["beta"])
 
     def test_workspace_check_manifest_reports_expected_missing_and_extra_repositories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -428,6 +620,7 @@ class WorkspaceCheckTests(unittest.TestCase):
         self.assertEqual(payload["workspace"], str(workspace.resolve()))
         self.assertEqual(payload["status"], "error")
         self.assertEqual(payload["project_count"], 1)
+        self.assertEqual(payload["record_warnings"], [])
         self.assertEqual(payload["projects"][0]["name"], "demo")
         self.assertEqual(payload["projects"][0]["status"], "error")
         self.assertEqual(payload["projects"][0]["checks"][0]["id"], "BASE-P050")

@@ -21,6 +21,7 @@ from base_projects.workspace_scanner import workspace_manifest_entries
 from base_setup.checks import ArtifactCheck
 from base_setup.checks import checks_status
 from base_setup.checks import doctor_status
+from base_setup.diagnostics import check_record_warning
 from base_setup.diagnostics import write_check_record
 from base_setup.engine import manifest_checks
 from base_setup.engine import pre_venv_manifest_checks
@@ -51,28 +52,40 @@ class WorkspaceProjectCheckResult:
     default_branch: str | None = None
 
 
+@dataclass(frozen=True)
+class WorkspaceCheckRecordFailure:
+    project: str
+    path: Path
+
+
 def workspace_check_timestamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def persist_workspace_check_records(
     results: tuple[WorkspaceProjectCheckResult, ...],
-) -> tuple[tuple[str, OSError], ...]:
+) -> tuple[WorkspaceCheckRecordFailure, ...]:
     checked_at = workspace_check_timestamp()
-    failures: list[tuple[str, OSError]] = []
+    failures: list[WorkspaceCheckRecordFailure] = []
     for result in results:
         record_path = base_state_root() / result.name / "checks" / "last.json"
         try:
-            write_check_record(
+            written = write_check_record(
                 record_path,
                 result.name,
                 result.status,
                 checked_at,
                 command=WORKSPACE_CHECK_COMMAND,
             )
-        except OSError as exc:
-            failures.append((result.name, exc))
+        except OSError:
+            written = False
+        if not written:
+            failures.append(WorkspaceCheckRecordFailure(project=result.name, path=record_path))
     return tuple(failures)
+
+
+def workspace_check_record_warning(failure: WorkspaceCheckRecordFailure) -> dict[str, str]:
+    return {"project": failure.project, **check_record_warning(failure.path)}
 
 
 def workspace_project_check_results(

@@ -66,7 +66,10 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
     `workspace clone`, `workspace pull`, `workspace update`, `workspace init`, `workspace configure`,
     and `workspace setup` use text output.
   - `workspace check` presents check-oriented readiness messages; `workspace doctor`
-    presents actionable findings with stable IDs and fix guidance.
+    presents actionable findings with stable IDs and fix guidance. Workspace
+    check-record persistence is optional: failures are reported per project in
+    text and through JSON/YAML `record_warnings` without changing health status
+    or exit semantics.
   - `workspace onboarding` summarizes ready, needs-setup, invalid-manifest,
     missing-required, and missing-optional repository state without cloning
     repositories or running setup.
