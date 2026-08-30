@@ -1,5 +1,3 @@
-import ast
-import inspect
 import re
 from pathlib import Path
 
@@ -7,9 +5,7 @@ import yaml
 
 from tests.github_workflow_test_support import (
     issue_branch_policy_run_command,
-    project_intake_run_command,
     run_issue_branch_policy_script,
-    run_project_intake_script,
 )
 
 
@@ -80,20 +76,6 @@ def workflow_step_by_name(job: dict, name: str) -> dict:
     matches = [step for step in steps if isinstance(step, dict) and step.get("name") == name]
     assert len(matches) == 1, f"Expected exactly one workflow step named {name!r}, found {len(matches)}."
     return matches[0]
-
-
-def test_project_intake_script_runner_uses_subprocess_timeout() -> None:
-    tree = ast.parse(inspect.getsource(run_project_intake_script))
-    subprocess_run_calls = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "run"
-    ]
-
-    assert len(subprocess_run_calls) == 1
-    assert any(keyword.arg == "timeout" for keyword in subprocess_run_calls[0].keywords)
 
 
 def test_all_workflows_cancel_superseded_runs() -> None:
@@ -876,67 +858,6 @@ def test_ubuntu_apt_jobs_remove_flaky_runner_third_party_sources() -> None:
 
         assert "/etc/apt/sources.list.d/azure-cli.sources" in setup_commands
         assert "/etc/apt/sources.list.d/microsoft-prod.list" in setup_commands
-
-
-def test_project_intake_requires_base_project_token() -> None:
-    workflow = load_workflow(WORKFLOW_DIR / "project-intake.yml")
-    sync_job = workflow["jobs"]["sync"]
-    run_command = project_intake_run_command()
-
-    assert sync_job["env"]["GH_TOKEN"] == "${{ secrets.BASE_PROJECT_TOKEN }}"
-    assert "github.token" not in run_command
-    assert "BASE_PROJECT_TOKEN secret is required for Project Intake." in run_command
-    assert "gh auth token | gh secret set BASE_PROJECT_TOKEN --repo $GITHUB_REPOSITORY" in run_command
-
-
-def test_project_intake_classifies_rate_limits_and_auth_failures() -> None:
-    run_command = project_intake_run_command()
-
-    assert "project_intake_gh()" in run_command
-    assert "project_intake_is_retryable_api_failure()" in run_command
-    assert "project_intake_retry_delay_seconds()" in run_command
-    assert "Retry-After" in run_command
-    assert "x-ratelimit-reset" in run_command
-    assert "retrying once" in run_command
-    assert 'sleep "$retry_delay"' in run_command
-    assert "Bad credentials" in run_command
-    assert "Rotate BASE_PROJECT_TOKEN and rerun this workflow_dispatch" in run_command
-    assert 'project_intake_gh "view issue" gh issue view' in run_command
-    assert 'project_intake_gh "list Projects" gh project list' in run_command
-    assert 'project_intake_gh "add Project item" gh project item-add' in run_command
-    assert 'project_intake_gh "set Project field $field_name" gh project item-edit' in run_command
-
-
-def test_project_intake_retries_rate_limited_operations_once(tmp_path: Path) -> None:
-    result = run_project_intake_script(tmp_path, PROJECT_INTAKE_RATE_LIMIT_ONCE="1")
-
-    assert result.returncode == 0, result.stderr
-    assert "GitHub API pressure during Project Intake: view issue" in result.stderr
-    assert "retrying once" in result.stderr
-    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "7\n"
-    assert (tmp_path / "issue-view-count").read_text(encoding="utf-8") == "2\n"
-    assert "Synced issue #1311 into Project base." in result.stdout
-
-
-def test_project_intake_keeps_success_stderr_out_of_json_stdout(tmp_path: Path) -> None:
-    result = run_project_intake_script(tmp_path, PROJECT_INTAKE_WARN_ON_SUCCESS="1")
-
-    assert result.returncode == 0, result.stderr
-    assert "warning: gh emitted a non-fatal notice" in result.stderr
-    assert "warning: gh emitted a non-fatal notice" not in result.stdout
-    assert "Synced issue #1311 into Project base." in result.stdout
-
-
-def test_project_intake_auth_failures_do_not_retry(tmp_path: Path) -> None:
-    result = run_project_intake_script(tmp_path, PROJECT_INTAKE_AUTH_FAIL="1")
-
-    assert result.returncode != 0
-    assert "GitHub authentication failed during Project Intake: view issue" in result.stderr
-    assert "Rotate BASE_PROJECT_TOKEN and rerun this workflow_dispatch" in result.stderr
-    assert "Bad credentials" in result.stderr
-    assert "retrying once" not in result.stderr
-    assert not (tmp_path / "sleep.log").exists()
-    assert (tmp_path / "issue-view-count").read_text(encoding="utf-8") == "1\n"
 
 
 def test_skills_workflow_generates_current_guidance_without_indent_stripping() -> None:

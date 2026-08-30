@@ -208,8 +208,80 @@ set -u
 
 printf '%s\\n' "$*" >> "${PROJECT_INTAKE_STATE:?}/gh.log"
 
-case "${1:-} ${2:-}" in
-  "issue view")
+project_intake_mock_value() {
+  local field="$1"
+  local state_file="${PROJECT_INTAKE_STATE:?}/${field}"
+
+  if [[ -f "$state_file" ]]; then
+    cat "$state_file"
+    return 0
+  fi
+
+  case "$field" in
+    status) printf '%s\\n' "${PROJECT_INTAKE_EXISTING_STATUS:-}" ;;
+    priority) printf '%s\\n' "${PROJECT_INTAKE_EXISTING_PRIORITY:-}" ;;
+    size) printf '%s\\n' "${PROJECT_INTAKE_EXISTING_SIZE:-}" ;;
+    area) printf '%s\\n' "${PROJECT_INTAKE_EXISTING_AREA:-}" ;;
+    initiative) printf '%s\\n' "${PROJECT_INTAKE_EXISTING_INITIATIVE:-}" ;;
+  esac
+}
+
+project_intake_mock_write_option() {
+  local field_id="$1"
+  local option_id="$2"
+  local field_name=''
+  local option_name=''
+
+  case "$field_id" in
+    F_status|10) field_name=status ;;
+    F_priority|11) field_name=priority ;;
+    F_size|12) field_name=size ;;
+    F_area|13) field_name=area ;;
+    F_initiative|14) field_name=initiative ;;
+  esac
+  case "$option_id" in
+    O_backlog) option_name=Backlog ;;
+    O_done) option_name=Done ;;
+    O_p2) option_name=P2 ;;
+    O_s) option_name=S ;;
+    O_product) option_name=Product ;;
+    O_adoption) option_name='Adoption Polish' ;;
+  esac
+  [[ -n "$field_name" && -n "$option_name" ]] || {
+    printf 'unexpected field update: %s=%s\\n' "$field_id" "$option_id" >&2
+    exit 2
+  }
+  printf '%s\\n' "$option_name" > "${PROJECT_INTAKE_STATE:?}/${field_name}"
+}
+
+project_intake_mock_graphql_item() {
+  jq -nc \
+    --arg status "$(project_intake_mock_value status)" \
+    --arg priority "$(project_intake_mock_value priority)" \
+    --arg size "$(project_intake_mock_value size)" \
+    --arg area "$(project_intake_mock_value area)" \
+    --arg initiative "$(project_intake_mock_value initiative)" \
+    '{items:[{id:"PVTI_item",status:$status,priority:$priority,size:$size,area:$area,initiative:$initiative}]}'
+}
+
+project_intake_mock_rest_item() {
+  jq -nc \
+    --arg status "$(project_intake_mock_value status)" \
+    --arg priority "$(project_intake_mock_value priority)" \
+    --arg size "$(project_intake_mock_value size)" \
+    --arg area "$(project_intake_mock_value area)" \
+    --arg initiative "$(project_intake_mock_value initiative)" \
+    '{id:101,fields:[
+      {id:10,name:"Status",value:{name:{raw:$status}}},
+      {id:11,name:"Priority",value:{name:{raw:$priority}}},
+      {id:12,name:"Size",value:{name:{raw:$size}}},
+      {id:13,name:"Area",value:{name:{raw:$area}}},
+      {id:14,name:"Initiative",value:{name:{raw:$initiative}}}
+    ] | map(select(.value.name.raw != ""))}'
+}
+
+case "$*" in
+  "api repos/basefoundry/base/issues/1311")
     count_file="${PROJECT_INTAKE_STATE:?}/issue-view-count"
     count=0
     [[ ! -f "$count_file" ]] || count="$(cat "$count_file")"
@@ -222,7 +294,7 @@ case "${1:-} ${2:-}" in
     fi
 
     if [[ "${PROJECT_INTAKE_RATE_LIMIT_ONCE:-}" == "1" && "$count" == "1" ]]; then
-      printf 'GraphQL: API rate limit already exceeded\\n' >&2
+      printf 'API rate limit already exceeded\\n' >&2
       printf 'Retry-After: 7\\n' >&2
       exit 1
     fi
@@ -231,21 +303,35 @@ case "${1:-} ${2:-}" in
       printf 'warning: gh emitted a non-fatal notice\\n' >&2
     fi
 
-    printf '{"state":"OPEN","url":"https://github.com/basefoundry/base/issues/1311"}\\n'
+    printf '%s' \
+      '{"id":1311,"number":1311,"state":"'
+    printf '%s' "${PROJECT_INTAKE_ISSUE_STATE:-open}"
+    printf '%s\\n' \
+      '","html_url":"https://github.com/basefoundry/base/issues/1311","title":"Project Intake test issue"}'
     ;;
-  "project list")
+  "project list --owner basefoundry --format json --limit 100")
     printf '{"projects":[{"title":"base","number":1}]}\\n'
     ;;
-  "project view")
+  "project view 1 --owner basefoundry --format json --jq .id")
     printf 'PVT_project\\n'
     ;;
-  "project item-add")
+  project\\ item-add*)
     printf 'PVTI_item\\n'
     ;;
-  "project item-list")
-    printf '{"items":[{"id":"PVTI_item"}]}\\n'
+  project\\ item-list*)
+    case "${PROJECT_INTAKE_GRAPHQL_FAILURE:-}" in
+      quota)
+        printf 'GraphQL: API rate limit already exceeded\\n' >&2
+        exit 1
+        ;;
+      unknown-owner)
+        printf 'unknown owner type\\n' >&2
+        exit 1
+        ;;
+    esac
+    project_intake_mock_graphql_item
     ;;
-  "project field-list")
+  project\\ field-list*)
     cat <<'JSON'
 {"fields":[
   {"name":"Status","id":"F_status","options":[{"name":"Backlog","id":"O_backlog"},{"name":"Done","id":"O_done"}]},
@@ -256,8 +342,77 @@ case "${1:-} ${2:-}" in
 ]}
 JSON
     ;;
-  "project item-edit")
+  project\\ item-edit*)
     printf '%s\\n' "$*" >> "${PROJECT_INTAKE_STATE:?}/edits.log"
+    field_id=''
+    option_id=''
+    while (( $# > 0 )); do
+      case "$1" in
+        --field-id)
+          field_id="$2"
+          shift 2
+          ;;
+        --single-select-option-id)
+          option_id="$2"
+          shift 2
+          ;;
+        *) shift ;;
+      esac
+    done
+    project_intake_mock_write_option "$field_id" "$option_id"
+    ;;
+  "api users/basefoundry")
+    printf '{"login":"basefoundry","type":"%s"}\\n' "${PROJECT_INTAKE_OWNER_TYPE:-Organization}"
+    ;;
+  api\\ *projectsV2\\?per_page=100)
+    printf '[{"id":1,"number":1,"title":"base"}]\\n'
+    ;;
+  api\\ *projectsV2/1/fields\\?per_page=100)
+    cat <<'JSON'
+[
+  {"id":10,"name":"Status","options":[
+    {"id":"O_backlog","name":{"raw":"Backlog"}},
+    {"id":"O_done","name":{"raw":"Done"}}
+  ]},
+  {"id":11,"name":"Priority","options":[{"id":"O_p2","name":{"raw":"P2"}}]},
+  {"id":12,"name":"Size","options":[{"id":"O_s","name":{"raw":"S"}}]},
+  {"id":13,"name":"Area","options":[{"id":"O_product","name":{"raw":"Product"}}]},
+  {"id":14,"name":"Initiative","options":[{"id":"O_adoption","name":{"raw":"Adoption Polish"}}]}
+]
+JSON
+    ;;
+  api\\ --method\\ GET\\ *projectsV2/1/items/101*)
+    if [[ "${PROJECT_INTAKE_REST_FAIL_OPERATION:-}" == "read" ]]; then
+      printf '403 Forbidden: REST item read failed\\n' >&2
+      exit 1
+    fi
+    project_intake_mock_rest_item
+    ;;
+  api\\ --method\\ GET\\ *projectsV2/1/items*)
+    if [[ "${PROJECT_INTAKE_REST_FAIL_OPERATION:-}" == "find" ]]; then
+      printf '403 Forbidden: REST item lookup failed\\n' >&2
+      exit 1
+    fi
+    if [[ "${PROJECT_INTAKE_ITEM_EXISTS:-1}" == "1" ]]; then
+      printf '[{"id":101,"content":{"id":1311,"number":1311,"title":"Project Intake test issue"}}]\\n'
+    else
+      printf '[]\\n'
+    fi
+    ;;
+  api\\ --method\\ POST\\ *projectsV2/1/items*)
+    printf '{"value":{"id":101}}\\n'
+    ;;
+  api\\ --method\\ PATCH\\ *projectsV2/1/items/101*)
+    payload="$(cat)"
+    printf '%s\\n' "$payload" >> "${PROJECT_INTAKE_STATE:?}/rest-patches.log"
+    if [[ "${PROJECT_INTAKE_REST_FAIL_OPERATION:-}" == "update" ]]; then
+      printf '403 Forbidden: REST field update failed\\n' >&2
+      exit 1
+    fi
+    while IFS=$'\\t' read -r field_id option_id; do
+      project_intake_mock_write_option "$field_id" "$option_id"
+    done < <(jq -r '.fields[] | [.id, .value] | @tsv' <<<"$payload")
+    project_intake_mock_rest_item
     ;;
   *)
     printf 'unexpected gh command: %s\\n' "$*" >&2
