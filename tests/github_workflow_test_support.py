@@ -303,7 +303,11 @@ case "$*" in
       printf 'warning: gh emitted a non-fatal notice\\n' >&2
     fi
 
-    printf '{"id":1311,"number":1311,"state":"%s","html_url":"https://github.com/basefoundry/base/issues/1311","title":"Project Intake test issue"}\\n' "${PROJECT_INTAKE_ISSUE_STATE:-open}"
+    printf '%s' \
+      '{"id":1311,"number":1311,"state":"'
+    printf '%s' "${PROJECT_INTAKE_ISSUE_STATE:-open}"
+    printf '%s\\n' \
+      '","html_url":"https://github.com/basefoundry/base/issues/1311","title":"Project Intake test issue"}'
     ;;
   "project list --owner basefoundry --format json --limit 100")
     printf '{"projects":[{"title":"base","number":1}]}\\n'
@@ -366,7 +370,10 @@ JSON
   api\\ *projectsV2/1/fields\\?per_page=100)
     cat <<'JSON'
 [
-  {"id":10,"name":"Status","options":[{"id":"O_backlog","name":{"raw":"Backlog"}},{"id":"O_done","name":{"raw":"Done"}}]},
+  {"id":10,"name":"Status","options":[
+    {"id":"O_backlog","name":{"raw":"Backlog"}},
+    {"id":"O_done","name":{"raw":"Done"}}
+  ]},
   {"id":11,"name":"Priority","options":[{"id":"O_p2","name":{"raw":"P2"}}]},
   {"id":12,"name":"Size","options":[{"id":"O_s","name":{"raw":"S"}}]},
   {"id":13,"name":"Area","options":[{"id":"O_product","name":{"raw":"Product"}}]},
