@@ -64,6 +64,13 @@ jobs:
             printf '%s\n' "$output" | grep -Eiq 'rate limit|secondary rate limit|abuse detection|Retry-After|x-ratelimit-reset'
           }
 
+          project_intake_is_project_transport_failure() {
+            local output="$1"
+
+            printf '%s\n' "$output" | grep -Eiq \
+              'unknown owner type|GraphQL.*rate limit|rate limit.*GraphQL|API rate limit already exceeded'
+          }
+
           project_intake_retry_delay_seconds() {
             local output="$1"
             local reset_epoch
@@ -129,6 +136,14 @@ jobs:
               return "$status"
             fi
 
+            if [[ "${PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK:-0}" == "1" ]] &&
+              project_intake_is_project_transport_failure "$diagnostic_output"; then
+              echo "::warning::GraphQL Project transport failed during Project Intake: $operation" >&2
+              echo "::warning::Falling back to the REST Projects API." >&2
+              printf '%s\n' "$diagnostic_output" >&2
+              return 75
+            fi
+
             if project_intake_is_retryable_api_failure "$diagnostic_output"; then
               retry_delay="$(project_intake_retry_delay_seconds "$diagnostic_output")"
               echo "::warning::GitHub API pressure during Project Intake: $operation" >&2
@@ -161,95 +176,363 @@ jobs:
             return "$status"
           }
 
-          issue_json="$(project_intake_gh "view issue" gh issue view "$issue_number" --repo "$GITHUB_REPOSITORY" --json state,url)"
-          issue_state="$(jq -r '.state' <<<"$issue_json")"
-          issue_url="$(jq -r '.url' <<<"$issue_json")"
-
-          project_number="$(
-            project_intake_gh "list Projects" gh project list --owner "$BASE_PROJECT_OWNER" --format json --limit 100 |
-              jq -r --arg title "$BASE_PROJECT_TITLE" \
-                '.projects[] | select(.title == $title) | .number' |
-              head -n 1
-          )"
-          if [[ -z "$project_number" ]]; then
-            echo "::error::GitHub Project '$BASE_PROJECT_TITLE' was not found for owner '$BASE_PROJECT_OWNER'."
-            echo "::error::If this Project exists, set BASE_PROJECT_TOKEN with user Project read/write access."
-            echo "::error::Fix: gh auth token | gh secret set BASE_PROJECT_TOKEN --repo $GITHUB_REPOSITORY"
-            exit 1
-          fi
-
-          project_id="$(project_intake_gh "view Project" gh project view "$project_number" --owner "$BASE_PROJECT_OWNER" --format json --jq '.id')"
-          item_id="$(project_intake_gh "add Project item" gh project item-add "$project_number" --owner "$BASE_PROJECT_OWNER" --url "$issue_url" --format json --jq '.id')"
-          item_json="$(
-            project_intake_gh "list Project items" gh project item-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json --limit 1000 |
-              jq --arg id "$item_id" '.items[] | select(.id == $id)'
-          )"
-          fields_json="$(project_intake_gh "list Project fields" gh project field-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json)"
-
-          field_id_for() {
-            local field_name="$1"
-
-            jq -r --arg name "$field_name" \
-              '.fields[] | select(.name == $name) | .id' <<<"$fields_json" |
-              head -n 1
-          }
-
-          option_id_for() {
-            local field_name="$1"
-            local option_name="$2"
-
-            jq -r --arg name "$field_name" --arg option "$option_name" \
-              '.fields[] | select(.name == $name) | .options[]? | select(.name == $option) | .id' \
-              <<<"$fields_json" |
-              head -n 1
-          }
-
-          set_single_select() {
-            local field_name="$1"
-            local option_name="$2"
-            local field_id
-            local option_id
-
-            [[ -n "$option_name" ]] || return 0
-
-            field_id="$(field_id_for "$field_name")"
-            option_id="$(option_id_for "$field_name" "$option_name")"
-            if [[ -z "$field_id" || -z "$option_id" ]]; then
-              echo "::error::Project field '$field_name' option '$option_name' was not found."
-              exit 1
-            fi
-
-            project_intake_gh "set Project field $field_name" gh project item-edit \
-              --id "$item_id" \
-              --project-id "$project_id" \
-              --field-id "$field_id" \
-              --single-select-option-id "$option_id" \
-              >/dev/null
-          }
-
-          set_single_select_if_missing() {
-            local field_name="$1"
-            local item_key="$2"
-            local option_name="$3"
-            local current_value
-
-            current_value="$(jq -r --arg key "$item_key" '.[$key] // ""' <<<"$item_json")"
-            if [[ -n "$current_value" ]]; then
-              return 0
-            fi
-
-            set_single_select "$field_name" "$option_name"
-          }
+          issue_json="$(project_intake_gh "view issue" gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number")"
+          issue_state="$(jq -r '.state | ascii_upcase' <<<"$issue_json")"
+          issue_url="$(jq -r '.html_url' <<<"$issue_json")"
+          issue_id="$(jq -r '.id' <<<"$issue_json")"
+          issue_title="$(jq -r '.title' <<<"$issue_json")"
 
           status_value="$BASE_PROJECT_DEFAULT_OPEN_STATUS"
           if [[ "$issue_state" == "CLOSED" ]]; then
             status_value="$BASE_PROJECT_DEFAULT_CLOSED_STATUS"
           fi
 
-          set_single_select Status "$status_value"
-          set_single_select_if_missing Priority priority "$BASE_PROJECT_DEFAULT_PRIORITY"
-          set_single_select_if_missing Size size "$BASE_PROJECT_DEFAULT_SIZE"
-          set_single_select_if_missing Area area "$BASE_PROJECT_DEFAULT_AREA"
-          set_single_select_if_missing Initiative initiative "$BASE_PROJECT_DEFAULT_INITIATIVE"
+          project_intake_graphql_reconcile() {
+            local project_list_json
+            local project_number
+            local project_id
+            local item_id
+            local item_json
+            local fields_json
+            local expected_priority
+            local expected_size
+            local expected_area
+            local expected_initiative
+            local refreshed_item_json
+            local command_status
 
-          printf 'Synced issue #%s into Project %s.\n' "$issue_number" "$BASE_PROJECT_TITLE"
+            if project_list_json="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+              "list Projects" gh project list --owner "$BASE_PROJECT_OWNER" --format json --limit 100)"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
+            project_number="$(
+              jq -r --arg title "$BASE_PROJECT_TITLE" \
+                '.projects[] | select(.title == $title) | .number' <<<"$project_list_json" |
+                head -n 1
+            )"
+            if [[ -z "$project_number" ]]; then
+              echo "::error::GitHub Project '$BASE_PROJECT_TITLE' was not found for owner '$BASE_PROJECT_OWNER'." >&2
+              echo "::error::If this Project exists, set BASE_PROJECT_TOKEN with user Project read/write access." >&2
+              return 1
+            fi
+
+            if project_id="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+              "view Project" gh project view "$project_number" --owner "$BASE_PROJECT_OWNER" --format json --jq '.id')"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
+            if item_id="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+              "add Project item" gh project item-add "$project_number" --owner "$BASE_PROJECT_OWNER" --url "$issue_url" --format json --jq '.id')"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
+            if item_json="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+              "list Project items" gh project item-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json --limit 1000)"; then
+              item_json="$(jq --arg id "$item_id" '.items[] | select(.id == $id)' <<<"$item_json")"
+            else
+              command_status=$?
+              return "$command_status"
+            fi
+            if [[ -z "$item_json" ]]; then
+              echo "::error::Project item '$item_id' was not returned after it was added." >&2
+              return 1
+            fi
+            if fields_json="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+              "list Project fields" gh project field-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json)"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
+
+            graphql_field_id_for() {
+              local field_name="$1"
+
+              jq -r --arg name "$field_name" \
+                '.fields[] | select(.name == $name) | .id' <<<"$fields_json" |
+                head -n 1
+            }
+
+            graphql_option_id_for() {
+              local field_name="$1"
+              local option_name="$2"
+
+              jq -r --arg name "$field_name" --arg option "$option_name" \
+                '.fields[] | select(.name == $name) | .options[]? | select(.name == $option) | .id' \
+                <<<"$fields_json" |
+                head -n 1
+            }
+
+            graphql_set_single_select() {
+              local field_name="$1"
+              local option_name="$2"
+              local field_id
+              local option_id
+              local set_status
+
+              [[ -n "$option_name" ]] || return 0
+
+              field_id="$(graphql_field_id_for "$field_name")"
+              option_id="$(graphql_option_id_for "$field_name" "$option_name")"
+              if [[ -z "$field_id" || -z "$option_id" ]]; then
+                echo "::error::Project field '$field_name' option '$option_name' was not found." >&2
+                return 1
+              fi
+
+              if PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+                "set Project field $field_name" gh project item-edit \
+                --id "$item_id" \
+                --project-id "$project_id" \
+                --field-id "$field_id" \
+                --single-select-option-id "$option_id" \
+                >/dev/null; then
+                :
+              else
+                set_status=$?
+                return "$set_status"
+              fi
+            }
+
+            expected_priority="$(jq -r '.priority // ""' <<<"$item_json")"
+            expected_size="$(jq -r '.size // ""' <<<"$item_json")"
+            expected_area="$(jq -r '.area // ""' <<<"$item_json")"
+            expected_initiative="$(jq -r '.initiative // ""' <<<"$item_json")"
+            [[ -n "$expected_priority" ]] || expected_priority="$BASE_PROJECT_DEFAULT_PRIORITY"
+            [[ -n "$expected_size" ]] || expected_size="$BASE_PROJECT_DEFAULT_SIZE"
+            [[ -n "$expected_area" ]] || expected_area="$BASE_PROJECT_DEFAULT_AREA"
+            [[ -n "$expected_initiative" ]] || expected_initiative="$BASE_PROJECT_DEFAULT_INITIATIVE"
+
+            if [[ "$(jq -r '.status // ""' <<<"$item_json")" != "$status_value" ]]; then
+              graphql_set_single_select Status "$status_value" || return $?
+            fi
+            [[ -n "$(jq -r '.priority // ""' <<<"$item_json")" ]] ||
+              graphql_set_single_select Priority "$expected_priority" || return $?
+            [[ -n "$(jq -r '.size // ""' <<<"$item_json")" ]] ||
+              graphql_set_single_select Size "$expected_size" || return $?
+            [[ -n "$(jq -r '.area // ""' <<<"$item_json")" ]] ||
+              graphql_set_single_select Area "$expected_area" || return $?
+            [[ -n "$(jq -r '.initiative // ""' <<<"$item_json")" ]] ||
+              graphql_set_single_select Initiative "$expected_initiative" || return $?
+
+            if refreshed_item_json="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+              "verify Project fields" gh project item-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json --limit 1000)"; then
+              refreshed_item_json="$(jq --arg id "$item_id" '.items[] | select(.id == $id)' <<<"$refreshed_item_json")"
+            else
+              command_status=$?
+              return "$command_status"
+            fi
+            if ! jq -e \
+              --arg status "$status_value" \
+              --arg priority "$expected_priority" \
+              --arg size "$expected_size" \
+              --arg area "$expected_area" \
+              --arg initiative "$expected_initiative" \
+              '.status == $status and .priority == $priority and .size == $size and
+               .area == $area and .initiative == $initiative' \
+              <<<"$refreshed_item_json" >/dev/null; then
+              echo "::error::Project field verification failed after the GraphQL update." >&2
+              return 1
+            fi
+          }
+
+          project_intake_rest_reconcile() {
+            local owner_json
+            local owner_type
+            local owner_api_prefix
+            local projects_json
+            local project_number
+            local fields_json
+            local field_ids_csv
+            local escaped_issue_title
+            local item_search_json
+            local item_json
+            local item_id
+            local added_item_json
+            local current_item_json
+            local updates_json='[]'
+            local update_payload
+            local expected_priority
+            local expected_size
+            local expected_area
+            local expected_initiative
+            local verified_item_json
+
+            owner_json="$(project_intake_gh "view REST Project owner" gh api "users/$BASE_PROJECT_OWNER")"
+            owner_type="$(jq -r '.type' <<<"$owner_json")"
+            case "$owner_type" in
+              Organization)
+                owner_api_prefix="orgs/$BASE_PROJECT_OWNER"
+                ;;
+              User)
+                owner_api_prefix="users/$BASE_PROJECT_OWNER"
+                ;;
+              *)
+                echo "::error::REST Project owner '$BASE_PROJECT_OWNER' has unsupported type '$owner_type'." >&2
+                return 1
+                ;;
+            esac
+
+            projects_json="$(project_intake_gh "list REST Projects" gh api "$owner_api_prefix/projectsV2?per_page=100")"
+            project_number="$(
+              jq -r --arg title "$BASE_PROJECT_TITLE" \
+                '.[] | select(.title == $title) | .number' <<<"$projects_json" |
+                head -n 1
+            )"
+            if [[ -z "$project_number" ]]; then
+              echo "::error::REST Project '$BASE_PROJECT_TITLE' was not found for owner '$BASE_PROJECT_OWNER'." >&2
+              return 1
+            fi
+
+            fields_json="$(project_intake_gh "list REST Project fields" gh api \
+              "$owner_api_prefix/projectsV2/$project_number/fields?per_page=100")"
+            field_ids_csv="$(
+              jq -r \
+                '[.[] | select(.name == "Status" or .name == "Priority" or .name == "Size" or
+                  .name == "Area" or .name == "Initiative") | .id] | join(",")' \
+                <<<"$fields_json"
+            )"
+            if [[ "$(awk -F, '{print NF}' <<<"$field_ids_csv")" != "5" ]]; then
+              echo "::error::REST Project field lookup did not resolve all five managed fields." >&2
+              return 1
+            fi
+
+            escaped_issue_title="${issue_title//\"/\\\"}"
+            item_search_json="$(project_intake_gh "find REST Project item" gh api --method GET \
+              "$owner_api_prefix/projectsV2/$project_number/items" \
+              -f per_page=100 \
+              -f q="repo:$GITHUB_REPOSITORY is:issue title:\"$escaped_issue_title\"" \
+              -f fields="$field_ids_csv")"
+            item_json="$(jq --argjson issue_id "$issue_id" '.[] | select(.content.id == $issue_id)' <<<"$item_search_json")"
+            item_id="$(jq -r '.id // ""' <<<"$item_json")"
+            if [[ -z "$item_id" ]]; then
+              added_item_json="$(project_intake_gh "add REST Project item" gh api --method POST \
+                "$owner_api_prefix/projectsV2/$project_number/items" \
+                -f type=Issue -F id="$issue_id")"
+              item_id="$(jq -r '.value.id // ""' <<<"$added_item_json")"
+              if [[ -z "$item_id" ]]; then
+                echo "::error::REST Project item add did not return an item id." >&2
+                return 1
+              fi
+            fi
+
+            current_item_json="$(project_intake_gh "read REST Project fields" gh api --method GET \
+              "$owner_api_prefix/projectsV2/$project_number/items/$item_id" \
+              -f fields="$field_ids_csv")"
+
+            rest_field_id_for() {
+              local field_name="$1"
+
+              jq -r --arg name "$field_name" '.[] | select(.name == $name) | .id' <<<"$fields_json" |
+                head -n 1
+            }
+
+            rest_option_id_for() {
+              local field_name="$1"
+              local option_name="$2"
+
+              jq -r --arg name "$field_name" --arg option "$option_name" \
+                '.[] | select(.name == $name) | .options[]? |
+                 select((.name.raw // .name) == $option) | .id' <<<"$fields_json" |
+                head -n 1
+            }
+
+            rest_field_value_for() {
+              local field_name="$1"
+
+              jq -r --arg name "$field_name" \
+                '.fields[]? | select(.name == $name) | (.value.name.raw // .value.name // "")' \
+                <<<"$current_item_json" |
+                head -n 1
+            }
+
+            rest_queue_single_select() {
+              local field_name="$1"
+              local option_name="$2"
+              local field_id
+              local option_id
+
+              field_id="$(rest_field_id_for "$field_name")"
+              option_id="$(rest_option_id_for "$field_name" "$option_name")"
+              if [[ -z "$field_id" || -z "$option_id" ]]; then
+                echo "::error::REST Project field '$field_name' option '$option_name' was not found." >&2
+                return 1
+              fi
+              updates_json="$(jq -c --argjson id "$field_id" --arg value "$option_id" \
+                '. + [{id: $id, value: $value}]' <<<"$updates_json")"
+            }
+
+            expected_priority="$(rest_field_value_for Priority)"
+            expected_size="$(rest_field_value_for Size)"
+            expected_area="$(rest_field_value_for Area)"
+            expected_initiative="$(rest_field_value_for Initiative)"
+
+            if [[ "$(rest_field_value_for Status)" != "$status_value" ]]; then
+              rest_queue_single_select Status "$status_value"
+            fi
+            if [[ -z "$expected_priority" ]]; then
+              expected_priority="$BASE_PROJECT_DEFAULT_PRIORITY"
+              rest_queue_single_select Priority "$expected_priority"
+            fi
+            if [[ -z "$expected_size" ]]; then
+              expected_size="$BASE_PROJECT_DEFAULT_SIZE"
+              rest_queue_single_select Size "$expected_size"
+            fi
+            if [[ -z "$expected_area" ]]; then
+              expected_area="$BASE_PROJECT_DEFAULT_AREA"
+              rest_queue_single_select Area "$expected_area"
+            fi
+            if [[ -z "$expected_initiative" ]]; then
+              expected_initiative="$BASE_PROJECT_DEFAULT_INITIATIVE"
+              rest_queue_single_select Initiative "$expected_initiative"
+            fi
+
+            if [[ "$(jq 'length' <<<"$updates_json")" != "0" ]]; then
+              update_payload="$(jq -nc --argjson fields "$updates_json" '{fields: $fields}')"
+              project_intake_gh "update REST Project fields" gh api --method PATCH \
+                "$owner_api_prefix/projectsV2/$project_number/items/$item_id" \
+                --input - <<<"$update_payload" >/dev/null
+            fi
+
+            verified_item_json="$(project_intake_gh "verify REST Project fields" gh api --method GET \
+              "$owner_api_prefix/projectsV2/$project_number/items/$item_id" \
+              -f fields="$field_ids_csv")"
+            if ! jq -e \
+              --arg status "$status_value" \
+              --arg priority "$expected_priority" \
+              --arg size "$expected_size" \
+              --arg area "$expected_area" \
+              --arg initiative "$expected_initiative" \
+              'def value_for($name):
+                 [.fields[]? | select(.name == $name) |
+                   (.value.name.raw // .value.name // "")][0] // "";
+               value_for("Status") == $status and
+               value_for("Priority") == $priority and
+               value_for("Size") == $size and
+               value_for("Area") == $area and
+               value_for("Initiative") == $initiative' \
+              <<<"$verified_item_json" >/dev/null; then
+              echo "::error::Project field verification failed after the REST fallback update." >&2
+              return 1
+            fi
+          }
+
+          if project_intake_graphql_reconcile; then
+            transport="GraphQL"
+          else
+            graphql_status=$?
+            if [[ "$graphql_status" != "75" ]]; then
+              exit "$graphql_status"
+            fi
+            project_intake_rest_reconcile
+            transport="REST fallback"
+          fi
+
+          printf 'Synced issue #%s into Project %s via %s.\n' \
+            "$issue_number" "$BASE_PROJECT_TITLE" "$transport"

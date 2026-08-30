@@ -17,6 +17,11 @@ repository workflow configuration. Keep this file focused on AI-context-specific
 guidance, including agent-ready repo baselines, and link there instead of
 copying those rules.
 
+Project Intake prefers the standard `gh project` path, then uses the REST
+Projects API when GraphQL quota exhaustion or owner resolution makes that path
+unavailable. Both transports preserve existing non-empty planning fields and
+must verify Status, Priority, Size, Area, and Initiative before success.
+
 ## Branch And Worktree Flow
 
 Use the canonical [branch and worktree

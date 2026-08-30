@@ -174,9 +174,15 @@ the required secret is missing. Without that secret, Project Intake fails before
 running Project operations. During Project operations, the workflow classifies
 GitHub API pressure such as rate limits, secondary limits, and retry windows,
 waits for the reported retry/reset delay when available, and retries the failed
-operation once. `401 Unauthorized` / `Bad credentials` errors are treated as
-token configuration failures with `BASE_PROJECT_TOKEN` rotation guidance and can
-be rerun through `workflow_dispatch` after the secret is repaired.
+operation once. When the GraphQL-backed `gh project` transport exhausts its
+quota or reports `unknown owner type`, Project Intake falls back to the REST
+Projects API. The fallback resolves organization and user owners explicitly,
+finds the exact issue item, preserves non-empty Priority, Size, Area, and
+Initiative values, applies the open/closed Status policy, and reads back all
+five fields before reporting success. REST and authorization failures remain
+fail-closed. `401 Unauthorized` / `Bad credentials` errors are treated as token
+configuration failures with `BASE_PROJECT_TOKEN` rotation guidance and can be
+rerun through `workflow_dispatch` after the secret is repaired.
 Use `basectl gh project` directly for lower-level Project inspection,
 schema repair, or issue field updates. `basectl gh project issue set-fields`
 checks that the selected Project is linked to the issue's repository before it
