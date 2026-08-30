@@ -10,6 +10,10 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
 
 ### Added
 
+- Enforced repository secret scanning and provider push protection, with a
+  required checksum-pinned Gitleaks history scan for generic patterns and
+  rotate-first maintainer response guidance.
+
 - Added opt-in `--closed-unmerged` cleanup to `basectl gh branch prune` and
   `basectl gh worktree prune`, with explicit PR-state classification and
   retention details for open, closed-unmerged, and no-PR branches.
