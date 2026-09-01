@@ -47,8 +47,8 @@ Then run the trust-conscious project proof:
 Review the manifest identity and digest printed by `trust status` before
 running the exact `basectl trust allow base --manifest-sha256 ...` command it
 provides. This path lets you inspect and verify Base before adding it to shell
-startup files. See [Start Here](#start-here) for the full trust-conscious proof,
-demo walkthrough, and install choices.
+startup files. See [Start Here](#start-here) for the demo walkthrough and install
+choices.
 
 ## Contents
 
@@ -106,34 +106,14 @@ for the command-by-command compatibility contract and non-GitHub Git workflow.
 
 ### Trust-Conscious Proof, No Dotfile Changes
 
-This trust-conscious evaluation path uses a source checkout. First follow the
-[source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe),
-then inspect the code and prove the local project loop before relying on the
-shell handoff:
-
-```bash
-# After completing the canonical source-checkout install recipe.
-~/work/base/bin/basectl setup --dry-run
-~/work/base/bin/basectl projects list --workspace ~/work
-~/work/base/bin/basectl trust status base
-```
-
-Review the manifest identity, digest, and read-only inspection commands, then
-run the exact `basectl trust allow base --manifest-sha256 ...` command printed
-by `trust status`. Until shell-profile setup puts `basectl` on `PATH`, replace
-its leading `basectl` with `~/work/base/bin/basectl`; keep the project and
-printed digest unchanged. The digest-bound approval is never inferred from
-setup or an unattended flag. After approving the reviewed manifest, finish the
-proof:
-
-```bash
-~/work/base/bin/basectl demo base -- --non-interactive
-```
-
-That sequence creates Base's local runtime state under `~/.base.d`, but it does
-not edit `~/.bash_profile`, `~/.bashrc`, `~/.zprofile`, or `~/.zshrc`. Use the
-same explicit path, `~/work/base/bin/basectl`, until you decide to add Base to
-future interactive shells.
+The canonical no-dotfile proof is in [Quickstart](#quickstart). It runs
+`basectl trust status base` before the final `basectl demo base -- --non-interactive`;
+review the manifest identity and digest, then run the exact `basectl trust allow
+base --manifest-sha256 ...` command it provides. This path
+lets you inspect and verify Base before adding it to shell startup files.
+Until shell-profile setup puts `basectl` on `PATH`, replace its leading
+`basectl` with `~/work/base/bin/basectl`; keep the project and printed digest
+unchanged.
 
 To inspect a small, real Base-managed project, clone
 [`basefoundry/base-demo`](https://github.com/basefoundry/base-demo) next to
@@ -153,11 +133,8 @@ demo:
 ~/work/base/bin/basectl demo base-demo
 ```
 
-Success looks like a workspace where each participating project has a
-`base_manifest.yaml`, appears in `basectl projects list`, can be checked with
-`basectl check <project>`, and can run its declared test command through
-`basectl test <project>` or named project commands through
-`basectl run [project] <command>`.
+The demo sequence is separate from the canonical Quickstart proof; both keep
+manifest trust review ahead of execution.
 
 ### Shell Startup Is Explicit
 
@@ -177,57 +154,24 @@ for the full dotfile boundary.
 
 ### Choose An Install Path
 
-If your Mac already has Homebrew, Git, and a supported Bash, choose one of the
-normal Base install paths:
-
-- Use Homebrew when you want Base managed like an ordinary installed tool.
-- Use a source checkout when you want to inspect, contribute to, or dogfood Base
-  from the repository.
-
-See the canonical [Homebrew install recipe](docs/bootstrap.md#homebrew-install-recipe)
-or [source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe).
-
-For Homebrew installs, Base itself lives under Homebrew's prefix rather than in
-your project workspace. For source checkout installs, Base lives at the clone
-path you choose, usually `~/work/base`. In both modes, first setup creates
-`~/.base.d/config.yaml` with the default workspace root:
-
-```yaml
-workspace:
-  root: ~/work
-```
-
-Edit `workspace.root` if your repositories live under a different shared
-directory. You may also add an optional workspace manifest:
-
-```yaml
-workspace:
-  root: ~/work
-  manifest: ~/work/base-workspace/workspace.yaml
-  manifest_source: https://raw.githubusercontent.com/<org>/<repo>/main/workspace.yaml
-```
-
-When `workspace.manifest` is set, workspace status, check, doctor, onboarding,
-agent-brief, clone, configure, setup, and update commands use it unless `--manifest <path>` is
-supplied for a single command. `basectl workspace pull` treats it as the local
-destination for an explicitly requested refresh. When
-`workspace.manifest_source` is set, pull can refresh that local manifest from
-the canonical source.
+Choose Homebrew when you want Base managed like an installed consumer tool, or a
+source checkout when you want to contribute to or dogfood Base. The consolidated
+[Installation Details](#installation-details) section below summarizes the
+supported bootstrap, Homebrew, source-checkout, and standalone-installer paths.
+See [First-Mile Bootstrap](docs/bootstrap.md) for the complete recipes and
+safety checks.
 
 ### New Or Uncertain Machine?
 
-On a new macOS machine, or any machine where Homebrew, Git, or a supported Bash
-may be missing, start with the first-mile bootstrap script:
+Use the [First-Mile Bootstrap](docs/bootstrap.md) guide when Homebrew, Git, or a
+supported Bash may be missing. The concise verified handoff is:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
 ```
 
-For a verified first run, pin reviewed Homebrew installer content before
-executing the bootstrapper. Use the bootstrap-specific variables for this
-script, or the `BASE_HOMEBREW_INSTALLER_URL` and
-`BASE_HOMEBREW_INSTALLER_SHA256` pair when the same pin should apply to all
-Base Homebrew entry points:
+For a reviewed Homebrew installer, provide both checksum variables before
+running that command:
 
 ```bash
 BASE_BOOTSTRAP_HOMEBREW_INSTALLER_URL=file:///path/to/homebrew-install.sh \
@@ -235,55 +179,21 @@ BASE_BOOTSTRAP_HOMEBREW_INSTALLER_SHA256=<sha256> \
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
 ```
 
-The bootstrapper installs Homebrew, Git, and a supported Bash when needed,
-chooses an existing Base install when one is present, otherwise defaults to a
-source checkout at `~/work/base`, and prints the exact `basectl setup` and
-`basectl update-profile` commands to finish the installation. It does not edit
-shell startup files automatically.
-
-If Base is already installed but `basectl` cannot start because Bash is too
-old, repair only that prerequisite:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --ensure-bash --dry-run
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --ensure-bash --yes
-```
-
-Choose an install mode explicitly when needed:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --source
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --brew
-```
-
-For mode selection, dry-run behavior, and contributor setup details, see
-[First-Mile Bootstrap](docs/bootstrap.md).
-
-On Ubuntu/Debian Linux, the same bootstrap script prints the manual
-source-checkout path instead of running apt itself:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash -s -- --source --dry-run
-```
-
-Review the printed apt, clone, `basectl setup --yes`, and `update-profile`
-commands, then run them in the Ubuntu shell. The printed `--yes` handoff is for
-unattended pasted commands; interactive `basectl setup` still applies setup
-after prompting for Ubuntu/Debian system changes.
+Use `--ensure-bash --dry-run` and `--ensure-bash --yes` for the narrower
+Bash-repair path; use `--source`, `--brew`, or
+`--source --dry-run` for explicit mode selection and Ubuntu/Debian review.
+The same installer pin can use `BASE_HOMEBREW_INSTALLER_URL` and
+`BASE_HOMEBREW_INSTALLER_SHA256`. The supported paths are summarized in
+[Installation Details](#installation-details), with complete recipes and edge
+cases in [First-Mile Bootstrap](docs/bootstrap.md).
 
 ### Team Or Security-Conscious Rollout
 
-Use `--dry-run` before first-mile setup when you need to review planned
-installer actions. Managed workstations can pin or mirror Homebrew installer
-content by setting `BASE_BOOTSTRAP_HOMEBREW_INSTALLER_URL` and
-`BASE_BOOTSTRAP_HOMEBREW_INSTALLER_SHA256`; Base fails closed if either half of
-that pair is missing or the digest does not match.
-
-Project-owned installers should pin `BASE_INSTALL_URL` to a tag, commit, or
-owned copy and set `BASE_INSTALL_SHA256` before executing Base's installer. See
-[Remote Installer Policy](docs/remote-installer-policy.md) and
-[Project Installers](docs/project-installers.md) for the maintained trust
-contracts.
+Review installer plans with `--dry-run` and pin remote installer content when
+your workstation policy requires it. The complete checksum, consent,
+Ubuntu/Debian, tap-trust, and project-installer guidance lives in
+[First-Mile Bootstrap](docs/bootstrap.md) and
+[Remote Installer Policy](docs/remote-installer-policy.md).
 
 After Base is installed, the common development loop is:
 
@@ -512,136 +422,55 @@ is requested on macOS, Base warns if `osascript` is not available.
 
 ## Installation Details
 
-For a blank macOS machine, use `bootstrap.sh`:
+This is the canonical README summary of the supported installation paths. For
+complete, copy-pasteable recipes, safety disclosures, and edge cases, see
+[First-Mile Bootstrap](docs/bootstrap.md).
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
-```
+### First-Mile Bootstrap
 
-The bootstrapper is intentionally small. It verifies macOS, installs Homebrew
-when missing, installs Git and Bash through Homebrew when needed, then installs
-Base through either a source checkout or Homebrew. It does not edit shell startup
-files automatically. Instead, it prints the exact follow-up commands, typically:
+Use `bootstrap.sh` on a blank or uncertain macOS machine. It can select an
+existing Base install, install through Homebrew, or prepare a source checkout.
+On Ubuntu/Debian it prints the manual source-checkout handoff instead of running
+apt automatically. Review the `--dry-run` output before applying system or
+remote-installer changes; use `--source`, `--brew`, or the narrower
+`--ensure-bash` mode when needed.
 
-```bash
-~/work/base/bin/basectl setup
-~/work/base/bin/basectl update-profile
-exec "$SHELL" -l
-```
-
-Pass `--source` or `--brew` with `bash -s --` to choose the route explicitly.
-Without an explicit choice, the bootstrapper preserves an existing Homebrew Base
-install, then an existing source checkout, and otherwise defaults to source mode.
-See [First-Mile Bootstrap](docs/bootstrap.md) for the full bootstrap contract.
-
-On Ubuntu/Debian Linux, `bootstrap.sh` does not run `sudo apt` automatically.
-It prints the manual source-checkout path, including the supported apt
-prerequisites, a sibling `base-bash-libs` checkout, `basectl setup --dry-run`,
-`basectl setup --yes`, and `basectl update-profile`.
-
-The focused `bootstrap.sh --ensure-bash --yes` path is intentionally narrower:
-it installs only Bash after a dry-run review.
-
-For the complete Homebrew command sequence, see the canonical
-[Homebrew install recipe](docs/bootstrap.md#homebrew-install-recipe).
+### Homebrew
 
 Use the full formula name `basefoundry/base/base` for Homebrew installs and
-upgrades. `basefoundry/base` is the tap name, not the formula, and bare `base`
-can resolve to unrelated Homebrew formulae or casks.
+upgrades. If Homebrew asks you to trust the tap, run `brew trust
+basefoundry/base` before retrying. Homebrew owns the installed files while
+Base's local runtime remains under `~/.base.d`; `basectl update` delegates
+Base upgrades to Homebrew.
 
-Base is not yet in Homebrew/core. Until that changes, use the tap commands
-above. The planned core path keeps the reusable Bash libraries as a separate
-`base-bash-libs` dependency so a future non-conflicting Base formula, expected
-to be named `basefoundry`, can install with:
+See the [Homebrew install recipe](docs/bootstrap.md#homebrew-install-recipe) and
+[Remote Installer Policy](docs/remote-installer-policy.md) for the complete
+trust and upgrade contract.
 
-```bash
-brew install basefoundry
-```
+### Source Checkout
 
-The trust step is required on Homebrew versions that block formulae from
-non-official taps until the tap is trusted. It is safe to run again on machines
-that already trust `basefoundry/base`. Existing installs that predate this
-trust step can fail during upgrade while Homebrew loads Base's tap-owned
-`base-bash-libs` dependency. If that happens, run:
-
-```bash
-brew trust basefoundry/base
-brew upgrade --no-ask basefoundry/base/base
-```
-
-Homebrew installs the Base files. `basectl setup` still prepares the local Base
-runtime under `~/.base.d/base/.venv`, and `basectl update-profile` adds Base to
-your shell startup path. When installed through Homebrew, `basectl update` for
-Base hands off to Homebrew and runs setup only when the installed Base version
-changes. The Homebrew handoff is equivalent to:
-
-```bash
-brew upgrade --no-ask basefoundry/base/base
-```
-
-For a Base development machine, prefer the source checkout as the active
-`basectl`. Homebrew-installed Base and source-cloned Base can coexist, but the
-active command is whichever executable wins on `PATH`, and both normally share
-state under `~/.base.d`. Use Homebrew-managed Base for consumer install or
-upgrade validation in a test account, separate machine, isolated `HOME`, or with
-explicit paths such as `/opt/homebrew/bin/basectl` or `~/work/base/bin/basectl`.
-
-When Base is installed through Homebrew, `BASE_HOME` points to the stable
-Homebrew install location, such as `/usr/local/opt/base/libexec` or
-`/opt/homebrew/opt/base/libexec`. It does not point to your project workspace.
-Configure `workspace.root` in `~/.base.d/config.yaml` so commands such as
-`basectl projects list`, `basectl activate <project>`, and
-`basectl test <project>` can find your repositories:
-
-```yaml
-workspace:
-  root: ~/work
-```
-
-The standalone installer is also available:
+Use a source checkout for contribution or dogfooding. The canonical recipe
+installs from `~/work/base` (or a chosen path) and keeps profile integration
+opt-in. For a stable no-Homebrew install, pin the published release:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/basefoundry/base/v1.8.0/install.sh \
   | bash -s -- --branch v1.8.0
-exec "$SHELL" -l
 ```
 
-This stable consumer path pins both the installer script and the checkout to
-the published `v1.8.0` ref. Review the script first if you do not already
-trust this repository:
+Contributor installs may explicitly follow `HEAD`/`main`. See the
+[stable source install recipe](docs/bootstrap.md#stable-source-install-recipe),
+[source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe),
+and [First-Mile Bootstrap](docs/bootstrap.md) for the exact commands.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/v1.8.0/install.sh
-```
+### After Installation
 
-For contributor or dogfood installs that intentionally follow development
-`main`, use the mutable installer explicitly:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/install.sh \
-  | bash -s -- --branch main
-```
-
-By default, the installer clones or updates Base at `~/work/base`, runs
-`~/work/base/bin/basectl setup`, and then runs
-`~/work/base/bin/basectl update-profile`. Set `BASE_INSTALL_DIR` or pass
-`--dir <path>` to install somewhere else. When using the piped form, pass
-installer options with `bash -s --`, for example:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/v1.8.0/install.sh \
-  | bash -s -- --branch v1.8.0 --dir ~/work/base --no-profile
-```
-
-Use `--no-profile` to skip shell startup integration and `--dry-run` to print
-planned actions.
-
-For the explicit manual source-checkout command sequence, see the canonical
-[source checkout install recipe](docs/bootstrap.md#source-checkout-install-recipe).
-
-After the shell restarts, Base's managed startup section adds `~/work/base/bin`
-to `PATH`, so `basectl` can be run without spelling out the full path. Use
-`basectl version` or `basectl --version` to report the installed Base version.
+All installation paths prepare the local Base runtime under `~/.base.d` and
+leave shell startup integration opt-in. Setup creates
+`~/.base.d/config.yaml` with a default `workspace.root` of `~/work`; set it
+to the shared directory that contains your repositories. Add Base to future
+interactive shells only after reviewing the marked-section behavior of
+`basectl update-profile`; see [Shell Startup Files](docs/shell-startup.md).
 
 ## Version Identity
 
