@@ -50,6 +50,19 @@ The current command surface covers:
   setup
 - Ubuntu/Debian runtime checks, diagnostics, and source-checkout validation
 
+Recent trust and workspace updates are part of the current implementation:
+
+- repository secret scanning and provider push protection are enforced, with a
+  checksum-pinned Gitleaks history scan covering generic patterns
+- project-originated IDE mutations require explicit
+  `--allow-project-ide-mutations` consent; `--yes` alone does not authorize
+  those changes
+- `basectl gh branch prune` and `basectl gh worktree prune` accept opt-in
+  `--closed-unmerged` handling for clean branches and worktrees tied to closed,
+  unmerged pull requests
+- `basectl workspace status --format json` includes a top-level aggregate
+  status using the existing `error`, `warn`, and `ok` precedence
+
 ## Active Development Direction
 
 The `v1.8.0` release is complete. Future work is tracked in GitHub Issues,
@@ -134,6 +147,8 @@ Recent commits on `main` include:
 - documented `base-bash-libs` consumption and post-migration contract
 - formula-name Homebrew audit guidance for Base and `base-bash-libs`
 - setup parallelism evaluation with a conservative setup-plan-first decision
+- repository secret scanning, project IDE-mutation consent, closed-unmerged
+  branch/worktree cleanup, and aggregate workspace status JSON
 
 ## Useful Orientation Links
 

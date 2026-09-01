@@ -71,6 +71,19 @@ provide deeper evidence. The issue-oriented bundle in #1562 remains planned;
 Base does not yet package issue, branch, history, diagnostics, and context into
 one artifact.
 
+## Recent Shipped Guardrails
+
+- Repository secret scanning and provider push protection are enforced, with a
+  checksum-pinned Gitleaks history scan for generic patterns.
+- Project-originated IDE mutations require explicit
+  `--allow-project-ide-mutations` consent; `--yes` alone does not authorize
+  those changes.
+- `basectl gh branch prune` and `basectl gh worktree prune` support opt-in
+  `--closed-unmerged` handling for clean branches and worktrees tied to closed,
+  unmerged pull requests.
+- `basectl workspace status --format json` exposes a top-level aggregate status
+  using the existing `error`, `warn`, and `ok` precedence.
+
 ## Peer Projects
 
 - `banyanlabs` - a realistic platform engineering learning environment that

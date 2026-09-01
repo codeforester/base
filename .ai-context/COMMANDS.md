@@ -143,11 +143,20 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
     Project coordinates it reports a partial result.
   - `basectl gh issue start <number>` resolves issue metadata from an explicit
     `--repo`/`-R` selector, then `GH_REPO`, then the origin remote.
+  - `basectl gh auth status` inspects stored GitHub authentication state
+    without displaying token values; `basectl gh auth refresh` refreshes the
+    stored credential and can request repeatable OAuth scopes.
   - `basectl gh pr create` auto-injects `Fixes #<issue>` from Base branch
     names and fails before PR creation when the prefix disagrees with the
     issue's single category label; pass `--no-fixes` to suppress only that body injection. When
     `base_manifest.yaml` declares `github.pr`, it renders the PR body from
     that project policy.
+  - `basectl gh branch prune` previews safe merged-branch cleanup by default;
+    pass `--closed-unmerged` to include branches whose pull requests were
+    closed without merging.
+  - `basectl gh worktree prune` previews safe merged-worktree cleanup by
+    default; pass `--closed-unmerged` to include clean worktrees tied to
+    closed, unmerged pull requests.
   - `basectl gh project doctor --project <title>` - inspect Project metadata
     fields against the Base Project schema.
   - `basectl gh project configure --project <title>` - create or repair the
