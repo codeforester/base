@@ -492,80 +492,14 @@ Python library roots:
 exec "$BASE_HOME/bin/base-wrapper" --project "${BASE_PROJECT:-example}" example_cli "$@"
 ```
 
-`basectl setup` deliberately pins its default Homebrew Python formula so setup is
-reproducible across machines. The current default is `python@3.13`. Override it
-with `BASE_SETUP_PYTHON_FORMULA` when a workspace needs a different formula.
-After this Bash bootstrap layer creates Base's own Python environment, setup
-installs Base bootstrap Python packages into that environment. Shell-only
-project reconciliation runs from that Base runtime and does not copy those
-packages into a project venv. Projects that explicitly declare `python:` or a
-`python-package` artifact keep the project-runtime path: Base first seeds the
-target project venv with `bootstrap: true` default artifacts and then invokes
-the Python project setup layer through `base-wrapper --project <project>`.
-Prerequisite profiles are opt-in. Use `--profile dev` to install Base
-contributor tools from `lib/base/dev_manifest.yaml`. On macOS that includes
-Homebrew-managed BATS, GitHub CLI, and ShellCheck. On Ubuntu/Debian it installs
-Base-owned apt-backed tools such as BATS and ShellCheck. It installs GitHub CLI
-from GitHub CLI's official Debian/Ubuntu apt repository/keyring instead of the
-default distro package; authentication remains user-owned. Use `--profile sre`
-for the initial site-reliability profile in
-`lib/base/sre_manifest.yaml`, which installs local diagnostic tools such as
-`kubectl`, `helm`, `k9s`, `httpie`, `grpcurl`, `jq`, `yq`, `nmap`, and `mtr`.
-Use `--profile ai` for optional AI coding tools: Codex CLI and Claude Code.
-Use `--profile linux-lab` on a macOS host to install and check Multipass for
-local Ubuntu lab VMs. Profiles compose with a comma-separated list.
-
-```bash
-basectl setup --profile dev
-basectl setup --profile sre
-basectl setup --profile ai
-basectl setup --profile linux-lab --dry-run
-basectl setup --profile linux-lab
-basectl setup --profile dev,sre
-basectl setup --profile dev,ai
-basectl setup --profile dev,linux-lab
-basectl check --profile sre
-basectl check --profile ai
-basectl check --profile linux-lab
-basectl doctor --profile sre
-basectl doctor --profile ai
-basectl doctor --profile linux-lab
-```
-
-AI coding tools are intentionally not part of the plain `dev` or `sre` profile.
-`basectl setup --profile ai` uses official remote installers only when that
-profile is explicitly requested. Base checks tool presence and version output,
-but it does not manage accounts, credentials, model access, or organization
-policy.
-
-The `linux-lab` profile is intentionally host-scoped. It installs or checks the
-Multipass CLI on macOS through `brew install --cask multipass`, but Base does
-not create, start, mount, or delete Multipass instances during setup. Review
-the planned install with `--dry-run`, then create lab VMs with
-`multipass launch` when you are ready.
-
-For the complete Homebrew, Codex CLI, Claude Code, uv, and mise installer
-inventory; the distinction between consent and integrity; dry-run behavior;
-and managed-device checksum guidance, see
-[Remote Installer Policy](docs/remote-installer-policy.md).
-
-Setup intentionally stays serial for mutating installers and state writes until
-Base has a setup-plan/preflight layer that can prove safe concurrency boundaries.
-See [`basectl setup` parallelism](docs/setup-parallelism.md).
-
-On macOS, `basectl setup` sends a best-effort notification when setup completes
-or fails after running for at least 30 seconds. Notifications are skipped during
-`--dry-run` and never change the setup exit status. Use `basectl setup --notify`
-to force a notification for quick runs, `basectl setup --no-notify` or
-`BASE_SETUP_NOTIFY=false` to disable notifications, and
-`BASE_SETUP_NOTIFY_MIN_SECONDS` to tune the default threshold. When `--notify`
-is requested on macOS, Base warns if `osascript` is not available.
-
 ## Installation Details
 
 This is the canonical README summary of the supported installation paths. For
 complete, copy-pasteable recipes, safety disclosures, and edge cases, see
 [First-Mile Bootstrap](docs/bootstrap.md).
+
+For setup profiles, Python runtime policy, setup parallelism, and completion
+notifications, see [Setup Profiles And Behavior](docs/command-reference.md#setup-profiles-and-behavior).
 
 ### First-Mile Bootstrap
 
