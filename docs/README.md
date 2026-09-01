@@ -95,7 +95,8 @@ reference. The filename should answer "what is this about?"
 - [Release Process](release-process.md) defines the Base release ceremony,
   version-file policy, GitHub Release flow, and Homebrew tap follow-up.
 - [Homebrew Upgrade Rehearsal](homebrew-upgrade-rehearsal.md) defines the
-  pre-1.0.0 consumer upgrade proof and records rehearsal results.
+  durable consumer upgrade rehearsal for every release, with pre-1.0 rehearsal
+  records preserved as historical reference.
 - [Testing](testing.md) explains Base's Python, BATS, and hermetic integration
   test layers.
 - [Base Contracts](contracts.md) maps documented behavior contracts to their
