@@ -1,7 +1,7 @@
 # Base Product Assessment
 
 Status: maintained product review artifact
-Last reviewed: 2026-08-15
+Last reviewed: 2026-09-01
 Base era reviewed: 1.8.0 + Unreleased
 
 This document records a candid assessment of Base as a product and engineering
@@ -271,12 +271,6 @@ Other shipped improvements reduce earlier product objections:
   Base internals. That strengthens the "Base is a control plane, not a pile of
   private shell snippets" story, while Homebrew/core packaging remains tracked
   separately in #909.
-
-Apache-2.0 is now Base's license starting with v1.9.0. This removes the
-strong-copyleft review friction identified in the earlier assessment while
-retaining attribution and an explicit patent grant. Versions v1.0.1 through
-v1.8.0 remain available under AGPL-3.0-or-later; this is a prospective change,
-not a rewrite of historical releases.
 
 Remaining risks should stay issue-backed rather than becoming a parallel
 backlog here:
@@ -554,10 +548,10 @@ The strongest shipped signals are:
   `--verbose-wrapper` forms while directing new automation to `--ci` and
   `--debug-wrapper`. The compatibility boundary is explicit instead of
   forcing users to choose between old scripts and the current command model.
-- The release aligns the published `base-cli` provider at 0.4.2 and consumes
-  the `base-bash-libs` v2.0.0 GA release in CI and source-checkout coverage.
-  That makes the shared framework boundary more reproducible without moving
-  generic framework policy into Base.
+- The release line aligns the published `base-cli` provider with the current
+  0.4.3 release and consumes the `base-bash-libs` v2.0.0 GA release in CI and
+  source-checkout coverage. That makes the shared framework boundary more
+  reproducible without moving generic framework policy into Base.
 - `workspace check` and `workspace doctor` now have distinct readiness and
   remediation renderers while preserving the shared checks and JSON shape.
   `check`, `doctor`, onboarding, and the last-check record also behave more
@@ -588,6 +582,31 @@ Current watchlist for the next release line:
   partners before expanding Base's feature surface (#1616).
 - Continue issue-backed ownership reduction and preserve adapter boundaries as
   new IDE, container, AI, environment, and repository-workflow requests arrive.
+
+### 2026-08-16 / 1.9.0 Development Line Review Delta
+
+The post-1.8.0 development line reduces adoption and operational-trust friction
+without changing Base's target user or product thesis. This is a maintenance and
+hardening line, not evidence of a new category or broad external adoption.
+
+The most important dated change is the prospective relicensing landed on
+2026-08-16. Base uses Apache-2.0 starting with v1.9.0, retaining attribution and
+an explicit patent grant; versions v1.0.1 through v1.8.0 remain available under
+AGPL-3.0-or-later. The change removes the strong-copyleft review friction
+identified in the earlier assessment without rewriting historical releases.
+
+The current development pin also aligns the published `base-cli` provider at
+0.4.3. Other current signals include repository secret scanning with a
+checksum-pinned Gitleaks history scan, explicit consent for project-originated
+IDE mutations, opt-in cleanup of closed-but-unmerged branches, and an aggregate
+status field for `workspace status --format json`. These improve trust,
+portability, and automation evidence, but do not by themselves establish
+external adoption.
+
+The working ratings remain unchanged. The development line provides stronger
+license accessibility, security guardrails, and machine-readable workspace
+evidence, while external adoption, contributor independence, support-load, and
+organizational-impact evidence remain insufficient to raise the assessment.
 
 ## 4. Creator And Engineering Skill Assessment
 
@@ -661,6 +680,9 @@ the system without needing the creator in the loop.
 
 ## Assessment History
 
+- 2026-09-01: Re-reviewed the assessment against the post-1.8.0 development
+  line, moved the 2026-08-16 prospective relicense into its own dated delta,
+  and aligned the current `base-cli` provider reference with 0.4.3.
 - 2026-08-15: Reviewed the 1.8.0 release line and current Unreleased changes;
   recorded stronger compatibility, diagnostics, observability, runtime, and
   GitHub workflow evidence while keeping ratings and the #1562 handoff boundary
