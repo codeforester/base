@@ -8,10 +8,12 @@
 > Base is an AI-ready GitHub workspace control plane for repository setup, local
 > development, and verified pull requests.
 
-Base is the local operating contract that makes a project workspace explicit
-and repeatable. It gives developers and platform engineers a shared way to
-prepare repositories, inspect readiness, approve trusted project commands, and
-hand off work across one or more independent Git repositories.
+Base is the local operating contract you add to a repository set so its readiness,
+trusted execution, onboarding, and handoff stop depending on private maintainer
+memory. It makes a project workspace explicit and repeatable. It gives developers
+and platform engineers a shared way to prepare repositories, inspect readiness,
+approve trusted project commands, and hand off work across one or more independent
+Git repositories.
 
 Use Base when you need to:
 
@@ -86,6 +88,84 @@ Common first-run and product questions are answered in [FAQ.md](FAQ.md).
 Contributions should follow [CONTRIBUTING.md](CONTRIBUTING.md). Report security
 issues and handle detected credentials according to [SECURITY.md](SECURITY.md).
 Release notes are tracked in [CHANGELOG.md](CHANGELOG.md).
+
+## What Base Is Responsible For
+
+Base owns the local operating contract for participating repositories.
+
+That means Base should be responsible for:
+
+- inventorying participating repositories and their declared contracts
+- preparing and verifying local readiness through explicit commands
+- enforcing Base's local trust boundary for manifest-declared execution
+- making onboarding state and handoff evidence inspectable
+- providing the execution conventions and diagnostics that support that outcome
+
+Repository/GitHub/release workflow packs and environment/IDE/container/AI
+adapters support this contract, but they do not redefine the core product.
+
+## What Base Is Not Responsible For
+
+Base should not absorb project-specific logic that belongs inside individual
+repositories.
+
+Each project repo should still own:
+
+- its own source code
+- its own business logic
+- its own build details
+- its own runtime details
+- its own tests
+- its own project-specific setup steps
+
+Base should orchestrate those things, not replace them.
+
+## Mental Model
+
+Think of Base as the local operating contract for a project, whether that
+project is one repository or a set of independent Git repositories.
+
+A single repository can use Base to make setup, readiness, trusted execution,
+and handoff explicit. When a project spans several repositories, Base extends
+the same contract across the repository set. Each project repo remains independent;
+Base sits beside those repos and offers:
+
+- one declared way to inventory, prepare, and verify local readiness
+- one explicit trust boundary for project-owned commands
+- one onboarding story and a growing set of local handoff evidence
+
+That gives a multi-repo setup some of the ergonomic benefits people often reach
+for in a monorepo, without forcing unrelated codebases into a single repository.
+
+## Likely Workspace Shape
+
+The target shape looks roughly like this:
+
+```text
+work/                          ← shared workspace root (`workspace.root`)
+  base/                        ← Base repository (`BASE_HOME` for source installs)
+  project-a/                   ← peer project with `base_manifest.yaml`
+  project-b/                   ← peer project with `base_manifest.yaml`
+  infra/                       ← another peer repo that can opt into Base
+```
+
+Projects opt into Base with minimal coupling:
+
+- Base discovers projects in the shared workspace
+- projects expose a small contract through `base_manifest.yaml`
+- Base provides common orchestration on top
+
+## Design Principles
+
+Base follows a few simple principles.
+
+1. Keep project repos independent.
+2. Prefer explicit conventions over hidden shell magic.
+3. Keep wrappers thin but reliable.
+4. Make setup and test flows idempotent where possible.
+5. Make findings and next actions stable enough for human and automated handoff.
+6. Let Base provide the common layer without turning into a dumping ground for
+   project-specific behavior.
 
 ## Source Control And Forge Support
 
@@ -219,21 +299,7 @@ basectl test base
 
 ## How Base Fits
 
-Base's product responsibilities have four layers:
-
-- **Core outcome:** deterministic local readiness and handoff across independent
-  Git repositories.
-- **Enabling execution contract:** `base_manifest.yaml`, `basectl`,
-  `base-wrapper`, explicit activation, and declared project commands.
-- **Supporting workflow packs:** repository baselines plus GitHub and release
-  conventions. These support the outcome; they are not Base's primary product
-  category.
-- **Adapters:** environment managers, IDEs, containers, Nix/devenv, and AI
-  tools remain external systems that Base detects, checks, invokes, or exports
-  context for without taking over their domains.
-
-These are responsibility layers, not separately installed packages. Base
-orchestrates tools that already own their domains:
+Base coordinates the systems that already own their domains:
 
 - Homebrew still owns ordinary macOS packages and Brewfiles.
 - mise owns its configuration model, including language/runtime management and
@@ -245,8 +311,6 @@ orchestrates tools that already own their domains:
   does not invoke or interpret `mise bootstrap`.
 - Project repositories still own their source code, tests, installers, service
   definitions, and product-specific onboarding.
-- Base owns the local contract that makes participation, readiness, trusted
-  execution, and handoff explicit across projects.
 
 Repository discovery, clone or synchronization, status, and command fan-out are
 shared ecosystem primitives rather than Base's differentiation. See
@@ -570,84 +634,6 @@ exec "$SHELL" -l
 
 The Base control-plane surface remains `basectl`.
 
-## What Base Is Responsible For
-
-Base owns the local operating contract for participating repositories.
-
-That means Base should be responsible for:
-
-- inventorying participating repositories and their declared contracts
-- preparing and verifying local readiness through explicit commands
-- enforcing Base's local trust boundary for manifest-declared execution
-- making onboarding state and handoff evidence inspectable
-- providing the execution conventions and diagnostics that support that outcome
-
-Repository/GitHub/release workflow packs and environment/IDE/container/AI
-adapters support this contract, but they do not redefine the core product.
-
-## What Base Is Not Responsible For
-
-Base should not absorb project-specific logic that belongs inside individual
-repositories.
-
-Each project repo should still own:
-
-- its own source code
-- its own business logic
-- its own build details
-- its own runtime details
-- its own tests
-- its own project-specific setup steps
-
-Base should orchestrate those things, not replace them.
-
-## Mental Model
-
-Think of Base as the local operating contract for a project, whether that
-project is one repository or a set of independent Git repositories.
-
-A single repository can use Base to make setup, readiness, trusted execution,
-and handoff explicit. When a project spans several repositories, Base extends
-the same contract across the repository set. Each project repo remains independent;
-Base sits beside those repos and offers:
-
-- one declared way to inventory, prepare, and verify local readiness
-- one explicit trust boundary for project-owned commands
-- one onboarding story and a growing set of local handoff evidence
-
-That gives a multi-repo setup some of the ergonomic benefits people often reach
-for in a monorepo, without forcing unrelated codebases into a single repository.
-
-## Likely Workspace Shape
-
-The target shape looks roughly like this:
-
-```text
-work/                          ← shared workspace root (`workspace.root`)
-  base/                        ← Base repository (`BASE_HOME` for source installs)
-  project-a/                   ← peer project with `base_manifest.yaml`
-  project-b/                   ← peer project with `base_manifest.yaml`
-  infra/                       ← another peer repo that can opt into Base
-```
-
-Projects opt into Base with minimal coupling:
-
-- Base discovers projects in the shared workspace
-- projects expose a small contract through `base_manifest.yaml`
-- Base provides common orchestration on top
-
-## Design Principles
-
-Base follows a few simple principles.
-
-1. Keep project repos independent.
-2. Prefer explicit conventions over hidden shell magic.
-3. Keep wrappers thin but reliable.
-4. Make setup and test flows idempotent where possible.
-5. Make findings and next actions stable enough for human and automated handoff.
-6. Let Base provide the common layer without turning into a dumping ground for
-   project-specific behavior.
-
 ## Current Status
 
 Base `1.8.0` is the current release. The implemented command surface covers
@@ -677,12 +663,6 @@ For ecosystem boundary and integration decisions, see
 Release notes are tracked in [CHANGELOG.md](CHANGELOG.md), and upcoming work is
 tracked in GitHub Issues using the workflow in
 [docs/github-workflow.md](docs/github-workflow.md).
-
-## Short Version
-
-Base is the local operating contract you add to a repository set so its readiness,
-trusted execution, onboarding, and handoff stop depending on private maintainer
-memory.
 
 ## License
 
