@@ -14,7 +14,7 @@ def section(text: str, start_marker: str, end_marker: str) -> str:
 
 def test_readme_first_mile_section_surfaces_verified_homebrew_installer_path() -> None:
     text = README.read_text(encoding="utf-8")
-    first_mile = section(text, "### New Or Uncertain Machine?", "### Team Or Security-Conscious Rollout")
+    first_mile = section(text, "### First-Mile Bootstrap", "### Homebrew")
 
     assert "curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash" in first_mile
     assert "--ensure-bash --dry-run" in first_mile
@@ -52,7 +52,7 @@ def test_bootstrap_docs_explain_mutable_homebrew_default_rationale() -> None:
 
 def test_readme_trust_conscious_proof_reviews_manifest_trust_before_demo() -> None:
     text = README.read_text(encoding="utf-8")
-    proof = section(text, "### Trust-Conscious Proof, No Dotfile Changes", "### Shell Startup Is Explicit")
+    proof = section(text, "### Trust-Conscious Proof, No Dotfile Changes", "## How Base Fits")
     normalized_proof = " ".join(proof.split())
 
     base_status = proof.index("basectl trust status base")

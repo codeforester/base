@@ -118,10 +118,6 @@ including where Base should delegate, integrate, or stay out of the way.
 - [Source Control And Forge Support](#source-control-and-forge-support)
 - [Start Here](#start-here)
   - [Trust-Conscious Proof, No Dotfile Changes](#trust-conscious-proof-no-dotfile-changes)
-  - [Shell Startup Is Explicit](#shell-startup-is-explicit)
-  - [Choose An Install Path](#choose-an-install-path)
-  - [New Or Uncertain Machine?](#new-or-uncertain-machine)
-  - [Team Or Security-Conscious Rollout](#team-or-security-conscious-rollout)
 - [How Base Fits](#how-base-fits)
   - [Reusable Bash Libraries](#reusable-bash-libraries)
 - [Product Layers And Shipped Commands](#product-layers-and-shipped-commands)
@@ -293,87 +289,6 @@ demo:
 The demo sequence is separate from the canonical Quickstart proof; both keep
 manifest trust review ahead of execution.
 
-### Shell Startup Is Explicit
-
-Run `update-profile` only after you want `basectl` on `PATH`, shell
-completions, and `basectl activate <project>` available in new interactive
-shells:
-
-```bash
-~/work/base/bin/basectl update-profile --dry-run
-~/work/base/bin/basectl update-profile
-exec "$SHELL" -l
-```
-
-`update-profile` manages only marked Base sections in Bash and Zsh startup
-files and preserves non-Base content. See [Shell Startup Files](#shell-startup-files)
-for the full dotfile boundary.
-
-### Choose An Install Path
-
-Choose Homebrew when you want Base managed like an installed consumer tool, or a
-source checkout when you want to contribute to or dogfood Base. The consolidated
-[Installation Details](#installation-details) section below summarizes the
-supported bootstrap, Homebrew, source-checkout, and standalone-installer paths.
-See [First-Mile Bootstrap](docs/bootstrap.md) for the complete recipes and
-safety checks.
-
-### New Or Uncertain Machine?
-
-Use the [First-Mile Bootstrap](docs/bootstrap.md) guide when Homebrew, Git, or a
-supported Bash may be missing. The concise verified handoff is:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
-```
-
-For a reviewed Homebrew installer, provide both checksum variables before
-running that command:
-
-```bash
-BASE_BOOTSTRAP_HOMEBREW_INSTALLER_URL=file:///path/to/homebrew-install.sh \
-BASE_BOOTSTRAP_HOMEBREW_INSTALLER_SHA256=<sha256> \
-curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
-```
-
-Use `--ensure-bash --dry-run` and `--ensure-bash --yes` for the narrower
-Bash-repair path; use `--source`, `--brew`, or
-`--source --dry-run` for explicit mode selection and Ubuntu/Debian review.
-The same installer pin can use `BASE_HOMEBREW_INSTALLER_URL` and
-`BASE_HOMEBREW_INSTALLER_SHA256`. The supported paths are summarized in
-[Installation Details](#installation-details), with complete recipes and edge
-cases in [First-Mile Bootstrap](docs/bootstrap.md).
-
-### Team Or Security-Conscious Rollout
-
-Review installer plans with `--dry-run` and pin remote installer content when
-your workstation policy requires it. The complete checksum, consent,
-Ubuntu/Debian, tap-trust, and project-installer guidance lives in
-[First-Mile Bootstrap](docs/bootstrap.md) and
-[Remote Installer Policy](docs/remote-installer-policy.md).
-
-After Base is installed, the common development loop is:
-
-```bash
-basectl projects list
-basectl setup <project>
-basectl check <project>
-basectl doctor <project>
-basectl test <project>
-basectl demo [project]
-basectl run [project] <command>
-basectl export-context <project>
-basectl docs
-basectl activate <project>
-```
-
-For Base itself, run the self-demo or the dogfood test contract:
-
-```bash
-basectl demo base -- --non-interactive
-basectl test base
-```
-
 ## How Base Fits
 
 Base coordinates the systems that already own their domains:
@@ -494,9 +409,11 @@ exec "$BASE_HOME/bin/base-wrapper" --project "${BASE_PROJECT:-example}" example_
 
 ## Installation Details
 
-This is the canonical README summary of the supported installation paths. For
-complete, copy-pasteable recipes, safety disclosures, and edge cases, see
-[First-Mile Bootstrap](docs/bootstrap.md).
+This is the canonical README summary of the supported installation paths.
+Choose Homebrew when you want Base managed like an installed consumer tool, or a
+source checkout when you want to contribute to or dogfood Base. For complete,
+copy-pasteable recipes, safety disclosures, and edge cases, see [First-Mile
+Bootstrap](docs/bootstrap.md).
 
 For setup profiles, Python runtime policy, setup parallelism, and completion
 notifications, see [Setup Profiles And Behavior](docs/command-reference.md#setup-profiles-and-behavior).
@@ -509,6 +426,27 @@ On Ubuntu/Debian it prints the manual source-checkout handoff instead of running
 apt automatically. Review the `--dry-run` output before applying system or
 remote-installer changes; use `--source`, `--brew`, or the narrower
 `--ensure-bash` mode when needed.
+
+When Homebrew, Git, or a supported Bash may be missing, the concise verified
+handoff is:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
+```
+
+For a reviewed Homebrew installer, provide both checksum variables before
+running that command:
+
+```bash
+BASE_BOOTSTRAP_HOMEBREW_INSTALLER_URL=file:///path/to/homebrew-install.sh \
+BASE_BOOTSTRAP_HOMEBREW_INSTALLER_SHA256=<sha256> \
+curl -fsSL https://raw.githubusercontent.com/basefoundry/base/HEAD/bootstrap.sh | bash
+```
+
+Use `--ensure-bash --dry-run` and `--ensure-bash --yes` for the narrower
+Bash-repair path. Use `--source`, `--brew`, or `--source --dry-run` for explicit
+mode selection and Ubuntu/Debian review. The same installer pin can use
+`BASE_HOMEBREW_INSTALLER_URL` and `BASE_HOMEBREW_INSTALLER_SHA256`.
 
 ### Homebrew
 
@@ -546,6 +484,34 @@ leave shell startup integration opt-in. Setup creates
 to the shared directory that contains your repositories. Add Base to future
 interactive shells only after reviewing the marked-section behavior of
 `basectl update-profile`; see [Shell Startup Files](docs/shell-startup.md).
+
+For team or security-conscious rollouts, review installer plans with `--dry-run`
+and pin remote installer content when your workstation policy requires it. The
+complete checksum, consent, Ubuntu/Debian, tap-trust, and project-installer
+guidance lives in [First-Mile Bootstrap](docs/bootstrap.md) and [Remote
+Installer Policy](docs/remote-installer-policy.md).
+
+The common development loop after installation is:
+
+```bash
+basectl projects list
+basectl setup <project>
+basectl check <project>
+basectl doctor <project>
+basectl test <project>
+basectl demo [project]
+basectl run [project] <command>
+basectl export-context <project>
+basectl docs
+basectl activate <project>
+```
+
+For Base itself, run the self-demo or the dogfood test contract:
+
+```bash
+basectl demo base -- --non-interactive
+basectl test base
+```
 
 ## Version Identity
 
@@ -622,6 +588,15 @@ Base integrates with Bash and Zsh through marked sections in your real dotfiles;
 it never takes over whole files. `basectl update-profile` creates or refreshes
 the managed sections, preserving unrelated content and writing a timestamped
 sibling backup before changing an existing file.
+
+Run `update-profile` only after you want `basectl` on `PATH`, shell completions,
+and `basectl activate <project>` available in new interactive shells:
+
+```bash
+~/work/base/bin/basectl update-profile --dry-run
+~/work/base/bin/basectl update-profile
+exec "$SHELL" -l
+```
 
 By default, it updates `~/.bash_profile`, `~/.bashrc`, `~/.zprofile`, and
 `~/.zshrc`. Use `basectl update-profile --remove` to remove only Base-managed
