@@ -4,6 +4,7 @@
 ![Lint](https://github.com/basefoundry/base/actions/workflows/pylint.yml/badge.svg)
 ![Platform: macOS + Ubuntu/Debian](https://img.shields.io/badge/platform-macOS%20%2B%20Ubuntu%2FDebian-lightgrey)
 ![Version](https://img.shields.io/badge/version-1.8.0-blue)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 > Base is an AI-ready GitHub workspace control plane for repository setup, local
 > development, and verified pull requests.
@@ -51,6 +52,57 @@ running the exact `basectl trust allow base --manifest-sha256 ...` command it
 provides. This path lets you inspect and verify Base before adding it to shell
 startup files. See [Start Here](#start-here) for the demo walkthrough and install
 choices.
+
+## See Base Run
+
+The shortest proof is the real self-demo:
+
+```bash
+basectl demo base -- --non-interactive
+```
+
+This excerpt is from that manifest-declared run; local paths are shortened so
+the workflow is easy to scan:
+
+```text
+$ basectl demo base -- --non-interactive
+
+Base Self-Demo
+
+== Step 1: Runtime Contract ==
+
+BASE_PROJECT=base
+
+== Step 2: Manifest Contract ==
+
+11:demo:
+12:  script: ./demo/demo.sh
+
+== Step 4: Check And Doctor ==
+
+Base CLI environment and project 'base' check passed.
+Base doctor found no blocking issues for project 'base'.
+
+== Step 6: Run And Test Delegation ==
+
+[DRY-RUN] Would run command test for project base: ./bin/base-test
+[DRY-RUN] Would run tests for project base: ./bin/base-test
+
+Base self-demo complete.
+```
+
+[Play the full asciinema-compatible capture](docs/assets/base-self-demo.cast).
+
+### Tool Comparison
+
+| Tool | Primary responsibility | Base relationship |
+|---|---|---|
+| Base | Repository contracts, readiness, trust, onboarding, and handoff | Owns the local operating contract across participating repositories |
+| [mise](docs/tool-boundaries.md) | Machine and project bootstrap, tool versions, environments, and tasks | Base delegates; choose mise when convergence is the primary outcome |
+| [mani](docs/tool-boundaries.md) | Git repository inventory, synchronization, worktrees, filters, and tasks | Base coexists; choose mani when repository-set management is the primary need |
+
+See [Tool Boundaries](docs/tool-boundaries.md) for the maintained comparison,
+including where Base should delegate, integrate, or stay out of the way.
 
 ## Contents
 
