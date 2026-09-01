@@ -89,7 +89,6 @@ artifacts:
     version_policy: requested
     check:
       kind: python_import
-      module: pytest
 
   - type: tool
     name: kubectl
@@ -112,8 +111,9 @@ class ArtifactDefinition:
     manager: str
     package: str
     target: str
-    version_policy: str
-    registry_source: str
+    version_policy: str = ""
+    check_kind: str = ""
+    registry_source: str = ""
 ```
 
 `get_artifact_definition(type, name)` should continue to return one
