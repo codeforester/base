@@ -79,6 +79,8 @@ reference. The filename should answer "what is this about?"
   apt-backed setup path, and bootstrap boundaries.
 - [Runtime Environment](runtime-environment.md) is the canonical reference for
   Base-managed environment variables, `~/.baserc`, and mutability rules.
+- [Shell Startup Files](shell-startup.md) documents the marked Bash/Zsh dotfile
+  sections, profile layering, startup debugging, and optional shell defaults.
 - [Cache Ownership And Layout](cache-ownership-and-layout.md) defines the
   clean-slate Base-versus-project cache boundary and proposed run bundles.
 - [Base Bash Libraries](base-bash-libs.md) documents the standalone
