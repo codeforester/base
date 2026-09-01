@@ -1,0 +1,9 @@
+{"version":2,"width":100,"height":30,"timestamp":1788250088,"env":{"SHELL":"/bin/bash","TERM":"xterm-256color"}}
+[0.2,"o","$ ./bin/basectl demo base -- --non-interactive\r\n"]
+[0.4,"o","\r\nBase Self-Demo\r\n\r\nThis walkthrough exercises the current Base project workflow using the Base repo itself.\r\nIt is intentionally local, inspectable, and safe to run repeatedly.\r\n"]
+[0.7,"o","\r\n== Step 1: Runtime Contract ==\r\n\r\nBASE_PROJECT=base\r\n"]
+[1.0,"o","\r\n== Step 2: Manifest Contract ==\r\n\r\nBase declares its test and demo contracts in base_manifest.yaml.\r\n\r\n11:demo:\r\n12:  script: ./demo/demo.sh\r\n"]
+[1.4,"o","\r\n== Step 3: Project Discovery ==\r\n\r\nbase\t<workspace>/base\r\nbase-demo\t<workspace>/base-demo\r\n"]
+[1.8,"o","\r\n== Step 4: Check And Doctor ==\r\n\r\nBase CLI environment and project 'base' check passed.\r\nBase doctor found no blocking issues for project 'base'.\r\n"]
+[2.3,"o","\r\n== Step 5: Base Wrapper ==\r\n\r\nbase\t<workspace>/base\t<workspace>/base/base_manifest.yaml\t...\r\n"]
+[2.7,"o","\r\n== Step 6: Run And Test Delegation ==\r\n\r\n[DRY-RUN] Would run command test for project base: ./bin/base-test\r\n[DRY-RUN] Would run tests for project base: ./bin/base-test\r\n\r\nBase self-demo complete.\r\n"]
