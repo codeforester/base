@@ -235,13 +235,12 @@ Every run gets two streams:
 
 | Stream | Destination | Level | Format |
 |---|---|---|---|
-| user | stderr | INFO by default, DEBUG with `--debug` | Local timestamp (or UTC with `--utc-wrapper`), level, source, message |
-| persistent | `ctx.log_file` when enabled | DEBUG | Local timestamp (or UTC with `--utc-wrapper`), level, source, message |
+| user | stderr | INFO by default, DEBUG with `--debug` | Local timestamp, level, source, message |
+| persistent | `ctx.log_file` when enabled | DEBUG | Local timestamp, level, source, message |
 
-Python user-facing logs default to the host's local timezone so a local run has
-one clock throughout the Bash and Python layers. The local offset is included
-in each timestamp; `--utc-wrapper` sets `LOG_UTC=1` and switches both layers to
-UTC for CI, support, or cross-machine diagnostics:
+Python user-facing logs default to the host's local timezone. The local offset
+is included in each timestamp. `--utc-wrapper` switches Bash wrapper and library
+logs to UTC, but does not change Python CLI log timestamps:
 
 When `basectl --color` is used on a terminal, Python user-facing logs use the
 same level colors as Bash logs. Persistent log files remain plain text, and

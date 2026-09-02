@@ -237,9 +237,10 @@ errors.
 `basectl history` should point to logs, not replace them.
 
 Raw Python CLI logs use the host's local timezone by default, with the local
-numeric offset included in each timestamp. This matches the Bash logger for a
-local run. `basectl --utc-wrapper ...` sets `LOG_UTC=1` and switches both log
-layers to UTC for CI, support, or cross-machine diagnostics.
+numeric offset included in each timestamp. `basectl --utc-wrapper ...` sets
+`BASE_BASH_LIBS_LOG_UTC=1` and switches Bash wrapper and library logs to UTC for
+CI, support, or cross-machine diagnostics; it does not change Python CLI log
+timestamps.
 
 The primary run log uses ISO-8601 UTC timestamps, run IDs use UTC-based
 timestamps, and history JSON retains canonical UTC timestamps. Only
