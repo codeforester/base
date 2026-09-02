@@ -206,7 +206,7 @@ load ./basectl_helpers.bash
 }
 
 
-@test "basectl reuses a validated internal run bundle" {
+@test "basectl reuses a validated internal run bundle without finalizing it" {
     local cache_root="$TEST_TMPDIR/cache"
     local inherited_root="$cache_root/base/runs/parent-run__setup"
 
@@ -235,8 +235,8 @@ load ./basectl_helpers.bash
     [ "$status" -eq 0 ]
     [[ "$output" != *"Ignoring invalid inherited Base run context"* ]]
     grep -Fq '"run_id":"parent-run"' "$inherited_root/run.json"
-    grep -Fq '"status":"ok"' "$inherited_root/run.json"
-    [ ! -e "$inherited_root/tmp" ]
+    grep -Fq '"status":"running"' "$inherited_root/run.json"
+    [ -f "$inherited_root/tmp/private/proof.txt" ]
     [ "$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ]
 }
 
