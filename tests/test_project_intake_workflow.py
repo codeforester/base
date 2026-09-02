@@ -178,6 +178,34 @@ def test_project_intake_primary_path_is_idempotent_for_complete_fields(tmp_path:
     assert not (tmp_path / "edits.log").exists()
 
 
+def test_project_intake_retries_graphql_item_visibility_after_add(tmp_path: Path) -> None:
+    result = run_project_intake_script(
+        tmp_path,
+        PROJECT_INTAKE_DELAYED_ITEM_VISIBILITY="1",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "not visible after it was added" in result.stderr
+    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "1\n"
+    gh_log = (tmp_path / "gh.log").read_text(encoding="utf-8")
+    assert gh_log.count("project item-add") == 1
+    assert gh_log.count("project item-list") == 3
+
+
+def test_project_intake_fails_closed_when_graphql_item_never_becomes_visible(
+    tmp_path: Path,
+) -> None:
+    result = run_project_intake_script(
+        tmp_path,
+        PROJECT_INTAKE_ITEM_NEVER_VISIBLE="1",
+    )
+
+    assert result.returncode != 0
+    assert "bounded visibility retry" in result.stderr
+    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "1\n2\n"
+    assert "Synced issue" not in result.stdout
+
+
 def test_project_intake_rest_fallback_applies_closed_status(tmp_path: Path) -> None:
     result = run_project_intake_script(
         tmp_path,
@@ -204,6 +232,26 @@ def test_project_intake_rest_fallback_adds_a_missing_exact_item(tmp_path: Path) 
     assert "api --method POST orgs/basefoundry/projectsV2/1/items -f type=Issue -F id=1311" in (
         gh_log
     )
+
+
+def test_project_intake_rest_fallback_accepts_live_add_response_after_delay(
+    tmp_path: Path,
+) -> None:
+    result = run_project_intake_script(
+        tmp_path,
+        PROJECT_INTAKE_GRAPHQL_FAILURE="quota",
+        PROJECT_INTAKE_ITEM_EXISTS="0",
+        PROJECT_INTAKE_REST_ADD_RESPONSE="top-level",
+        PROJECT_INTAKE_DELAYED_ITEM_VISIBILITY="1",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "via REST fallback" in result.stdout
+    assert "not visible after it was added" in result.stderr
+    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "1\n"
+    gh_log = (tmp_path / "gh.log").read_text(encoding="utf-8")
+    assert gh_log.count("api --method POST orgs/basefoundry/projectsV2/1/items") == 1
+    assert gh_log.count("api --method GET orgs/basefoundry/projectsV2/1/items -f") == 3
 
 
 def test_project_intake_rest_failures_remain_fail_closed(tmp_path: Path) -> None:

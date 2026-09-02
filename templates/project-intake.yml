@@ -176,6 +176,77 @@ jobs:
             return "$status"
           }
 
+          project_intake_graphql_item_after_add() {
+            local project_number="$1"
+            local item_id="$2"
+            local item_list_json
+            local item_json
+            local command_status
+            local attempt
+
+            for attempt in 1 2 3; do
+              if item_list_json="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
+                "list Project items" gh project item-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json --limit 1000)"; then
+                item_json="$(jq --arg id "$item_id" '.items[] | select(.id == $id)' <<<"$item_list_json")"
+                if [[ -n "$item_json" ]]; then
+                  printf '%s\n' "$item_json"
+                  return 0
+                fi
+              else
+                command_status=$?
+                return "$command_status"
+              fi
+
+              if (( attempt < 3 )); then
+                echo "::warning::Project item '$item_id' is not visible after it was added (attempt $attempt/3); retrying in ${attempt}s." >&2
+                sleep "$attempt"
+              fi
+            done
+
+            echo "::error::Project item '$item_id' was not returned after the bounded visibility retry." >&2
+            return 1
+          }
+
+          project_intake_rest_item_after_add() {
+            local owner_api_prefix="$1"
+            local project_number="$2"
+            local item_id="$3"
+            local field_ids_csv="$4"
+            local escaped_issue_title
+            local item_search_json
+            local item_json
+            local command_status
+            local attempt
+
+            escaped_issue_title="${issue_title//\"/\\\"}"
+            for attempt in 1 2 3; do
+              if item_search_json="$(project_intake_gh "find REST Project item after add" gh api --method GET \
+                "$owner_api_prefix/projectsV2/$project_number/items" \
+                -f per_page=100 \
+                -f q="repo:$GITHUB_REPOSITORY is:issue title:\"$escaped_issue_title\"" \
+                -f fields="$field_ids_csv")"; then
+                item_json="$(jq --argjson issue_id "$issue_id" --arg item_id "$item_id" \
+                  '.[] | select((.id | tostring) == $item_id and .content.id == $issue_id)' \
+                  <<<"$item_search_json")"
+                if [[ -n "$item_json" ]]; then
+                  printf '%s\n' "$item_json"
+                  return 0
+                fi
+              else
+                command_status=$?
+                return "$command_status"
+              fi
+
+              if (( attempt < 3 )); then
+                echo "::warning::REST Project item '$item_id' is not visible after it was added (attempt $attempt/3); retrying in ${attempt}s." >&2
+                sleep "$attempt"
+              fi
+            done
+
+            echo "::error::REST Project item '$item_id' was not returned after the bounded visibility retry." >&2
+            return 1
+          }
+
           issue_json="$(project_intake_gh "view issue" gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number")"
           issue_state="$(jq -r '.state | ascii_upcase' <<<"$issue_json")"
           issue_url="$(jq -r '.html_url' <<<"$issue_json")"
@@ -233,16 +304,11 @@ jobs:
               command_status=$?
               return "$command_status"
             fi
-            if item_json="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
-              "list Project items" gh project item-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json --limit 1000)"; then
-              item_json="$(jq --arg id "$item_id" '.items[] | select(.id == $id)' <<<"$item_json")"
+            if item_json="$(project_intake_graphql_item_after_add "$project_number" "$item_id")"; then
+              :
             else
               command_status=$?
               return "$command_status"
-            fi
-            if [[ -z "$item_json" ]]; then
-              echo "::error::Project item '$item_id' was not returned after it was added." >&2
-              return 1
             fi
             if fields_json="$(PROJECT_INTAKE_ALLOW_PROJECT_FALLBACK=1 project_intake_gh \
               "list Project fields" gh project field-list "$project_number" --owner "$BASE_PROJECT_OWNER" --format json)"; then
@@ -415,10 +481,17 @@ jobs:
               added_item_json="$(project_intake_gh "add REST Project item" gh api --method POST \
                 "$owner_api_prefix/projectsV2/$project_number/items" \
                 -f type=Issue -F id="$issue_id")"
-              item_id="$(jq -r '.value.id // ""' <<<"$added_item_json")"
+              item_id="$(jq -r '.id // .value.id // ""' <<<"$added_item_json")"
               if [[ -z "$item_id" ]]; then
                 echo "::error::REST Project item add did not return an item id." >&2
                 return 1
+              fi
+              if item_json="$(project_intake_rest_item_after_add \
+                "$owner_api_prefix" "$project_number" "$item_id" "$field_ids_csv")"; then
+                :
+              else
+                command_status=$?
+                return "$command_status"
               fi
             fi
 
