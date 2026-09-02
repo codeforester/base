@@ -201,15 +201,6 @@ inside Base." The larger possibility is to make readiness and operating context
 portable within a project, from a single repository to a repository set, without
 absorbing the tools that prepare, build, or host those repositories.
 
-### 2026-07-30 / Single-repository positioning
-
-This documentation update clarifies that Base's project contract is useful
-within a single repository as well as across independent repositories. The
-single-repository case covers recurring setup, readiness, test, build,
-onboarding, and handoff friction; multi-repository work remains the strongest
-initial wedge and an expansion path. This broadens the entry point without
-changing Base's product boundary or serving as evidence of external adoption.
-
 ### 2026-06-17 Product Review Delta
 
 A later external product review reinforced the core thesis: Base is strongest as
@@ -533,6 +524,15 @@ Watchlist recorded at the 1.7.0 review:
   partners before expanding Base's feature surface (#1616).
 - Continue issue-backed ownership reduction and preserve adapter boundaries as
   new IDE, container, AI, and environment requests arrive.
+
+### 2026-07-30 / Single-repository positioning
+
+This documentation update clarifies that Base's project contract is useful
+within a single repository as well as across independent repositories. The
+single-repository case covers recurring setup, readiness, test, build,
+onboarding, and handoff friction; multi-repository work remains the strongest
+initial wedge and an expansion path. This broadens the entry point without
+changing Base's product boundary or serving as evidence of external adoption.
 
 ### 2026-08-15 / 1.8.0 + Unreleased Product Review Delta
 
