@@ -6,8 +6,8 @@
 ![Version](https://img.shields.io/badge/version-1.8.0-blue)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-> Base is an AI-ready GitHub workspace control plane for repository setup, local
-> development, and verified pull requests.
+> Base is an AI-ready Git-based, GitHub-primary workspace control plane for
+> repository setup, local development, and verified pull requests.
 
 Base is the local operating contract you add to a repository set so its readiness,
 trusted execution, onboarding, and handoff stop depending on private maintainer
@@ -25,7 +25,8 @@ Use Base when you need to:
   handoff-ready pull request.
 
 Base owns workspace orchestration, policy, trust, readiness, and handoff. Your
-repositories own their source code, tests, and project behavior; GitHub owns
+repositories own their source code, tests, and project behavior; Git remains the
+SCM boundary; GitHub remains Base's first-class forge automation target for
 hosting and pull requests; environment managers and AI tools remain adapters.
 That boundary lets Base coordinate the workflow without turning your projects
 into a monorepo or moving project-specific logic into Base.

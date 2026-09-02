@@ -21,6 +21,21 @@ only one repository. Multiple repositories amplify the need for shared
 inventory and workspace coordination, but they are not required for Base's
 project contract to be useful.
 
+### Can I use Base without GitHub?
+
+Yes, for Base's local Git project loop. Base assumes Git as the source-control
+system; Mercurial, Perforce, Subversion, Fossil, and other non-Git SCMs are out
+of scope. A GitLab, Bitbucket, internal Git, or local Git repository can use
+local Base commands once it is checked out locally and declares
+`base_manifest.yaml`.
+
+Base is still GitHub-primary for forge automation. Repository creation,
+repository materialization, repository configuration, `basectl gh ...`,
+GitHub Issues, pull requests, Projects, Actions intake, and release publishing
+target GitHub today. See
+[Source Control And Forge Support](docs/source-control-and-forge-support.md)
+for command-by-command behavior.
+
 ## First-Time Installation
 
 ### What should I run on a blank macOS or Ubuntu/Debian machine?
