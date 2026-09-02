@@ -653,8 +653,4 @@ tracked in GitHub Issues using the workflow in
 
 ## License
 
-Base is licensed under Apache-2.0 starting with v1.9.0.
-
-Versions v1.0.1 through v1.8.0 remain available under AGPL-3.0-or-later, and
-versions through v1.0.0 remain available under the MIT License as originally
-published. See [LICENSE](LICENSE) for the current license terms.
+Base is licensed under Apache 2.0. See [LICENSE](LICENSE) for the license terms.
