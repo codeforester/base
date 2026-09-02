@@ -360,6 +360,7 @@ The top-level public command inventory remains visible here:
 - `basectl demo [project]`
 - `basectl run [project] <command>`
 - `basectl export-context [project]`
+- `basectl logs [options]`
 - `basectl devcontainer [project]`
 - `basectl devenv-report [project]`
 - `basectl docs`
