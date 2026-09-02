@@ -98,7 +98,6 @@ Recognized environment variables include:
 - `BASE_CLI_ENVIRONMENT`
 - `BASE_CLI_LOG_LEVEL`
 - `BASE_CLI_KEEP_TEMP`
-- `BASE_CLI_TEMP_RETENTION_DAYS`
 
 `BASE_CACHE_DIR` separately controls the runtime cache/log/temp root; it is not
 stored in the user config.

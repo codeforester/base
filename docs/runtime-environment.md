@@ -204,7 +204,6 @@ readonly by Base.
 | `BASE_CLI_ENVIRONMENT` | Python CLI config | Selects the CLI environment value used by `base_cli`. |
 | `BASE_CLI_LOG_LEVEL` | Python CLI config | Sets the Python CLI user-stream log level. |
 | `BASE_CLI_KEEP_TEMP` | Python CLI config | Keeps temp directories for inspection when true. |
-| `BASE_CLI_TEMP_RETENTION_DAYS` | Python CLI config | Retention window for pruned temp directories. |
 | `BASE_ACTIVATE_SHELL` | `basectl activate` | Overrides the Bash executable used for the activated runtime shell. |
 | `BASE_ACTIVATE_PRESERVE_CWD` | `basectl activate` | Test/user override equivalent to `--no-cd` when set to `1`. |
 | `BASE_SETUP_PROFILES` | `basectl setup` | Comma-separated setup profiles such as `dev,sre`. |
