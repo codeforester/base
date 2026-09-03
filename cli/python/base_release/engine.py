@@ -16,7 +16,8 @@ from .release_parser import ReleaseUsageError
 from .release_parser import parse_release_args
 from .release_parser import print_usage
 from .release_parser import selected_release_check_format
-from .release_publish import release_publish_recovery_guidance, require_interactive_publish_confirmation
+from .release_publish import inspect_remote_annotated_tag, release_publish_recovery_guidance
+from .release_publish import release_tag_push_recovery_guidance, require_interactive_publish_confirmation
 from .release_publish import run_release_step, verify_github_release
 from .release_publish import verify_local_annotated_tag, verify_remote_annotated_tag
 from .release_publish import write_temp_release_notes
@@ -229,7 +230,14 @@ def release_publish_command(ctx: ReleaseContext, args: ReleaseArguments) -> int:
         cwd=project_root,
     )
     verify_local_annotated_tag(project_root, ctx.tag_name, expected_sha)
-    run_release_step(["git", "push", "origin", ctx.tag_name], cwd=project_root)
+    try:
+        run_release_step(["git", "push", "origin", ctx.tag_name], cwd=project_root)
+    except ReleaseError as exc:
+        remote_tag_state = inspect_remote_annotated_tag(project_root, ctx.tag_name, expected_sha)
+        raise ReleaseError(
+            str(exc),
+            guidance=release_tag_push_recovery_guidance(ctx, title, remote_tag_state),
+        ) from exc
 
     notes_path = None
     try:

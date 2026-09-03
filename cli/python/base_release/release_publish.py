@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Literal
 from urllib.parse import quote
 
 import base_cli
@@ -15,6 +16,7 @@ from .release_readiness import last_non_empty_line
 
 RELEASE_STEP_TIMEOUT_SECONDS = 120
 FULL_GIT_SHA_LENGTHS = frozenset((40, 64))
+RemoteTagState = Literal["absent", "intended", "conflict", "unavailable"]
 
 
 def release_publish_recovery_guidance(ctx: ReleaseContext, title: str) -> str:
@@ -39,6 +41,33 @@ def release_publish_recovery_guidance(ctx: ReleaseContext, title: str) -> str:
         "To abandon this release attempt, remove the local and remote tag after confirming no one else is using it:\n"
         f"  git tag -d {shlex.quote(ctx.tag_name)}\n"
         f"  git push origin :refs/tags/{shlex.quote(ctx.tag_name)}"
+    )
+
+
+def release_tag_push_recovery_guidance(ctx: ReleaseContext, title: str, state: RemoteTagState) -> str:
+    """Describe non-destructive recovery after local tag creation and push failure."""
+    tag = shlex.quote(ctx.tag_name)
+    inspect_command = f"git ls-remote --tags origin refs/tags/{tag} 'refs/tags/{tag}^{{}}'"
+    if state == "intended":
+        return (
+            f"The remote tag {ctx.tag_name} is present and resolves to the intended release commit. "
+            "Do not push or delete the tag again. Complete the GitHub Release with the verified tag:\n"
+            f"{release_publish_recovery_guidance(ctx, title)}"
+        )
+    if state == "absent":
+        return (
+            f"The local annotated tag {ctx.tag_name} remains, but the remote tag is absent. "
+            "After resolving the push failure, retry the tag push:\n"
+            f"  git push origin {tag}\n"
+            "Then verify the remote annotated tag before creating the GitHub Release. "
+            "If abandoning the attempt, remove only the local tag:\n"
+            f"  git tag -d {tag}"
+        )
+    return (
+        f"The local annotated tag {ctx.tag_name} remains, but the remote tag state could not be verified safely. "
+        "Do not retry blindly, force-update, or delete any tag. Inspect the exact remote refs first:\n"
+        f"  {inspect_command}\n"
+        "If the remote tag conflicts with the intended commit, stop and resolve it with the repository owner."
     )
 
 
@@ -90,17 +119,37 @@ def verify_local_annotated_tag(root: Path, tag_name: str, expected_sha: str) -> 
 
 
 def verify_remote_annotated_tag(root: Path, tag_name: str, expected_sha: str) -> None:
-    output = capture_release_step(
-        [
-            "git",
-            "ls-remote",
-            "--tags",
-            "origin",
-            f"refs/tags/{tag_name}",
-            f"refs/tags/{tag_name}^{{}}",
-        ],
-        cwd=root,
-    )
+    state = inspect_remote_annotated_tag(root, tag_name, expected_sha)
+    if state == "intended":
+        return
+    if state == "unavailable":
+        raise ReleaseError(f"Unable to verify remote tag {tag_name} safely on origin.")
+    if state == "conflict":
+        raise ReleaseError(
+            f"Remote tag {tag_name} is missing or is not an annotated tag on origin, "
+            "or resolves to a conflicting commit."
+        )
+    raise ReleaseError(f"Remote tag {tag_name} is missing or is not an annotated tag on origin.")
+
+
+def inspect_remote_annotated_tag(root: Path, tag_name: str, expected_sha: str) -> RemoteTagState:
+    try:
+        output = capture_release_step(
+            [
+                "git",
+                "ls-remote",
+                "--tags",
+                "origin",
+                f"refs/tags/{tag_name}",
+                f"refs/tags/{tag_name}^{{}}",
+            ],
+            cwd=root,
+        )
+    except ReleaseError:
+        return "unavailable"
+
+    if not output.strip():
+        return "absent"
     tag_object_sha: str | None = None
     peeled_sha: str | None = None
     for line in output.splitlines():
@@ -113,11 +162,8 @@ def verify_remote_annotated_tag(root: Path, tag_name: str, expected_sha: str) ->
         elif ref_name == f"refs/tags/{tag_name}^{{}}":
             peeled_sha = normalized
     if tag_object_sha is None or peeled_sha is None:
-        raise ReleaseError(f"Remote tag {tag_name} is missing or is not an annotated tag on origin.")
-    if peeled_sha != expected_sha:
-        raise ReleaseError(
-            f"Remote annotated tag {tag_name} resolves to {peeled_sha}, expected release commit {expected_sha}."
-        )
+        return "conflict"
+    return "intended" if peeled_sha == expected_sha else "conflict"
 
 
 def verify_github_release(ctx: ReleaseContext, expected_sha: str) -> None:

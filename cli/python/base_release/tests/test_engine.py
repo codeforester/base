@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Keep the release engine's end-to-end matrix together for readable workflow coverage.
+# pylint: disable=too-many-lines
+
 import io
 import json
 import os
@@ -527,6 +530,77 @@ class ReleaseEngineTests(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertIn("git push origin :refs/tags/v1.2.3", stderr)
 
 
+    def test_publish_push_failure_reports_local_tag_recovery_when_remote_is_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_path = self.manifest_factory.write_release(root)
+
+            def fail_push(command: list[str], *, cwd: Path | None = None) -> None:
+                del cwd
+                if command[:3] == ["git", "push", "origin"]:
+                    raise ReleaseError("Release command failed: git push origin v1.2.3: network unavailable")
+
+            with (
+                mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS),
+                mock.patch(
+                    "base_release.engine.github_release_finding",
+                    return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
+                    create=True,
+                ),
+                mock.patch("base_release.engine.require_release_provenance", return_value=READY_SHA),
+                mock.patch("base_release.engine.verify_local_annotated_tag"),
+                mock.patch("base_release.engine.inspect_remote_annotated_tag", return_value="absent") as inspect,
+                mock.patch("base_release.engine.run_release_step", side_effect=fail_push, create=True),
+            ):
+                status, stdout, stderr = run_engine(
+                    ["publish", "--yes", "--version", "1.2.3", "--manifest", str(manifest_path)],
+                    root,
+                )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stdout, "")
+        inspect.assert_called_once_with(root.resolve(), "v1.2.3", READY_SHA)
+        self.assertIn("local annotated tag v1.2.3 remains", stderr)
+        self.assertIn("remote tag is absent", stderr)
+        self.assertIn("git push origin v1.2.3", stderr)
+        self.assertIn("git tag -d v1.2.3", stderr)
+        self.assertNotIn("refs/tags/v1.2.3", stderr)
+
+
+    def test_publish_push_timeout_checks_remote_and_guides_github_recovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_path = self.manifest_factory.write_release(root)
+
+            def timeout_push(command: list[str], *, cwd: Path | None = None) -> None:
+                del cwd
+                if command[:3] == ["git", "push", "origin"]:
+                    raise ReleaseError("Release command timed out after 120 seconds: git push origin v1.2.3")
+
+            with (
+                mock.patch("base_release.engine.release_findings", return_value=READY_FINDINGS),
+                mock.patch(
+                    "base_release.engine.github_release_finding",
+                    return_value=ReleaseFinding("ok", "github_release", "GitHub Release is available."),
+                    create=True,
+                ),
+                mock.patch("base_release.engine.require_release_provenance", return_value=READY_SHA),
+                mock.patch("base_release.engine.verify_local_annotated_tag"),
+                mock.patch("base_release.engine.inspect_remote_annotated_tag", return_value="intended") as inspect,
+                mock.patch("base_release.engine.run_release_step", side_effect=timeout_push, create=True),
+            ):
+                status, stdout, stderr = run_engine(
+                    ["publish", "--yes", "--version", "1.2.3", "--manifest", str(manifest_path)],
+                    root,
+                )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stdout, "")
+        inspect.assert_called_once_with(root.resolve(), "v1.2.3", READY_SHA)
+        self.assertIn("remote tag v1.2.3 is present and resolves to the intended release commit", stderr)
+        self.assertIn("gh release create v1.2.3 --verify-tag --repo codeforester/demo", stderr)
+
+
     def test_publish_fails_when_readiness_has_errors(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -836,6 +910,35 @@ class ReleaseHelperTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(ReleaseError, "missing or is not an annotated tag"):
                 release_publish.verify_remote_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA)
+
+    def test_inspect_remote_annotated_tag_classifies_safe_recovery_states(self) -> None:
+        tag_object_sha = "b" * 40
+        intended_output = (
+            f"{tag_object_sha}\trefs/tags/v1.2.3\n"
+            f"{READY_SHA}\trefs/tags/v1.2.3^{{}}\n"
+        )
+        with mock.patch("base_release.release_publish.capture_release_step", return_value=intended_output):
+            self.assertEqual(
+                release_publish.inspect_remote_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA), "intended"
+            )
+        with mock.patch("base_release.release_publish.capture_release_step", return_value=""):
+            self.assertEqual(
+                release_publish.inspect_remote_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA), "absent"
+            )
+        with mock.patch(
+            "base_release.release_publish.capture_release_step",
+            return_value=f"{tag_object_sha}\trefs/tags/v1.2.3\n",
+        ):
+            self.assertEqual(
+                release_publish.inspect_remote_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA), "conflict"
+            )
+        with mock.patch(
+            "base_release.release_publish.capture_release_step",
+            side_effect=ReleaseError("network unavailable"),
+        ):
+            self.assertEqual(
+                release_publish.inspect_remote_annotated_tag(Path("/repo"), "v1.2.3", READY_SHA), "unavailable"
+            )
 
     def test_tag_verifiers_accept_a_real_annotated_tag_at_one_full_sha(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
