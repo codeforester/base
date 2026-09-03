@@ -178,9 +178,11 @@ runtime is loaded and the selected command is dispatched. For earlier startup
 debugging, use wrapper options that are consumed by `bin/basectl` before
 `base_init.sh` is sourced:
 
-- `--debug-wrapper` enables `LOG_DEBUG=1` before runtime initialization,
-  including DEBUG diagnostics from reusable Bash libraries.
-- `--utc-wrapper` enables UTC log timestamps before runtime initialization.
+- `--debug-wrapper` enables `BASE_BASH_LIBS_LOG_DEBUG=1` before runtime
+  initialization, including DEBUG diagnostics from reusable Bash libraries.
+- `--utc-wrapper` enables `BASE_BASH_LIBS_LOG_UTC=1` before runtime
+  initialization for Bash wrapper and library log timestamps. It does not
+  change Python CLI log timestamps.
 - `--color` preserves color-aware wrapper argument handling while keeping the flag
   out of command arguments.
 
