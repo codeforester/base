@@ -131,7 +131,9 @@ An inherited run bundle is reused only when its physical path is a non-symlink
 direct child of the active Base cache owner root and its owner, run ID, parent
 ID, primary log, and running metadata agree. Invalid inherited state is scrubbed
 without echoing its values, and the invocation receives a fresh local bundle.
-The same boundary is checked again before finalization.
+The same boundary is checked again before finalization. Only the invocation that
+created a bundle finalizes its metadata and removes its temporary directory;
+inherited Base children reuse the parent bundle without closing it.
 
 Fields should be omitted when unknown instead of guessed.
 

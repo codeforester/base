@@ -718,6 +718,11 @@ basectl_finalize_run_bundle() {
         base_std_log_warn "Skipping finalization for an invalid Base run context."
         return 1
     fi
+    # Only the invocation that created the bundle owns its finalization.
+    # Inherited Base children reuse the parent bundle for logs and history but
+    # must not close it while the parent command is still running.
+    [[ "${_basectl_run_bundle_created:-0}" == 1 ]] || return 0
+
     tmp_file="$(mktemp "$run_root/.run.json.XXXXXX")" || return 1
     printf '{"run_id":"%s","owner":"base","status":"%s","exit_code":%s,"started_at":"%s","ended_at":"%s"}\n' \
         "${BASE_CLI_RUN_ID:-$(basename -- "$run_root")}" \
