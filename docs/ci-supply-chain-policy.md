@@ -34,7 +34,10 @@ this policy if the rule changes.
 
 2. Replace the workflow SHAs with the resolved commits and keep the
    `base-bash-libs` checkout pinned to the commit Base CI should test against.
-3. Run:
+3. When updating Gitleaks, update `GITLEAKS_VERSION`, its release artifact URL,
+   and the matching `GITLEAKS_LINUX_X64_SHA256` value together. Verify the
+   checksum before allowing the security job to use the new binary.
+4. Run:
 
    ```bash
    BASE_CLI_SOURCE_DIR=../base-cli/lib/python \
@@ -42,7 +45,7 @@ this policy if the rule changes.
    python -m pytest cli/python/base_setup/tests/test_ci_supply_chain_policy.py -q
    ```
 
-4. Let pull request CI run the pinned workflows before merging.
+5. Let pull request CI run the pinned workflows before merging.
 
 ## Python Dependencies
 
@@ -75,3 +78,4 @@ The security job must keep these checks:
 - `pip-audit` over `requirements-dev.txt`
 - ShellCheck errors over tracked shell entry points and scripts
 - ShellCheck warnings as non-blocking signal
+- Checksum-pinned Gitleaks over committed history through `tests/scan-secrets.sh`
