@@ -329,7 +329,17 @@ case "$*" in
         exit 1
         ;;
     esac
-    project_intake_mock_graphql_item
+    count_file="${PROJECT_INTAKE_STATE:?}/graphql-item-list-count"
+    count=0
+    [[ ! -f "$count_file" ]] || count="$(cat "$count_file")"
+    count=$((count + 1))
+    printf '%s\\n' "$count" > "$count_file"
+    if [[ "${PROJECT_INTAKE_ITEM_NEVER_VISIBLE:-0}" == "1" ||
+          ( "${PROJECT_INTAKE_DELAYED_ITEM_VISIBILITY:-0}" == "1" && "$count" == "1" ) ]]; then
+      printf '{"items":[]}\\n'
+    else
+      project_intake_mock_graphql_item
+    fi
     ;;
   project\\ field-list*)
     cat <<'JSON'
@@ -393,14 +403,27 @@ JSON
       printf '403 Forbidden: REST item lookup failed\\n' >&2
       exit 1
     fi
-    if [[ "${PROJECT_INTAKE_ITEM_EXISTS:-1}" == "1" ]]; then
+    count_file="${PROJECT_INTAKE_STATE:?}/rest-item-search-count"
+    count=0
+    [[ ! -f "$count_file" ]] || count="$(cat "$count_file")"
+    count=$((count + 1))
+    printf '%s\\n' "$count" > "$count_file"
+    if [[ "${PROJECT_INTAKE_ITEM_EXISTS:-1}" == "1" ||
+          ( -f "${PROJECT_INTAKE_STATE:?}/rest-item-added" &&
+            "${PROJECT_INTAKE_ITEM_NEVER_VISIBLE:-0}" != "1" &&
+            ( "${PROJECT_INTAKE_DELAYED_ITEM_VISIBILITY:-0}" != "1" || "$count" != "2" ) ) ]]; then
       printf '[{"id":101,"content":{"id":1311,"number":1311,"title":"Project Intake test issue"}}]\\n'
     else
       printf '[]\\n'
     fi
     ;;
   api\\ --method\\ POST\\ *projectsV2/1/items*)
-    printf '{"value":{"id":101}}\\n'
+    : > "${PROJECT_INTAKE_STATE:?}/rest-item-added"
+    if [[ "${PROJECT_INTAKE_REST_ADD_RESPONSE:-nested}" == "top-level" ]]; then
+      printf '{"id":101}\\n'
+    else
+      printf '{"value":{"id":101}}\\n'
+    fi
     ;;
   api\\ --method\\ PATCH\\ *projectsV2/1/items/101*)
     payload="$(cat)"
