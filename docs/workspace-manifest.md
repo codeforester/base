@@ -569,7 +569,12 @@ expose or execute the raw command.
 repositories through `basectl repo clone`. It clones missing required
 repositories by default, skips missing optional repositories unless
 `--include-optional` is supplied, and exits nonzero when any delegated clone or
-checkout validation fails.
+checkout validation fails. Text output uses a stable repository/action/result
+table: existing repositories are `present`, newly materialized repositories are
+`cloned`, optional omissions are `skipped`, dry-run operations are `planned`,
+and failures include concise details and exit codes. Successful delegated clone
+output is suppressed in normal interactive mode, while the completion summary
+reports aggregate present, cloned, skipped, and failed counts.
 
 `basectl workspace configure --manifest <path>` configures present Base-managed
 expected repositories through `basectl repo configure`. It skips missing

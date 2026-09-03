@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 import base_cli
 from base_projects.command_helpers import ProjectCommandError as ProjectRunnerError
 from base_projects.command_helpers import ProjectUsageError
 from base_projects.command_helpers import github_repo_spec
 from base_projects.command_helpers import run_project_command
-from base_projects.command_helpers import write_project_command_output
 from base_projects.workspace_context import effective_workspace_manifest
 from base_projects.workspace_context import resolve_workspace_manifest
 from base_projects.workspace_context import resolve_workspace_root
@@ -25,6 +25,33 @@ class WorkspaceCloneOptions(Protocol):
     workspace_manifest: str | None
     include_optional: bool
     dry_run: bool
+
+
+WorkspaceCloneAction = Literal["check", "clone", "skip"]
+WorkspaceCloneStatus = Literal["planned", "present", "cloned", "skipped", "failed"]
+
+
+@dataclass(frozen=True)
+class WorkspaceCloneTarget:
+    name: str
+    root: Path
+    action: WorkspaceCloneAction
+
+
+@dataclass(frozen=True)
+class WorkspaceCloneResult:
+    status: WorkspaceCloneStatus
+    detail: str | None = None
+    exit_code: int | None = None
+
+
+@dataclass(frozen=True)
+class WorkspaceCloneCounts:
+    planned: int = 0
+    present: int = 0
+    cloned: int = 0
+    skipped: int = 0
+    failed: int = 0
 
 
 def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOptions) -> int:
@@ -45,33 +72,66 @@ def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOption
         return base_cli.ExitCode.FAILURE
 
     basectl = ctx.application_home / "bin" / "basectl"
-    print(f"Workspace clone: {workspace_root} ({len(manifest.repos)} repositories)")
+    name_width = max(len("REPOSITORY"), *(len(repo.name) for repo in manifest.repos))
+    print(f"Workspace clone: {workspace_root} ({len(manifest.repos)} manifest repos)")
     print(f"Workspace manifest: {manifest.path} ({manifest.name})")
+    print()
+    print_workspace_clone_header(name_width)
 
-    errors = 0
+    counts = WorkspaceCloneCounts()
     for repo in manifest.repos:
         try:
             target = resolve_workspace_clone_target(workspace_root, repo.name)
         except ProjectUsageError as exc:
-            ctx.log.error(str(exc))
-            errors += 1
+            target = WorkspaceCloneTarget(repo.name, workspace_root / repo.name, "clone")
+            result = WorkspaceCloneResult("failed", str(exc))
+            counts = update_workspace_clone_counts(counts, result)
+            print_workspace_clone_result(target, result, name_width)
             continue
-        required_label = "required" if repo.required else "optional"
+
         if should_skip_optional_clone(repo, target, options.include_optional):
-            print_optional_clone_skip(repo, target)
+            result = WorkspaceCloneResult(
+                "skipped",
+                f"optional repository is missing at '{target}'; pass --include-optional to clone it",
+            )
+            counts = update_workspace_clone_counts(counts, result)
+            print_workspace_clone_result(
+                WorkspaceCloneTarget(repo.name, target, "skip"),
+                result,
+                name_width,
+            )
             continue
 
-        verb = "CHECK" if target.exists() else "CLONE"
-        preposition = "at" if target.exists() else "into"
-        print(f"{verb} {required_label} repository '{repo.name}' {preposition} '{target}'.")
-        errors += clone_workspace_repo(ctx, basectl, repo, target, dry_run=options.dry_run)
+        target_spec = WorkspaceCloneTarget(
+            repo.name,
+            target,
+            "check" if target.exists() else "clone",
+        )
+        result = clone_workspace_repo(
+            ctx,
+            basectl,
+            repo,
+            target,
+            dry_run=options.dry_run,
+            already_exists=target.exists(),
+        )
+        counts = update_workspace_clone_counts(counts, result)
+        print_workspace_clone_result(target_spec, result, name_width)
 
-    if errors:
-        print(f"Workspace clone completed with {errors} error(s).")
-        return base_cli.ExitCode.FAILURE
+    if options.dry_run:
+        print(
+            "Workspace clone plan complete: "
+            f"planned={counts.planned} skipped={counts.skipped} failed={counts.failed}."
+        )
+        print("[DRY-RUN] No repositories were modified.")
+    else:
+        print(
+            "Workspace clone completed: "
+            f"present={counts.present} cloned={counts.cloned} "
+            f"skipped={counts.skipped} failed={counts.failed}."
+        )
 
-    print("Workspace clone completed.")
-    return base_cli.ExitCode.SUCCESS
+    return base_cli.ExitCode.FAILURE if counts.failed else base_cli.ExitCode.SUCCESS
 
 
 def resolve_workspace_clone_target(workspace_root: Path, repo_name: str) -> Path:
@@ -99,10 +159,42 @@ def should_skip_optional_clone(repo: WorkspaceManifestRepo, target: Path, includ
     return not repo.required and not include_optional and not target.exists()
 
 
+def print_workspace_clone_header(name_width: int) -> None:
+    print(f"{'REPOSITORY':<{name_width}}  {'ACTION':<6}  RESULT")
+
+
 def print_optional_clone_skip(repo: WorkspaceManifestRepo, target: Path) -> None:
+    """Retain the former helper for callers outside the command renderer."""
     print(
         f"SKIP optional repository '{repo.name}' is missing at '{target}'. "
         "Pass --include-optional to clone it."
+    )
+
+
+def print_workspace_clone_result(
+    target: WorkspaceCloneTarget,
+    result: WorkspaceCloneResult,
+    name_width: int,
+) -> None:
+    outcome = result.status
+    if result.exit_code is not None:
+        outcome = f"{outcome} (exit {result.exit_code})"
+    print(f"{target.name:<{name_width}}  {target.action.upper():<6}  {outcome}")
+    if result.detail:
+        for line in result.detail.splitlines():
+            print(f"{'':<{name_width}}  {'':<6}  {line}")
+
+
+def update_workspace_clone_counts(
+    counts: WorkspaceCloneCounts,
+    result: WorkspaceCloneResult,
+) -> WorkspaceCloneCounts:
+    return WorkspaceCloneCounts(
+        planned=counts.planned + (result.status == "planned"),
+        present=counts.present + (result.status == "present"),
+        cloned=counts.cloned + (result.status == "cloned"),
+        skipped=counts.skipped + (result.status == "skipped"),
+        failed=counts.failed + (result.status == "failed"),
     )
 
 
@@ -113,15 +205,17 @@ def clone_workspace_repo(
     target: Path,
     *,
     dry_run: bool,
-) -> int:
+    already_exists: bool,
+) -> WorkspaceCloneResult:
     repo_spec = workspace_clone_repo_spec(repo)
     if repo_spec is None:
-        ctx.log.error(
-            "Repository '%s' has unsupported clone URL '%s'. Only github.com repository URLs are supported.",
-            repo.name,
-            redact_repository_url(repo.url) if repo.url is not None else None,
+        return WorkspaceCloneResult(
+            "failed",
+            ""
+            f"Repository '{repo.name}' has unsupported clone URL "
+            f"'{redact_repository_url(repo.url) if repo.url is not None else None}'. "
+            "Only github.com repository URLs are supported.",
         )
-        return base_cli.ExitCode.FAILURE
 
     command = [str(basectl), "repo", "clone", repo_spec, "--path", str(target)]
     if dry_run:
@@ -133,15 +227,30 @@ def clone_workspace_repo(
             error_context=f"basectl repo clone for repository '{repo.name}'",
         )
     except ProjectRunnerError as exc:
-        ctx.log.error(str(exc))
-        return base_cli.ExitCode.FAILURE
+        return WorkspaceCloneResult("failed", str(exc))
 
-    write_project_command_output(result)
-    if result.returncode == 0:
-        return base_cli.ExitCode.SUCCESS
+    ctx.log.debug(
+        "Clone command for repository '%s' exited with %s; stdout=%r stderr=%r",
+        repo.name,
+        result.returncode,
+        result.stdout,
+        result.stderr,
+    )
+    if result.returncode != 0:
+        return WorkspaceCloneResult(
+            "failed",
+            detail=clone_detail(result.stdout, result.stderr),
+            exit_code=result.returncode,
+        )
 
-    ctx.log.error("Clone failed for repository '%s'.", repo.name)
-    return base_cli.ExitCode.FAILURE
+    if dry_run:
+        return WorkspaceCloneResult("planned")
+    return WorkspaceCloneResult("present" if already_exists else "cloned")
+
+
+def clone_detail(stdout: str, stderr: str) -> str:
+    details = [part.strip() for part in (stderr, stdout) if part.strip()]
+    return "\n".join(details) or "clone failed without diagnostic output"
 
 
 def workspace_clone_repo_spec(repo: WorkspaceManifestRepo) -> str | None:

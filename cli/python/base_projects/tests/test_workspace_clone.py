@@ -78,6 +78,11 @@ def invoke_engine(
     return status, stdout.getvalue(), stderr.getvalue()
 
 
+def workspace_clone_row(stdout: str, repo_name: str) -> list[str]:
+    line = next(line for line in stdout.splitlines() if line.startswith(repo_name))
+    return line.split()
+
+
 class WorkspaceCloneTests(unittest.TestCase):
     def test_workspace_clone_dry_run_materializes_missing_required_repositories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -124,12 +129,17 @@ repos:
 
             self.assertEqual(status, 0)
             self.assertEqual(stderr, "")
-            self.assertIn(f"Workspace clone: {workspace.resolve()} (4 repositories)", stdout)
+            self.assertIn(f"Workspace clone: {workspace.resolve()} (4 manifest repos)", stdout)
             self.assertIn(f"Workspace manifest: {manifest_path.resolve()} (demo-suite)", stdout)
-            self.assertIn(f"CHECK required repository 'base' at '{(workspace / 'base').resolve()}'.", stdout)
-            self.assertIn(f"CLONE required repository 'api' into '{(workspace / 'api').resolve()}'.", stdout)
-            self.assertIn(f"CLONE required repository 'docs' into '{(workspace / 'docs').resolve()}'.", stdout)
-            self.assertIn("SKIP optional repository 'optional-tool' is missing", stdout)
+            self.assertIn("REPOSITORY     ACTION  RESULT", stdout)
+            self.assertIn("base           CHECK   planned", stdout)
+            self.assertIn("api            CLONE   planned", stdout)
+            self.assertIn("docs           CLONE   planned", stdout)
+            self.assertIn("optional-tool  SKIP    skipped", stdout)
+            self.assertIn("pass --include-optional to clone it", stdout)
+            self.assertIn("Workspace clone plan complete: planned=3 skipped=1 failed=0.", stdout)
+            self.assertIn("[DRY-RUN] No repositories were modified.", stdout)
+            self.assertNotIn("fake basectl", stdout)
             self.assertEqual(
                 state_file.read_text(encoding="utf-8").splitlines(),
                 [
@@ -151,6 +161,7 @@ repos:
             home.mkdir()
             base_home.mkdir()
             workspace.mkdir()
+            (workspace / "api").mkdir()
             write_fake_basectl(base_home, state_file)
             write_workspace_manifest(
                 manifest_path,
@@ -183,15 +194,19 @@ repos:
             )
 
             self.assertEqual(status, 1)
-            self.assertIn("Clone failed for repository 'conflict'.", stderr)
-            self.assertIn("simulated clone conflict for codeforester/conflict", stderr)
-            self.assertIn(f"CLONE required repository 'conflict' into '{(workspace / 'conflict').resolve()}'.", stdout)
-            self.assertIn(f"CLONE required repository 'api' into '{(workspace / 'api').resolve()}'.", stdout)
-            self.assertIn(
-                f"CLONE optional repository 'optional-tool' into '{(workspace / 'optional-tool').resolve()}'.",
-                stdout,
+            self.assertEqual(stderr, "")
+            self.assertEqual(
+                workspace_clone_row(stdout, "conflict"),
+                ["conflict", "CLONE", "failed", "(exit", "1)"],
             )
-            self.assertIn("Workspace clone completed with 1 error(s).", stdout)
+            self.assertIn("simulated clone conflict for codeforester/conflict", stdout)
+            self.assertEqual(workspace_clone_row(stdout, "api"), ["api", "CHECK", "present"])
+            self.assertEqual(
+                workspace_clone_row(stdout, "optional-tool"),
+                ["optional-tool", "CLONE", "cloned"],
+            )
+            self.assertIn("Workspace clone completed: present=1 cloned=1 skipped=0 failed=1.", stdout)
+            self.assertNotIn("fake basectl", stdout)
             self.assertEqual(
                 state_file.read_text(encoding="utf-8").splitlines(),
                 [
@@ -237,6 +252,8 @@ repos:
             self.assertEqual(status, 0)
             self.assertEqual(stderr, "")
             self.assertIn(f"Workspace manifest: {manifest_path.resolve()} (demo-suite)", stdout)
+            self.assertEqual(workspace_clone_row(stdout, "api"), ["api", "CLONE", "planned"])
+            self.assertIn("Workspace clone plan complete: planned=1 skipped=0 failed=0.", stdout)
             self.assertEqual(
                 state_file.read_text(encoding="utf-8").splitlines(),
                 [f"repo clone codeforester/api --path {(workspace / 'api').resolve()} --dry-run"],
@@ -276,8 +293,10 @@ repos:
             )
 
         self.assertEqual(status, 1)
-        self.assertIn("resolves outside workspace root", stderr)
-        self.assertIn("Workspace clone completed with 1 error(s).", stdout)
+        self.assertEqual(stderr, "")
+        self.assertEqual(workspace_clone_row(stdout, "api"), ["api", "CLONE", "failed"])
+        self.assertIn("resolves outside workspace root", stdout)
+        self.assertIn("Workspace clone completed: present=0 cloned=0 skipped=0 failed=1.", stdout)
         self.assertFalse(state_file.exists())
 
     def test_workspace_clone_requires_manifest(self) -> None:
