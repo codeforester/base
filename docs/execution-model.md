@@ -174,14 +174,18 @@ list is `basectl --help`; this list summarizes the shipped public surface:
 - `activate`
 - `test`
 - `build`
-- `base_std_run`
+- `run`
 - `demo`
+- `trust`
+- `ci` (deprecated compatibility alias)
 - `repo`
 - `release`
 - `logs`
 - `history`
 - `docs`
 - `export-context`
+- `devcontainer`
+- `devenv-report`
 - `prompt`
 - `workspace`
 - `onboard`
