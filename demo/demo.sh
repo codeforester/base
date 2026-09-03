@@ -1,4 +1,4 @@
-#!/usr/bin/env basectl
+#!/usr/bin/env bash
 # shellcheck shell=bash
 
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
@@ -34,8 +34,8 @@ source "$BASE_HOME/base_init.sh" || {
     exit 1
 }
 
-BASE_DEMO_BASECTL="${BASE_DEMO_BASECTL:-basectl}"
-BASE_DEMO_BASE_WRAPPER="${BASE_DEMO_BASE_WRAPPER:-base-wrapper}"
+BASE_DEMO_BASECTL="${BASE_DEMO_BASECTL:-$BASE_HOME/bin/basectl}"
+BASE_DEMO_BASE_WRAPPER="${BASE_DEMO_BASE_WRAPPER:-$BASE_HOME/bin/base-wrapper}"
 BASE_DEMO_NON_INTERACTIVE=0
 
 base_demo_usage() {
