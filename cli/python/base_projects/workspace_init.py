@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import stat
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -213,10 +216,41 @@ def write_workspace_init_user_config(workspace_root: Path, manifest_path: Path) 
         ) from exc
 
     config_path = user_config_path()
-    raw_config = load_user_config()
-    workspace_config = dict(raw_config.get("workspace") or {})
-    workspace_config["root"] = str(workspace_root)
-    workspace_config["manifest"] = str(manifest_path)
-    raw_config["workspace"] = workspace_config
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(yaml.safe_dump(raw_config, sort_keys=False), encoding="utf-8")
+    try:
+        raw_config = load_user_config()
+        workspace_config = dict(raw_config.get("workspace") or {})
+        workspace_config["root"] = str(workspace_root)
+        workspace_config["manifest"] = str(manifest_path)
+        raw_config["workspace"] = workspace_config
+        serialized = yaml.safe_dump(raw_config, sort_keys=False)
+        config_target = config_path.resolve(strict=False)
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_target.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            config_mode = stat.S_IMODE(config_target.stat().st_mode)
+        except FileNotFoundError:
+            config_mode = 0o600
+
+        temp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                dir=config_target.parent,
+                prefix=f".{config_target.name}.",
+                delete=False,
+            ) as temp_file:
+                temp_path = Path(temp_file.name)
+                temp_file.write(serialized)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+            temp_path.chmod(config_mode)
+            os.replace(temp_path, config_target)
+        finally:
+            if temp_path is not None:
+                temp_path.unlink(missing_ok=True)
+    except (OSError, RuntimeError) as exc:
+        raise WorkspaceManifestError(
+            f"Unable to update user config '{config_path}' atomically: {exc}. "
+            "The existing configuration was left unchanged."
+        ) from exc
