@@ -95,7 +95,12 @@ def main(argv: list[str] | None = None) -> int:
     help="Output format: text, csv, tsv, yaml, or json.",
 )
 @base_cli.option("--manifest", "workspace_manifest", help="Local workspace manifest to read.")
-@base_cli.option("--source", "workspace_manifest_source", help="Canonical workspace manifest source URL or path.")
+@base_cli.option(
+    "--source",
+    "workspace_manifest_source",
+    sensitive=True,
+    help="Canonical workspace manifest source URL or path.",
+)
 @base_cli.option("--path", "workspace_config_path", help="Workspace configuration repository checkout path.")
 @base_cli.option("--owner", "workspace_owner", help="GitHub owner for short workspace repository names.")
 @base_cli.option(

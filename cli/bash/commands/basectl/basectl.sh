@@ -793,9 +793,30 @@ basectl_history_record() {
     "$wrapper" --project base base_history.record "${args[@]}" -- basectl "$command" "$@" >/dev/null 2>&1 || true
 }
 
+basectl_debug_display_args() {
+    local redact_next=0 argument
+
+    for argument in "$@"; do
+        if ((redact_next)); then
+            printf ' [REDACTED]'
+            redact_next=0
+            continue
+        fi
+        case "$argument" in
+            --source)
+                printf ' --source'
+                redact_next=1
+                ;;
+            *)
+                printf ' %s' "$argument"
+                ;;
+        esac
+    done
+}
+
 
 basectl_main() {
-    local base_debug=0 keep_temp=0 command="" command_status run_bundle_enabled=1
+    local base_debug=0 keep_temp=0 command="" command_status run_bundle_enabled=1 debug_args
 
     while [[ "${1:-}" == --keep-temp ]]; do
         keep_temp=1
@@ -897,7 +918,8 @@ basectl_main() {
     BASE_CLI_HISTORY_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)"
     export BASE_CLI_HISTORY_STARTED_AT
     ((base_debug)) && basectl_enable_debug_logging
-    base_std_log_debug "Running basectl command '${command:-<none>}' with args: $*"
+    debug_args="$(basectl_debug_display_args "$@")"
+    base_std_log_debug "Running basectl command '${command:-<none>}' with args:${debug_args}"
 
     case "$command" in
         activate)         basectl_do_activate "$@"; command_status=$? ;;

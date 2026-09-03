@@ -50,6 +50,27 @@ def invoke_engine(
 
 
 class WorkspacePullTests(unittest.TestCase):
+    def test_workspace_pull_redacts_source_credentials_and_query_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            home.mkdir()
+            base_home.mkdir()
+            source = "http://user:review-secret@example.invalid/workspace.yaml?token=review-token"
+
+            status, stdout, stderr = invoke_engine(
+                ["pull", "--source", source, "--manifest", str(root / "workspace.yaml")],
+                base_home,
+                home,
+            )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stdout, "")
+        self.assertNotIn("review-secret", stderr)
+        self.assertNotIn("review-token", stderr)
+        self.assertIn("http://[REDACTED]@example.invalid/workspace.yaml?token=[REDACTED]", stderr)
+
     def test_workspace_pull_dry_run_reports_source_target_and_change_without_writing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

@@ -13,6 +13,7 @@ from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestError
 from base_projects.workspace_manifest import read_workspace_manifest
 from base_projects.workspace_file_url import resolve_workspace_file_url
+from base_projects.workspace_repository_url import redact_workspace_source
 
 
 MAX_WORKSPACE_MANIFEST_SOURCE_BYTES = 2 * 1024 * 1024
@@ -25,7 +26,8 @@ class HTTPSOnlyRedirectHandler(HTTPRedirectHandler):
         redirect = super().redirect_request(req, fp, code, msg, headers, newurl)
         if redirect is not None and urlparse(redirect.full_url).scheme != "https":
             raise WorkspaceManifestError(
-                f"Insecure workspace manifest redirect from '{req.full_url}' to '{redirect.full_url}'. "
+                f"Insecure workspace manifest redirect from '{redact_workspace_source(req.full_url)}' "
+                f"to '{redact_workspace_source(redirect.full_url)}'. "
                 "Use an https:// redirect target."
             )
         return redirect
@@ -51,7 +53,7 @@ def pull_workspace_manifest(source: str, target: Path, *, dry_run: bool) -> Work
         write_manifest_atomically(target, content)
 
     return WorkspaceManifestPullResult(
-        source=source,
+        source=redact_workspace_source(source),
         target=target,
         manifest=manifest,
         status=status,
@@ -77,6 +79,7 @@ def workspace_manifest_change_status(existing_content: bytes | None, content: by
 
 
 def fetch_workspace_manifest_source(source: str) -> bytes:
+    safe_source = redact_workspace_source(source)
     if source[:5].lower() == "file:":
         path = resolve_workspace_file_url(source)
         return read_workspace_manifest_source_file(source, path)
@@ -84,7 +87,7 @@ def fetch_workspace_manifest_source(source: str) -> bytes:
     parsed = urlparse(source)
     if parsed.scheme == "http":
         raise WorkspaceManifestError(
-            f"Insecure workspace manifest source '{source}'. Use https://, file://, or a local path."
+            f"Insecure workspace manifest source '{safe_source}'. Use https://, file://, or a local path."
         )
 
     if parsed.scheme == "https":
@@ -95,7 +98,8 @@ def fetch_workspace_manifest_source(source: str) -> bytes:
                 final_source = response.geturl()
                 if urlparse(final_source).scheme != "https":
                     raise WorkspaceManifestError(
-                        f"Insecure workspace manifest redirect from '{source}' to '{final_source}'. "
+                        f"Insecure workspace manifest redirect from '{safe_source}' "
+                        f"to '{redact_workspace_source(final_source)}'. "
                         "Use an https:// redirect target."
                     )
                 return enforce_workspace_manifest_source_size(
@@ -103,17 +107,19 @@ def fetch_workspace_manifest_source(source: str) -> bytes:
                     response.read(MAX_WORKSPACE_MANIFEST_SOURCE_BYTES + 1),
                 )
         except OSError as exc:
-            raise WorkspaceManifestError(f"Unable to fetch workspace manifest source '{source}': {exc}") from exc
+            raise WorkspaceManifestError(f"Unable to fetch workspace manifest source '{safe_source}': {exc}") from exc
 
     if parsed.scheme:
         raise WorkspaceManifestError(
-            f"Unsupported workspace manifest source '{source}'. Expected a local path, file:// URL, or https:// URL."
+            f"Unsupported workspace manifest source '{safe_source}'. "
+            "Expected a local path, file:// URL, or https:// URL."
         )
 
     return read_workspace_manifest_source_file(source, Path(source).expanduser())
 
 
 def read_workspace_manifest_source_file(source: str, path: Path) -> bytes:
+    safe_source = redact_workspace_source(source)
     try:
         with path.open("rb") as source_file:
             return enforce_workspace_manifest_source_size(
@@ -121,13 +127,14 @@ def read_workspace_manifest_source_file(source: str, path: Path) -> bytes:
                 source_file.read(MAX_WORKSPACE_MANIFEST_SOURCE_BYTES + 1),
             )
     except OSError as exc:
-        raise WorkspaceManifestError(f"Unable to fetch workspace manifest source '{source}': {exc}") from exc
+        raise WorkspaceManifestError(f"Unable to fetch workspace manifest source '{safe_source}': {exc}") from exc
 
 
 def enforce_workspace_manifest_source_size(source: str, content: bytes) -> bytes:
     if len(content) > MAX_WORKSPACE_MANIFEST_SOURCE_BYTES:
+        safe_source = redact_workspace_source(source)
         raise WorkspaceManifestError(
-            f"Workspace manifest source '{source}' exceeds the "
+            f"Workspace manifest source '{safe_source}' exceeds the "
             f"{MAX_WORKSPACE_MANIFEST_SOURCE_BYTES} byte limit."
         )
     return content
@@ -135,7 +142,9 @@ def enforce_workspace_manifest_source_size(source: str, content: bytes) -> bytes
 
 def validate_workspace_manifest_content(content: bytes, source: str) -> WorkspaceManifest:
     if not content:
-        raise WorkspaceManifestError(f"Fetched workspace manifest from '{source}' is empty.")
+        raise WorkspaceManifestError(
+            f"Fetched workspace manifest from '{redact_workspace_source(source)}' is empty."
+        )
 
     temp_path = None
     try:
@@ -144,7 +153,9 @@ def validate_workspace_manifest_content(content: bytes, source: str) -> Workspac
             temp_path = Path(temp_file.name)
         return read_workspace_manifest(temp_path)
     except WorkspaceManifestError as exc:
-        raise WorkspaceManifestError(f"Fetched workspace manifest from '{source}' is invalid: {exc}") from exc
+        raise WorkspaceManifestError(
+            f"Fetched workspace manifest from '{redact_workspace_source(source)}' is invalid: {exc}"
+        ) from exc
     finally:
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)

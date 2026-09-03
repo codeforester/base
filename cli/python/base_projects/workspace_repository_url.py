@@ -9,6 +9,7 @@ from urllib.parse import urlunsplit
 
 from base_cli.redaction import REDACTED
 from base_cli.redaction import is_secret_key
+from base_cli.redaction import redact_text_value
 
 
 SCP_REPOSITORY_URL_RE = re.compile(r"^(?P<userinfo>[^@\s]+)@(?P<location>[^:\s]+:.+)$")
@@ -47,6 +48,20 @@ def redact_repository_url(value: str) -> str:
             redact_url_parameters(parsed.fragment),
         )
     )
+
+
+def redact_workspace_source(value: str) -> str:
+    """Redact credentials and secret URL parameters from a workspace source."""
+    sanitized = redact_text_value(value)
+    if Path(value).is_absolute():
+        return redact_url_suffix_parameters(sanitized)
+
+    sanitized = redact_repository_url(value)
+    if sanitized != REDACTED:
+        return sanitized
+    if "://" not in value:
+        return redact_url_suffix_parameters(redact_text_value(value))
+    return redact_url_suffix_parameters(redact_text_value(value))
 
 
 def repository_url_problem(value: str) -> str | None:
