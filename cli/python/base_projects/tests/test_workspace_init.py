@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from base_projects import engine, workspace_init as workspace_init_module
+from base_projects.workspace_manifest import WorkspaceManifestError
 
 
 def write_workspace_manifest(path: Path) -> None:
@@ -331,6 +332,106 @@ class WorkspaceInitTests(unittest.TestCase):
                 f"repo clone docs --path {(workspace / 'docs').resolve()}",
             ],
         )
+
+    def test_workspace_init_config_update_is_atomic_and_preserves_permissions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            config_path = home / ".base.d" / "config.yaml"
+            config_path.parent.mkdir(parents=True)
+            config_path.write_text("custom:\n  keep: true\n", encoding="utf-8")
+            config_path.chmod(0o640)
+            workspace = root / "workspace"
+            manifest = root / "workspace.yaml"
+
+            with mock.patch.dict(os.environ, {"HOME": str(home)}):
+                workspace_init_module.write_workspace_init_user_config(workspace, manifest)
+
+            config_content = config_path.read_text(encoding="utf-8")
+            config_mode = config_path.stat().st_mode & 0o777
+            temp_files = tuple(config_path.parent.glob(f".{config_path.name}.*"))
+
+        self.assertIn("custom:\n  keep: true", config_content)
+        self.assertIn(f"root: {workspace}", config_content)
+        self.assertIn(f"manifest: {manifest}", config_content)
+        self.assertEqual(config_mode, 0o640)
+        self.assertEqual(temp_files, ())
+
+    def test_workspace_init_config_update_preserves_symlink_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            config_path = home / ".base.d" / "config.yaml"
+            target = root / "shared" / "config.yaml"
+            target.parent.mkdir(parents=True)
+            target.write_text("custom: keep\n", encoding="utf-8")
+            target.chmod(0o640)
+            config_path.parent.mkdir(parents=True)
+            config_path.symlink_to(target)
+            workspace = root / "workspace"
+            manifest = root / "workspace.yaml"
+
+            with mock.patch.dict(os.environ, {"HOME": str(home)}):
+                workspace_init_module.write_workspace_init_user_config(workspace, manifest)
+
+            config_is_symlink = config_path.is_symlink()
+            config_target = config_path.resolve()
+            target_content = target.read_text(encoding="utf-8")
+            target_mode = target.stat().st_mode & 0o777
+            temp_files = tuple(target.parent.glob(f".{target.name}.*"))
+
+        self.assertTrue(config_is_symlink)
+        self.assertEqual(config_target, target.resolve())
+        self.assertIn(f"root: {workspace}", target_content)
+        self.assertEqual(target_mode, 0o640)
+        self.assertEqual(temp_files, ())
+
+    def test_workspace_init_config_replace_failure_preserves_previous_content_and_cleans_temp(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            config_path = home / ".base.d" / "config.yaml"
+            config_path.parent.mkdir(parents=True)
+            original = "custom:\n  keep: true\n"
+            config_path.write_text(original, encoding="utf-8")
+            workspace = root / "workspace"
+            manifest = root / "workspace.yaml"
+
+            with (
+                mock.patch.dict(os.environ, {"HOME": str(home)}),
+                mock.patch.object(workspace_init_module.os, "replace", side_effect=OSError("replace failed")),
+            ):
+                with self.assertRaisesRegex(WorkspaceManifestError, "atomically: replace failed"):
+                    workspace_init_module.write_workspace_init_user_config(workspace, manifest)
+
+            self.assertEqual(config_path.read_text(encoding="utf-8"), original)
+            temp_files = tuple(config_path.parent.glob(f".{config_path.name}.*"))
+
+        self.assertEqual(temp_files, ())
+
+    def test_workspace_init_config_temp_write_failure_preserves_previous_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            config_path = home / ".base.d" / "config.yaml"
+            config_path.parent.mkdir(parents=True)
+            original = "custom:\n  keep: true\n"
+            config_path.write_text(original, encoding="utf-8")
+            workspace = root / "workspace"
+            manifest = root / "workspace.yaml"
+
+            with (
+                mock.patch.dict(os.environ, {"HOME": str(home)}),
+                mock.patch.object(
+                    workspace_init_module.tempfile,
+                    "NamedTemporaryFile",
+                    side_effect=OSError("write failed"),
+                ),
+            ):
+                with self.assertRaisesRegex(WorkspaceManifestError, "atomically: write failed"):
+                    workspace_init_module.write_workspace_init_user_config(workspace, manifest)
+
+            self.assertEqual(config_path.read_text(encoding="utf-8"), original)
 
     def test_workspace_init_clones_short_workspace_source_with_owner_before_reading_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
