@@ -218,7 +218,6 @@ class WorkspaceRepositoryUrlTests(unittest.TestCase):
                 repo,
                 status.root,
                 dry_run=True,
-                already_exists=False,
             )
 
         self.assertEqual(result.status, "failed")

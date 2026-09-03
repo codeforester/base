@@ -113,7 +113,6 @@ def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOption
             repo,
             target,
             dry_run=options.dry_run,
-            already_exists=target.exists(),
         )
         counts = update_workspace_clone_counts(counts, result)
         print_workspace_clone_result(target_spec, result, name_width)
@@ -205,8 +204,8 @@ def clone_workspace_repo(
     target: Path,
     *,
     dry_run: bool,
-    already_exists: bool,
 ) -> WorkspaceCloneResult:
+    already_exists = target.exists()
     repo_spec = workspace_clone_repo_spec(repo)
     if repo_spec is None:
         return WorkspaceCloneResult(
