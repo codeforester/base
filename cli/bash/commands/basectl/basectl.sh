@@ -952,7 +952,13 @@ basectl_main() {
             }
         else
             if basectl_finalize_run_bundle "$command_status"; then
-                basectl_history_record "$command" "$command_status" "$history_scope" "${history_args[@]}"
+                # Only the invocation that owns the bundle writes its
+                # completion record. Inherited Base children share the
+                # parent's log and lifecycle; recording them with the parent
+                # bundle would mark it complete before the parent returns.
+                if [[ "${_basectl_run_bundle_created:-0}" == 1 ]]; then
+                    basectl_history_record "$command" "$command_status" "$history_scope" "${history_args[@]}"
+                fi
             else
                 basectl_scrub_inherited_run_context
             fi
