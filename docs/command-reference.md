@@ -258,8 +258,6 @@ daily project loop commands from the local checkout.
 
 ## Detailed Product Layers And Shipped Commands
 
-+## Product Layers And Shipped Commands
-
 > **Deep reference:** This section is intentionally skippable on a first read.
 > It preserves the detailed command and runtime reference for contributors and
 > evaluators; start with [Quickstart](../README.md#quickstart), then use the focused
@@ -311,6 +309,7 @@ Current implemented commands include:
 - `basectl demo [project]`
 - `basectl run [project] <command>`
 - `basectl export-context [project]`
+- `basectl logs [options]`
 - `basectl devcontainer [project]`
 - `basectl devenv-report [project]`
 - `basectl docs`
