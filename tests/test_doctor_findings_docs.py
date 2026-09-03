@@ -15,12 +15,11 @@ def json_examples() -> list[dict]:
     return examples
 
 
-def test_top_level_diagnostic_json_example_includes_profiles() -> None:
+def test_top_level_diagnostic_json_example_omits_profiles_without_profile_option() -> None:
     example = json_examples()[0]
 
     assert example == {
         "schema_version": 1,
         "status": "ok",
-        "profiles": [],
         "checks": [],
     }
