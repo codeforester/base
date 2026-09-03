@@ -124,8 +124,10 @@ A history record should include:
 ```
 
 Primary records use `scope: "primary"` and represent the command the user
-invoked. Delegated records use `scope: "internal"` and carry that invocation's
-`run_id` in `parent_run_id`.
+invoked. Inherited Base children do not write separate completion records;
+their delegated output remains in the parent's primary log and their lifecycle
+remains owned by the parent invocation. Legacy `scope: "internal"` records may
+still exist in older history indexes and are ignored by public history views.
 
 An inherited run bundle is reused only when its physical path is a non-symlink
 direct child of the active Base cache owner root and its owner, run ID, parent

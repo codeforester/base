@@ -206,7 +206,7 @@ load ./basectl_helpers.bash
 }
 
 
-@test "basectl reuses a validated internal run bundle without finalizing it" {
+@test "basectl reuses a validated internal run bundle without finalizing or recording it" {
     local cache_root="$TEST_TMPDIR/cache"
     local inherited_root="$cache_root/base/runs/parent-run__setup"
 
@@ -224,11 +224,12 @@ load ./basectl_helpers.bash
         BASE_BASH_LIBS_PRIMARY_LOG="$inherited_root/logs/primary.log" \
         BASE_CLI_HISTORY_PARENT_RUN_ID=parent-run \
         BASE_CLI_HISTORY_SCOPE=internal \
+        BASE_TEST_STATE_DIR="$TEST_STATE_DIR" \
         bash -c '
             source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
             base_std_log_debug() { :; }
             basectl_do_setup() { return 0; }
-            basectl_history_record() { :; }
+            basectl_history_record() { touch "$BASE_TEST_STATE_DIR/history-recorded"; }
             basectl_main setup
         '
 
@@ -237,6 +238,7 @@ load ./basectl_helpers.bash
     grep -Fq '"run_id":"parent-run"' "$inherited_root/run.json"
     grep -Fq '"status":"running"' "$inherited_root/run.json"
     [ -f "$inherited_root/tmp/private/proof.txt" ]
+    [ ! -e "$TEST_STATE_DIR/history-recorded" ]
     [ "$(find "$cache_root/base/runs" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ]
 }
 
