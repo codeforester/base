@@ -336,7 +336,6 @@ Standard environment variables:
 | `BASE_CLI_ENVIRONMENT` | active environment | `dev` |
 | `BASE_CLI_LOG_LEVEL` | user stream log level | `info` |
 | `BASE_CLI_KEEP_TEMP` | keep run temp directory | `false` |
-| `BASE_CLI_TEMP_RETENTION_DAYS` | prune retained temp dirs older than N days | `7` |
 
 ### Future Organization Policy
 
