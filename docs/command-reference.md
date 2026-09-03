@@ -208,7 +208,7 @@ manifest trust.
 | `basectl workspace doctor` | Render actionable workspace diagnostics with stable finding IDs and fix guidance. Uses `workspace.manifest` from user config unless `--manifest` is supplied. | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl workspace onboarding` | Summarize expected-repository first-day state and next actions without cloning or setup. Requires a configured or explicit workspace manifest. | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl workspace agent-brief` | Report local baseline, agent-guidance, AI-context, environment, and validation evidence for expected and extra Base-managed repositories without mutation or network calls. Requires a configured or explicit workspace manifest. | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
-| `basectl workspace clone` | Clone or validate expected repositories from a workspace manifest. Missing-repository materialization is GitHub-only today because this path delegates to `repo clone`. Uses `workspace.manifest` from user config unless `--manifest` is supplied. | `--workspace <path>`, `--manifest <path>`, `--include-optional`, `--dry-run` |
+| `basectl workspace clone` | Clone or validate expected repositories from a workspace manifest. Missing-repository materialization is GitHub-only today because this path delegates to `repo clone`. Uses `workspace.manifest` from user config unless `--manifest` is supplied. Text output uses a stable repository/action/result table with aggregate counts. | `--workspace <path>`, `--manifest <path>`, `--include-optional`, `--dry-run` |
 | `basectl workspace pull` | Explicitly fetch and validate a canonical workspace manifest source before updating the local workspace manifest. Uses `workspace.manifest_source` and `workspace.manifest` from user config unless flags are supplied. | `--source <url-or-path>`, `--manifest <path>`, `--dry-run` |
 | `basectl workspace update` | Run `git pull --ff-only` across present repositories in manifest order, including the active Base checkout when it is the manifest's `base` target. Continues after failures, skips missing optional repositories, treats missing required repositories as failures, and reports updated/unchanged/skipped/failed counts. | `--workspace <path>`, `--manifest <path>`, `--dry-run` |
 | `basectl workspace init <workspace-source>` | Initialize a workspace from a workspace configuration repository, update local workspace config, and optionally materialize member repositories. | `--owner <owner>`, `--path <path>`, `--workspace <path>`, `--manifest <path>`, `--include-optional`, `--dry-run` |
@@ -640,8 +640,12 @@ Use `basectl workspace clone --manifest <path>`, or configure
 `workspace.manifest`, to materialize the missing required GitHub repositories
 from that manifest. The command keeps existing repositories visible, delegates
 each repository operation to `basectl repo clone`, and supports `--dry-run` for
-a no-write preview. Optional repositories are reported but skipped unless
-`--include-optional` is supplied. Workspace manifests may list non-GitHub Git
+a no-write preview. Text output uses a stable repository/action/result table:
+existing repositories are `present`, newly materialized repositories are
+`cloned`, optional omissions are `skipped`, dry-run operations are `planned`,
+and failures include concise details and exit codes. Successful delegated clone
+output is suppressed in normal interactive mode. Optional repositories are
+reported but skipped unless `--include-optional` is supplied. Workspace manifests may list non-GitHub Git
 URLs for reporting, but automatic materialization through `workspace clone` is
 GitHub-only today; clone GitLab, Bitbucket, internal Git, or local repositories
 with ordinary Git first, then let Base discover the local checkout.

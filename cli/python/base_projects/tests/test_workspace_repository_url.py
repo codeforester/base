@@ -220,9 +220,8 @@ class WorkspaceRepositoryUrlTests(unittest.TestCase):
                 dry_run=True,
             )
 
-        self.assertEqual(result, 1)
-        error_call = ctx.log.error.call_args.args
-        rendered_consumers += (error_call[0] % error_call[1:],)
+        self.assertEqual(result.status, "failed")
+        rendered_consumers += (result.detail,)
         for rendered in rendered_consumers:
             with self.subTest(rendered=rendered):
                 self.assertNotIn(sentinel, str(rendered))

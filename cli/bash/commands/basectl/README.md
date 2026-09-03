@@ -260,7 +260,10 @@ such command directories exist. Optional utility CLIs such as `caff` and
   configured or explicit workspace manifest by delegating to `basectl repo clone`.
   Optional repositories are reported but skipped unless `--include-optional` is
   supplied, `--dry-run` previews the delegated clone work, and explicit
-  `--manifest <path>` takes precedence over `workspace.manifest`.
+  `--manifest <path>` takes precedence over `workspace.manifest`. Interactive
+  output uses a repository/action/result table with present, cloned, skipped,
+  planned, and failed results plus aggregate counts; successful delegated output
+  is suppressed and failure details remain visible.
 - `basectl workspace init <workspace-source>` bootstraps a workspace from a
   workspace configuration repository. The source may be a local path, GitHub URL,
   `owner/repo`, or a short repository name resolved by `--owner <owner>` or
