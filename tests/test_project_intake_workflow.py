@@ -242,7 +242,7 @@ def test_project_intake_rest_fallback_accepts_live_add_response_after_delay(
         PROJECT_INTAKE_GRAPHQL_FAILURE="quota",
         PROJECT_INTAKE_ITEM_EXISTS="0",
         PROJECT_INTAKE_REST_ADD_RESPONSE="top-level",
-        PROJECT_INTAKE_DELAYED_ITEM_VISIBILITY="1",
+        PROJECT_INTAKE_REST_ITEM_GET_DELAYED="1",
     )
 
     assert result.returncode == 0, result.stderr
@@ -251,7 +251,27 @@ def test_project_intake_rest_fallback_accepts_live_add_response_after_delay(
     assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "1\n"
     gh_log = (tmp_path / "gh.log").read_text(encoding="utf-8")
     assert gh_log.count("api --method POST orgs/basefoundry/projectsV2/1/items") == 1
+    assert gh_log.count("api --method GET orgs/basefoundry/projectsV2/1/items/101 -f") == 4
+    assert (tmp_path / "rest-item-get-count").read_text(encoding="utf-8") == "4\n"
+
+
+def test_project_intake_rest_fallback_recovers_duplicate_add_after_search_race(
+    tmp_path: Path,
+) -> None:
+    result = run_project_intake_script(
+        tmp_path,
+        PROJECT_INTAKE_GRAPHQL_FAILURE="quota",
+        PROJECT_INTAKE_ITEM_EXISTS="0",
+        PROJECT_INTAKE_REST_DUPLICATE_ADD="1",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "already exists during Project Intake" in result.stderr
+    assert "via REST fallback" in result.stdout
+    gh_log = (tmp_path / "gh.log").read_text(encoding="utf-8")
+    assert gh_log.count("api --method POST orgs/basefoundry/projectsV2/1/items") == 1
     assert gh_log.count("api --method GET orgs/basefoundry/projectsV2/1/items -f") == 3
+    assert not (tmp_path / "rest-item-added").exists()
 
 
 def test_project_intake_rest_failures_remain_fail_closed(tmp_path: Path) -> None:

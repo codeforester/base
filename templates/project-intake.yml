@@ -71,6 +71,12 @@ jobs:
               'unknown owner type|GraphQL.*rate limit|rate limit.*GraphQL|API rate limit already exceeded'
           }
 
+          project_intake_is_duplicate_item_failure() {
+            local output="$1"
+
+            printf '%s\n' "$output" | grep -Eiq 'Content already exists in this project'
+          }
+
           project_intake_retry_delay_seconds() {
             local output="$1"
             local reset_epoch
@@ -142,6 +148,12 @@ jobs:
               echo "::warning::Falling back to the REST Projects API." >&2
               printf '%s\n' "$diagnostic_output" >&2
               return 75
+            fi
+
+            if project_intake_is_duplicate_item_failure "$diagnostic_output"; then
+              echo "::warning::Project item already exists during Project Intake: $operation" >&2
+              printf '%s\n' "$diagnostic_output" >&2
+              return 76
             fi
 
             if project_intake_is_retryable_api_failure "$diagnostic_output"; then
@@ -217,16 +229,33 @@ jobs:
             local item_json
             local command_status
             local attempt
+            local display_item_id
 
             escaped_issue_title="${issue_title//\"/\\\"}"
+            display_item_id="${item_id:-for issue $issue_number}"
             for attempt in 1 2 3; do
+              if [[ -n "$item_id" ]] &&
+                item_json="$(project_intake_gh "read REST Project item after add" gh api --method GET \
+                  "$owner_api_prefix/projectsV2/$project_number/items/$item_id" \
+                  -f fields="$field_ids_csv")"; then
+                if jq -e --arg item_id "$item_id" '(.id | tostring) == $item_id' <<<"$item_json" >/dev/null; then
+                  printf '%s\n' "$item_json"
+                  return 0
+                fi
+                if (( attempt < 3 )); then
+                  echo "::warning::REST Project item '$display_item_id' is not visible after it was added (attempt $attempt/3); retrying in ${attempt}s." >&2
+                  sleep "$attempt"
+                  continue
+                fi
+              fi
+
               if item_search_json="$(project_intake_gh "find REST Project item after add" gh api --method GET \
                 "$owner_api_prefix/projectsV2/$project_number/items" \
                 -f per_page=100 \
                 -f q="repo:$GITHUB_REPOSITORY is:issue title:\"$escaped_issue_title\"" \
                 -f fields="$field_ids_csv")"; then
                 item_json="$(jq --argjson issue_id "$issue_id" --arg item_id "$item_id" \
-                  '.[] | select((.id | tostring) == $item_id and .content.id == $issue_id)' \
+                  '.[] | select(.content.id == $issue_id and ($item_id == "" or (.id | tostring) == $item_id))' \
                   <<<"$item_search_json")"
                 if [[ -n "$item_json" ]]; then
                   printf '%s\n' "$item_json"
@@ -238,12 +267,12 @@ jobs:
               fi
 
               if (( attempt < 3 )); then
-                echo "::warning::REST Project item '$item_id' is not visible after it was added (attempt $attempt/3); retrying in ${attempt}s." >&2
+                echo "::warning::REST Project item '$display_item_id' is not visible after it was added (attempt $attempt/3); retrying in ${attempt}s." >&2
                 sleep "$attempt"
               fi
             done
 
-            echo "::error::REST Project item '$item_id' was not returned after the bounded visibility retry." >&2
+            echo "::error::REST Project item '$display_item_id' was not returned after the bounded visibility retry." >&2
             return 1
           }
 
@@ -478,20 +507,37 @@ jobs:
             item_json="$(jq --argjson issue_id "$issue_id" '.[] | select(.content.id == $issue_id)' <<<"$item_search_json")"
             item_id="$(jq -r '.id // ""' <<<"$item_json")"
             if [[ -z "$item_id" ]]; then
-              added_item_json="$(project_intake_gh "add REST Project item" gh api --method POST \
-                "$owner_api_prefix/projectsV2/$project_number/items" \
-                -f type=Issue -F id="$issue_id")"
-              item_id="$(jq -r '.id // .value.id // ""' <<<"$added_item_json")"
-              if [[ -z "$item_id" ]]; then
-                echo "::error::REST Project item add did not return an item id." >&2
-                return 1
-              fi
-              if item_json="$(project_intake_rest_item_after_add \
-                "$owner_api_prefix" "$project_number" "$item_id" "$field_ids_csv")"; then
-                :
+              if added_item_json="$(project_intake_gh "add REST Project item" gh api --method POST \
+                  "$owner_api_prefix/projectsV2/$project_number/items" \
+                  -f type=Issue -F id="$issue_id")"; then
+                item_id="$(jq -r '.id // .value.id // ""' <<<"$added_item_json")"
+                if [[ -z "$item_id" ]]; then
+                  echo "::error::REST Project item add did not return an item id." >&2
+                  return 1
+                fi
+                if item_json="$(project_intake_rest_item_after_add \
+                  "$owner_api_prefix" "$project_number" "$item_id" "$field_ids_csv")"; then
+                  :
+                else
+                  command_status=$?
+                  return "$command_status"
+                fi
               else
                 command_status=$?
-                return "$command_status"
+                if [[ "$command_status" != "76" ]]; then
+                  return "$command_status"
+                fi
+                if item_json="$(project_intake_rest_item_after_add \
+                  "$owner_api_prefix" "$project_number" "" "$field_ids_csv")"; then
+                  item_id="$(jq -r '.id // ""' <<<"$item_json")"
+                  if [[ -z "$item_id" ]]; then
+                    echo "::error::Existing REST Project item did not return an item id." >&2
+                    return 1
+                  fi
+                else
+                  command_status=$?
+                  return "$command_status"
+                fi
               fi
             fi
 

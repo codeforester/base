@@ -271,7 +271,7 @@ project_intake_mock_rest_item() {
     --arg size "$(project_intake_mock_value size)" \
     --arg area "$(project_intake_mock_value area)" \
     --arg initiative "$(project_intake_mock_value initiative)" \
-    '{id:101,fields:[
+    '{id:101,content:{id:1311,number:1311,title:"Project Intake test issue"},fields:[
       {id:10,name:"Status",value:{name:{raw:$status}}},
       {id:11,name:"Priority",value:{name:{raw:$priority}}},
       {id:12,name:"Size",value:{name:{raw:$size}}},
@@ -396,7 +396,16 @@ JSON
       printf '403 Forbidden: REST item read failed\\n' >&2
       exit 1
     fi
-    project_intake_mock_rest_item
+    count_file="${PROJECT_INTAKE_STATE:?}/rest-item-get-count"
+    count=0
+    [[ ! -f "$count_file" ]] || count="$(cat "$count_file")"
+    count=$((count + 1))
+    printf '%s\\n' "$count" > "$count_file"
+    if [[ "${PROJECT_INTAKE_REST_ITEM_GET_DELAYED:-0}" == "1" && "$count" == "1" ]]; then
+      printf '{}\\n'
+    else
+      project_intake_mock_rest_item
+    fi
     ;;
   api\\ --method\\ GET\\ *projectsV2/1/items*)
     if [[ "${PROJECT_INTAKE_REST_FAIL_OPERATION:-}" == "find" ]]; then
@@ -411,13 +420,19 @@ JSON
     if [[ "${PROJECT_INTAKE_ITEM_EXISTS:-1}" == "1" ||
           ( -f "${PROJECT_INTAKE_STATE:?}/rest-item-added" &&
             "${PROJECT_INTAKE_ITEM_NEVER_VISIBLE:-0}" != "1" &&
-            ( "${PROJECT_INTAKE_DELAYED_ITEM_VISIBILITY:-0}" != "1" || "$count" != "2" ) ) ]]; then
+            ( "${PROJECT_INTAKE_DELAYED_ITEM_VISIBILITY:-0}" != "1" || "$count" != "2" ) ) ||
+          ( -f "${PROJECT_INTAKE_STATE:?}/rest-item-duplicate" && "$count" -ge 3 ) ]]; then
       printf '[{"id":101,"content":{"id":1311,"number":1311,"title":"Project Intake test issue"}}]\\n'
     else
       printf '[]\\n'
     fi
     ;;
   api\\ --method\\ POST\\ *projectsV2/1/items*)
+    if [[ "${PROJECT_INTAKE_REST_DUPLICATE_ADD:-0}" == "1" ]]; then
+      : > "${PROJECT_INTAKE_STATE:?}/rest-item-duplicate"
+      printf 'Content already exists in this project (HTTP 422)\\n' >&2
+      exit 1
+    fi
     : > "${PROJECT_INTAKE_STATE:?}/rest-item-added"
     if [[ "${PROJECT_INTAKE_REST_ADD_RESPONSE:-nested}" == "top-level" ]]; then
       printf '{"id":101}\\n'
