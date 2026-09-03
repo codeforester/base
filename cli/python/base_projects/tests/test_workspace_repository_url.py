@@ -20,6 +20,7 @@ from base_projects.workspace_report_json import workspace_agent_brief_item_to_js
 from base_projects.workspace_report_json import workspace_onboarding_item_to_json
 from base_projects.workspace_report_json import workspace_status_item_to_json
 from base_projects.workspace_repository_url import redact_repository_url
+from base_projects.workspace_repository_url import redact_workspace_source
 from base_projects.workspace_repository_url import repository_url_problem
 from base_projects.workspace_statuses import WorkspaceProjectStatus
 
@@ -45,6 +46,28 @@ def invoke_engine(args: list[str], base_home: Path, home: Path) -> tuple[int, st
 
 
 class WorkspaceRepositoryUrlTests(unittest.TestCase):
+    def test_redact_workspace_source_removes_credentials_and_secret_parameters(self) -> None:
+        cases = (
+            (
+                "https://user:secret@example.test/workspace.yaml?token=review-token&channel=stable",
+                "https://[REDACTED]@example.test/workspace.yaml?token=[REDACTED]&channel=stable",
+            ),
+            (
+                "http://user:secret@example.test/workspace.yaml?token=review-token",
+                "http://[REDACTED]@example.test/workspace.yaml?token=[REDACTED]",
+            ),
+            (
+                "/private/tmp/workspace.yaml?token=review-token&channel=stable",
+                "/private/tmp/workspace.yaml?token=[REDACTED]&channel=stable",
+            ),
+            (
+                "relative/workspace.yaml?api_key=review-key",
+                "relative/workspace.yaml?api_key=[REDACTED]",
+            ),
+        )
+        for source, expected in cases:
+            with self.subTest(source=source):
+                self.assertEqual(redact_workspace_source(source), expected)
     def test_safe_repository_urls_are_unchanged(self) -> None:
         urls = (
             "https://github.com/basefoundry/base.git",

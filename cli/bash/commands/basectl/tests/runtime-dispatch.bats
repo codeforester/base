@@ -3,6 +3,27 @@
 load ./basectl_helpers.bash
 
 
+@test "basectl debug logs redact workspace manifest source arguments" {
+    local secret_source='http://user:review-secret@example.invalid/workspace.yaml?token=review-token'
+
+    run env \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_CACHE_DIR="$TEST_TMPDIR/cache" \
+        bash -c '
+            source "$BASE_HOME/cli/bash/commands/basectl/basectl.sh"
+            base_std_log_debug() { printf "%s\\n" "$*"; }
+            basectl_do_setup() { return 0; }
+            basectl_history_record() { :; }
+            basectl_main setup --source "$1" --dry-run
+        ' bash "$secret_source"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--source [REDACTED]"* ]]
+    [[ "$output" != *"review-secret"* ]]
+    [[ "$output" != *"review-token"* ]]
+}
+
+
 @test "basectl run bundle metadata and primary log are private" {
     local cache_root="$TEST_TMPDIR/cache"
     local run_root
