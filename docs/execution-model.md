@@ -15,6 +15,11 @@ public executable directory: `$BASE_HOME/bin`.
 `basectl` is responsible for deciding what kind of invocation the user asked
 for. It then delegates runtime setup to `base_init.sh`.
 
+Wrapper diagnostics are consumed before command dispatch. Use `-v` for
+command-level DEBUG logging, `-x` for Bash xtrace, `--debug-wrapper` for early
+wrapper DEBUG logging, `--utc-wrapper` for wrapper/runtime timestamps in UTC,
+and `--keep-temp` to preserve temporary run files.
+
 At a high level, `basectl` can:
 
 - start a Base-enabled interactive Bash shell

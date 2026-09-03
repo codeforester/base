@@ -95,6 +95,6 @@ When a user-facing workflow starts depending on an internal surface, promote
 that surface deliberately by documenting its tier and adding a focused test or
 contract row.
 
-The wrapper-level `basectl --keep-temp <command>` flag is public and stable; it
-is intentionally separate from the rejected direct `base_cli` package options
-listed above.
+The wrapper-level `basectl -x <command>` and `basectl --keep-temp <command>`
+flags are public and stable; they are intentionally separate from the rejected
+direct `base_cli` package options listed above.
