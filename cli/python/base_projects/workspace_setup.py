@@ -10,6 +10,7 @@ from typing import Any, Literal
 import base_cli
 from base_projects import workspace_context
 from base_projects.workspace_context import resolve_workspace_manifest
+from base_projects.workspace_context import WorkspacePathOutsideRootError
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestError
 from base_projects.workspace_manifest import WorkspaceManifestRepo
@@ -137,7 +138,19 @@ def workspace_setup_manifest_target(
     workspace_root: Path,
     repo: WorkspaceManifestRepo,
 ) -> WorkspaceSetupTarget:
-    root = (workspace_root / repo.name).resolve()
+    try:
+        root = workspace_context.resolve_workspace_repo_root(workspace_root, repo.name)
+    except WorkspacePathOutsideRootError as exc:
+        return WorkspaceSetupTarget(
+            name=repo.name,
+            root=workspace_root / repo.name,
+            manifest_path=None,
+            project_name=None,
+            action="skip",
+            reason=str(exc),
+            required=repo.required,
+            fatal=True,
+        )
     manifest_path = root / "base_manifest.yaml"
 
     if not root.is_dir():

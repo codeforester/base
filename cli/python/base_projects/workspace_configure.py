@@ -11,6 +11,7 @@ import base_cli
 from base_projects import workspace_context
 from base_projects.command_helpers import github_repo_spec
 from base_projects.workspace_context import resolve_workspace_manifest
+from base_projects.workspace_context import WorkspacePathOutsideRootError
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestError
 from base_projects.workspace_manifest import WorkspaceManifestRepo
@@ -27,6 +28,7 @@ class WorkspaceConfigureTarget:
     root: Path
     repo_spec: str | None
     skip_reason: str | None = None
+    fatal: bool = False
 
 
 @dataclass(frozen=True)
@@ -94,10 +96,23 @@ def workspace_configure_targets(
 
     targets: list[WorkspaceConfigureTarget] = []
     for entry in workspace_manifest_entries(workspace_root):
-        root = entry.path.parent.resolve()
+        repo_name = entry.path.parent.name
+        try:
+            root = workspace_context.resolve_workspace_repo_root(workspace_root, repo_name)
+        except WorkspacePathOutsideRootError as exc:
+            targets.append(
+                WorkspaceConfigureTarget(
+                    name=repo_name,
+                    root=entry.path.parent,
+                    repo_spec=None,
+                    skip_reason=str(exc),
+                    fatal=True,
+                )
+            )
+            continue
         targets.append(
             WorkspaceConfigureTarget(
-                name=root.name,
+                name=repo_name,
                 root=root,
                 repo_spec=github_origin_repo_spec(root),
             )
@@ -109,7 +124,16 @@ def workspace_configure_manifest_target(
     workspace_root: Path,
     repo: WorkspaceManifestRepo,
 ) -> WorkspaceConfigureTarget:
-    root = (workspace_root / repo.name).resolve()
+    try:
+        root = workspace_context.resolve_workspace_repo_root(workspace_root, repo.name)
+    except WorkspacePathOutsideRootError as exc:
+        return WorkspaceConfigureTarget(
+            name=repo.name,
+            root=workspace_root / repo.name,
+            repo_spec=None,
+            skip_reason=str(exc),
+            fatal=True,
+        )
     if not root.exists():
         return WorkspaceConfigureTarget(
             name=repo.name,
@@ -142,7 +166,11 @@ def configure_workspace_target(
 ) -> WorkspaceConfigureCounts:
     if target.skip_reason is not None:
         print(f"SKIP {target.skip_reason}.")
-        return WorkspaceConfigureCounts(counts.configured, counts.skipped + 1, counts.failed)
+        return WorkspaceConfigureCounts(
+            counts.configured,
+            counts.skipped + 1,
+            counts.failed + int(target.fatal),
+        )
     if target.repo_spec is None:
         print(f"SKIP repository '{target.name}' has no supported GitHub origin remote.")
         return WorkspaceConfigureCounts(counts.configured, counts.skipped + 1, counts.failed)

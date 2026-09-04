@@ -11,7 +11,9 @@ from base_projects.command_helpers import ProjectUsageError
 from base_projects.command_helpers import github_repo_spec
 from base_projects.command_helpers import run_project_command
 from base_projects.workspace_context import effective_workspace_manifest
+from base_projects.workspace_context import WorkspacePathOutsideRootError
 from base_projects.workspace_context import resolve_workspace_manifest
+from base_projects.workspace_context import resolve_workspace_repo_root
 from base_projects.workspace_context import resolve_workspace_root
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestError
@@ -142,14 +144,10 @@ def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOption
 
 
 def resolve_workspace_clone_target(workspace_root: Path, repo_name: str) -> Path:
-    target = (workspace_root / repo_name).resolve(strict=False)
     try:
-        target.relative_to(workspace_root)
-    except ValueError as exc:
-        raise ProjectUsageError(
-            f"Repository '{repo_name}' resolves outside workspace root '{workspace_root}'."
-        ) from exc
-    return target
+        return resolve_workspace_repo_root(workspace_root, repo_name)
+    except WorkspacePathOutsideRootError as exc:
+        raise ProjectUsageError(str(exc)) from exc
 
 
 def require_workspace_clone_manifest(ctx: base_cli.Context, workspace_manifest: str | None) -> WorkspaceManifest:

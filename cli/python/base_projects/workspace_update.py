@@ -9,6 +9,7 @@ from typing import Any, Literal
 import base_cli
 from base_projects import workspace_context
 from base_projects.workspace_context import resolve_workspace_manifest
+from base_projects.workspace_context import WorkspacePathOutsideRootError
 from base_projects.workspace_manifest import WorkspaceManifest
 from base_projects.workspace_manifest import WorkspaceManifestRepo
 from base_projects.workspace_manifest import WorkspaceManifestError
@@ -138,7 +139,17 @@ def workspace_update_manifest_target(
     workspace_root: Path,
     repo: WorkspaceManifestRepo,
 ) -> WorkspaceUpdateTarget:
-    root = (workspace_root / repo.name).resolve()
+    try:
+        root = workspace_context.resolve_workspace_repo_root(workspace_root, repo.name)
+    except WorkspacePathOutsideRootError as exc:
+        return WorkspaceUpdateTarget(
+            name=repo.name,
+            root=workspace_root / repo.name,
+            action="skip",
+            reason=str(exc),
+            required=repo.required,
+            fatal=True,
+        )
 
     if not root.is_dir():
         return WorkspaceUpdateTarget(
