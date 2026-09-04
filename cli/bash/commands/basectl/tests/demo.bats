@@ -297,12 +297,40 @@ EOF
     [ -x "$BASE_REPO_ROOT/demo/demo.sh" ]
 }
 
+@test "Base self-demo defaults nested commands to its own Base home" {
+    local fake_bin="$TEST_TMPDIR/fake-bin"
+    local bash_bin_dir
+
+    mkdir -p "$fake_bin"
+    bash_bin_dir="$(dirname "$(command -v bash)")"
+    cat > "$fake_bin/basectl" <<'EOF'
+#!/usr/bin/env bash
+printf 'unexpected PATH basectl invocation\n' >&2
+exit 1
+EOF
+    chmod +x "$fake_bin/basectl"
+
+    run env \
+        BASE_HOME="$BASE_REPO_ROOT" \
+        BASE_BASH_LIBS_DIR="${BASE_BASH_LIBS_DIR:-}" \
+        PATH="$bash_bin_dir:$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+        bash -c '
+            source "$BASE_HOME/demo/demo.sh"
+            printf "%s\n%s\n" "$BASE_DEMO_BASECTL" "$BASE_DEMO_BASE_WRAPPER"
+        '
+
+    [ "$status" -eq 0 ]
+    [ "$output" = "$(printf '%s\n%s' "$BASE_REPO_ROOT/bin/basectl" "$BASE_REPO_ROOT/bin/base-wrapper")" ]
+}
+
 @test "basectl demo base runs the self-demo in non-interactive mode" {
     local python_bin="$TEST_HOME/.base.d/base/.venv/bin/python"
     local fake_bin="$TEST_TMPDIR/fake-bin"
     local state_file="$TEST_TMPDIR/self-demo-state"
+    local bash_bin_dir
 
     mkdir -p "$(dirname "$python_bin")" "$TEST_HOME/.base.d/base/.venv/bin" "$fake_bin"
+    bash_bin_dir="$(dirname "$(command -v bash)")"
     cat > "$python_bin" <<'EOF'
 #!/usr/bin/env bash
 if [[ "${1:-}" == "-m" && "${2:-}" == "base_projects" && "${3:-}" == "demo-script" && "${4:-}" == "base" ]]; then
@@ -353,7 +381,7 @@ EOF
 
     run env \
         HOME="$TEST_HOME" \
-        PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+        PATH="$bash_bin_dir:$fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
         BASE_REPO_ROOT="$BASE_REPO_ROOT" \
         BASE_TEST_SELF_DEMO_STATE="$state_file" \
         BASE_DEMO_BASECTL="$fake_bin/basectl" \
