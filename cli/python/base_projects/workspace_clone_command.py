@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol
@@ -52,6 +53,13 @@ class WorkspaceCloneCounts:
     cloned: int = 0
     skipped: int = 0
     failed: int = 0
+
+
+BASE_LOG_RECORD_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}"
+    r"(?:\s+(?:[+-]\d{4}|UTC))?\s+"
+    r"(?:TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL)\s+"
+)
 
 
 def workspace_clone_command(ctx: base_cli.Context, options: WorkspaceCloneOptions) -> int:
@@ -248,7 +256,12 @@ def clone_workspace_repo(
 
 
 def clone_detail(stdout: str, stderr: str) -> str:
-    details = [part.strip() for part in (stderr, stdout) if part.strip()]
+    details = [
+        line.strip()
+        for stream in (stderr, stdout)
+        for line in stream.splitlines()
+        if line.strip() and not BASE_LOG_RECORD_RE.match(line.strip())
+    ]
     return "\n".join(details) or "clone failed without diagnostic output"
 
 

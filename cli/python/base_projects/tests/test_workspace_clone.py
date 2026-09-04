@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from base_projects import engine
+from base_projects.workspace_clone_command import clone_detail
 
 
 def write_workspace_manifest(path: Path, body: str) -> None:
@@ -41,6 +42,7 @@ while (($#)); do
 done
 if [[ "$repo" == "codeforester/conflict" ]]; then
     printf 'simulated clone conflict for %s\\n' "$repo" >&2
+    printf '2026-09-03 23:29:23 +0530 ERROR   subcommands/repo.sh:2179 Failed to clone repository.\\n' >&2
     exit 1
 fi
 if [[ "$dry_run" != "1" && -n "$path" ]]; then
@@ -84,6 +86,30 @@ def workspace_clone_row(stdout: str, repo_name: str) -> list[str]:
 
 
 class WorkspaceCloneTests(unittest.TestCase):
+    def test_clone_detail_filters_timestamped_base_log_records(self) -> None:
+        detail = clone_detail(
+            "Cloning GitHub repository 'codeforester/bleach'.\n",
+            "\n".join(
+                (
+                    "HTTP 401: Bad credentials (https://api.github.com/graphql)",
+                    "Try authenticating with: gh auth refresh -h github.com",
+                    "2026-09-03 23:29:23 +0530 ERROR   subcommands/repo.sh:2179 Failed to clone repository.",
+                    "2026-06-10 10:15:33 WARN    repo.sh:100 retrying",
+                )
+            ),
+        )
+
+        self.assertEqual(
+            detail,
+            "\n".join(
+                (
+                    "HTTP 401: Bad credentials (https://api.github.com/graphql)",
+                    "Try authenticating with: gh auth refresh -h github.com",
+                    "Cloning GitHub repository 'codeforester/bleach'.",
+                )
+            ),
+        )
+
     def test_workspace_clone_dry_run_materializes_missing_required_repositories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -200,6 +226,7 @@ repos:
                 ["conflict", "CLONE", "failed", "(exit", "1)"],
             )
             self.assertIn("simulated clone conflict for codeforester/conflict", stdout)
+            self.assertNotIn("subcommands/repo.sh:2179", stdout)
             self.assertEqual(workspace_clone_row(stdout, "api"), ["api", "CHECK", "present"])
             self.assertEqual(
                 workspace_clone_row(stdout, "optional-tool"),

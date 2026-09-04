@@ -263,7 +263,9 @@ such command directories exist. Optional utility CLIs such as `caff` and
   `--manifest <path>` takes precedence over `workspace.manifest`. Interactive
   output uses a repository/action/result table with present, cloned, skipped,
   planned, and failed results plus aggregate counts; successful delegated output
-  is suppressed and failure details remain visible.
+  is suppressed and failure details remain visible. Timestamped delegated Base
+  log records are kept out of the normal detail block and remain available in
+  debug diagnostics.
 - `basectl workspace init <workspace-source>` bootstraps a workspace from a
   workspace configuration repository. The source may be a local path, GitHub URL,
   `owner/repo`, or a short repository name resolved by `--owner <owner>` or

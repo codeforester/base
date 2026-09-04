@@ -644,7 +644,9 @@ a no-write preview. Text output uses a stable repository/action/result table:
 existing repositories are `present`, newly materialized repositories are
 `cloned`, optional omissions are `skipped`, dry-run operations are `planned`,
 and failures include concise details and exit codes. Successful delegated clone
-output is suppressed in normal interactive mode. Optional repositories are
+output is suppressed in normal interactive mode; timestamped delegated Base log
+records remain in debug diagnostics rather than being rendered as detail lines.
+Optional repositories are
 reported but skipped unless `--include-optional` is supplied. Workspace manifests may list non-GitHub Git
 URLs for reporting, but automatic materialization through `workspace clone` is
 GitHub-only today; clone GitLab, Bitbucket, internal Git, or local repositories
