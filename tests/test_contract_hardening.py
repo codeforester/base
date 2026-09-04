@@ -249,6 +249,7 @@ def test_contract_registry_rows_have_complete_enforcement_metadata() -> None:
         "Read-only inspection JSON",
         "Project metadata defaults",
         "Canonical positioning documentation",
+        "Native Windows support boundary",
     }
     for row in rows:
         assert row["Source of truth"], row
