@@ -43,6 +43,53 @@ repos:
 
 
 class WorkspaceSetupTests(unittest.TestCase):
+    def test_workspace_setup_rejects_repository_target_outside_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            workspace = root / "workspace"
+            outside = root / "outside"
+            manifest_path = root / "workspace.yaml"
+            state_path = root / "basectl-calls"
+            home.mkdir()
+            base_home.mkdir()
+            workspace.mkdir()
+            outside.mkdir()
+            (workspace / "api").symlink_to(outside, target_is_directory=True)
+            write_fake_basectl(base_home, state_path)
+            manifest_path.write_text(
+                """schema_version: 1
+workspace:
+  name: demo-suite
+repos:
+  - name: api
+""",
+                encoding="utf-8",
+            )
+
+            with mock.patch("base_projects.workspace_setup.subprocess.run") as run:
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "setup",
+                        "--workspace",
+                        str(workspace),
+                        "--manifest",
+                        str(manifest_path),
+                        "--yes",
+                    ],
+                    base_home,
+                    home,
+                )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stderr, "")
+        self.assertIn("SKIP repository 'api'", stdout)
+        self.assertIn("resolves outside workspace root", stdout)
+        self.assertIn("Workspace setup completed: setup=0 skipped=1 failed=1.", stdout)
+        self.assertFalse(state_path.exists())
+        run.assert_not_called()
+
     def test_workspace_setup_dry_run_preserves_manifest_order_and_classifies_targets(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

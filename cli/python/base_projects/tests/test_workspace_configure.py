@@ -87,6 +87,88 @@ def invoke_engine(
 
 
 class WorkspaceConfigureTests(unittest.TestCase):
+    def test_workspace_configure_manifest_rejects_repository_target_outside_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            outside = root / "outside"
+            base_home = root / "base"
+            state_file = root / "basectl-calls"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            workspace.mkdir()
+            outside.mkdir()
+            base_home.mkdir()
+            (workspace / "api").symlink_to(outside, target_is_directory=True)
+            write_fake_basectl(base_home, state_file)
+            write_workspace_manifest(
+                manifest_path,
+                """
+schema_version: 1
+workspace:
+  name: demo-suite
+repos:
+  - name: api
+    url: https://github.com/basefoundry/api.git
+""",
+            )
+
+            with mock.patch("base_projects.workspace_configure.subprocess.run") as run:
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "configure",
+                        "--workspace",
+                        str(workspace),
+                        "--manifest",
+                        str(manifest_path),
+                    ],
+                    base_home,
+                    home,
+                )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stderr, "")
+        self.assertIn("SKIP Repository 'api'", stdout)
+        self.assertIn("resolves outside workspace root", stdout)
+        self.assertIn("Workspace configure completed: configured=0 skipped=1 failed=1.", stdout)
+        self.assertFalse(state_file.exists())
+        run.assert_not_called()
+
+    def test_workspace_configure_discovery_rejects_repository_target_outside_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            outside = root / "outside"
+            base_home = root / "base"
+            state_file = root / "basectl-calls"
+            home.mkdir()
+            workspace.mkdir()
+            outside.mkdir()
+            base_home.mkdir()
+            (workspace / "api").symlink_to(outside, target_is_directory=True)
+            (outside / "base_manifest.yaml").write_text(
+                "project:\n  name: api\nartifacts: []\n",
+                encoding="utf-8",
+            )
+            write_fake_basectl(base_home, state_file)
+
+            with mock.patch("base_projects.workspace_configure.subprocess.run") as run:
+                status, stdout, stderr = invoke_engine(
+                    ["configure", "--workspace", str(workspace)],
+                    base_home,
+                    home,
+                )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stderr, "")
+        self.assertIn("SKIP Repository 'api'", stdout)
+        self.assertIn("resolves outside workspace root", stdout)
+        self.assertIn("Workspace configure completed: configured=0 skipped=1 failed=1.", stdout)
+        self.assertFalse(state_file.exists())
+        run.assert_not_called()
+
     def test_workspace_configure_dry_run_scans_base_managed_repositories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

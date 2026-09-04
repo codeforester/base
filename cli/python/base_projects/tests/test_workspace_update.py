@@ -11,7 +11,8 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from base_projects import engine
+from base_projects import engine, workspace_update
+from base_projects.workspace_manifest import WorkspaceManifestRepo
 
 
 def write_workspace_manifest(path: Path) -> None:
@@ -34,6 +35,67 @@ repos:
 
 
 class WorkspaceUpdateTests(unittest.TestCase):
+    def test_workspace_update_rejects_repository_target_outside_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            workspace = root / "workspace"
+            outside = root / "outside"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            workspace.mkdir()
+            outside.mkdir()
+            (workspace / "api").symlink_to(outside, target_is_directory=True)
+            manifest_path.write_text(
+                """schema_version: 1
+workspace:
+  name: demo-suite
+repos:
+  - name: api
+""",
+                encoding="utf-8",
+            )
+
+            with mock.patch("base_projects.workspace_update.subprocess.run") as run:
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "update",
+                        "--workspace",
+                        str(workspace),
+                        "--manifest",
+                        str(manifest_path),
+                    ],
+                    base_home,
+                    home,
+                )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(stderr, "")
+        self.assertIn("SKIP    skipped", stdout)
+        self.assertIn("resolves outside workspace root", stdout)
+        self.assertIn("Workspace update completed: updated=0 unchanged=0 skipped=1 failed=1.", stdout)
+        run.assert_not_called()
+
+    def test_workspace_update_allows_repository_symlink_inside_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            workspace = root / "workspace"
+            repository = workspace / "repository"
+            workspace.mkdir()
+            repository.mkdir()
+            (workspace / "api").symlink_to(repository, target_is_directory=True)
+
+            target = workspace_update.workspace_update_manifest_target(
+                workspace,
+                WorkspaceManifestRepo(name="api"),
+            )
+
+        self.assertEqual(target.root, repository.resolve())
+        self.assertEqual(target.action, "pull")
+        self.assertFalse(target.fatal)
+
     def test_workspace_update_dry_run_preserves_order_and_includes_active_base(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
