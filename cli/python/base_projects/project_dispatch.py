@@ -19,6 +19,7 @@ class WorkspaceCommandOptions:
     workspace_owner: str | None = None
     include_optional: bool = False
     dry_run: bool = False
+    apply: bool = False
     yes: bool = False
 
 

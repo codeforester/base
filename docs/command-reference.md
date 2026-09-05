@@ -212,7 +212,7 @@ manifest trust.
 | `basectl workspace pull` | Explicitly fetch and validate a canonical workspace manifest source before updating the local workspace manifest. Uses `workspace.manifest_source` and `workspace.manifest` from user config unless flags are supplied. | `--source <url-or-path>`, `--manifest <path>`, `--dry-run` |
 | `basectl workspace update` | Run `git pull --ff-only` across present repositories in manifest order, including the active Base checkout when it is the manifest's `base` target. `--repos` selects a validated comma-separated subset. Continues after failures, skips missing optional repositories, treats missing required repositories as failures, and reports updated/unchanged/skipped/failed counts. `--format json` emits the stable schema-versioned report. | `--workspace <path>`, `--manifest <path>`, `--repos <name[,name...]>`, `--dry-run`, `--format <text\|json>` |
 | `basectl workspace init <workspace-source>` | Initialize a workspace from a workspace configuration repository, update local workspace config, and optionally materialize member repositories. | `--owner <owner>`, `--path <path>`, `--workspace <path>`, `--manifest <path>`, `--include-optional`, `--dry-run` |
-| `basectl workspace configure` | Apply the existing `repo configure` repair path across discovered Base-managed workspace repositories or an explicit workspace manifest. Skips missing, non-Base-managed, or non-GitHub repos and continues after per-repo failures. | `--workspace <path>`, `--manifest <path>`, `--dry-run` |
+| `basectl workspace configure` | Preview the existing `repo configure` repair path by default across discovered Base-managed workspace repositories or an explicit workspace manifest. Use `--apply` to authorize changes; interactive runs prompt unless `--yes` is supplied. Skips missing, non-Base-managed, or non-GitHub repos and continues after per-repo failures. | `--workspace <path>`, `--manifest <path>`, `--dry-run`, `--apply`, `--yes` |
 | `basectl workspace setup` | Set up eligible repositories from a workspace manifest in manifest order by delegating to each repository's local `basectl setup` command. Skips ineligible repositories, continues after per-repo failures, and reports setup/skipped/failed counts. | `--workspace <path>`, `--manifest <path>`, `--dry-run`, `--yes` |
 
 ## Repository And GitHub Workflow
@@ -578,7 +578,8 @@ basectl workspace onboarding --manifest ~/work/workspace.yaml
 basectl workspace agent-brief --manifest ~/work/workspace.yaml --format json
 basectl workspace init basefoundry/base-workspace --dry-run
 basectl workspace clone --manifest ~/work/workspace.yaml --dry-run
-basectl workspace configure --dry-run
+basectl workspace configure
+basectl workspace configure --apply
 basectl workspace setup --manifest ~/work/workspace.yaml --dry-run
 basectl workspace update --manifest ~/work/workspace.yaml --dry-run
 ```
@@ -696,9 +697,11 @@ report documented at
 output is retained for debug diagnostics, and failures include concise repository
 and exit details. JSON dry runs report `planned` results and never invoke Git.
 
-Use `basectl workspace configure --dry-run` to preview applying
-`basectl repo configure` across Base-managed repositories in the workspace, then
-run `basectl workspace configure` to apply the repair path. With
+Use `basectl workspace configure` to preview applying `basectl repo configure`
+across Base-managed repositories in the workspace, then run
+`basectl workspace configure --apply` to authorize the repair path. Interactive
+runs ask for confirmation; use `--apply --yes` only after reviewing the plan in
+automation. With
 `--manifest <path>`, Base walks the expected repository set, skips missing or
 non-Base-managed repositories, and continues after per-repo failures. Without a
 manifest, Base scans discovered local Base-managed projects under the workspace
