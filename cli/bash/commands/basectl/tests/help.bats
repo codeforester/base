@@ -337,7 +337,7 @@ load ./basectl_helpers.bash
     workspace_update_row="$(grep -F '| `basectl workspace update` |' "$command_reference")"
     [[ "$workspace_update_row" == *"Run \`git pull --ff-only\` across present repositories in manifest order"* ]]
 
-    for flag in "--workspace <path>" "--manifest <path>" "--dry-run"; do
+    for flag in "--workspace <path>" "--manifest <path>" "--repos <name[,name...]>" "--dry-run" "--format"; do
         [[ "$output" == *"$flag"* ]]
         [[ "$workspace_update_row" == *"$flag"* ]]
     done

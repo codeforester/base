@@ -63,8 +63,9 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
   project setup across eligible repositories.
   - `workspace status`, `workspace check`, `workspace doctor`,
     `workspace onboarding`, and `workspace agent-brief` support `--format json`;
-    `workspace clone`, `workspace pull`, `workspace update`, `workspace init`, `workspace configure`,
-    and `workspace setup` use text output.
+    `workspace update` also supports stable `--format json` output documented in
+    `docs/schemas/workspace-update.json`; `workspace clone`, `workspace pull`,
+    `workspace init`, `workspace configure`, and `workspace setup` use text output.
   - `workspace check` presents check-oriented readiness messages; `workspace doctor`
     presents actionable findings with stable IDs and fix guidance. Workspace
     check-record persistence is optional: failures are reported per project in
@@ -76,16 +77,18 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
   - `workspace agent-brief` reports baseline, agent-guidance, AI-context,
     environment, and validation evidence for expected and extra Base-managed
     repositories. It is local and read-only; manifest-declared test execution
-    stays behind a recommended `basectl test` command.
+    stays behind a recommended `basectl test` command. Its schema-versioned JSON
+    output follows `docs/schemas/workspace-agent-brief.json`.
   - `workspace clone` mutates repository checkouts only when invoked directly;
     `workspace pull` mutates only the local workspace manifest after validating
     the source; `workspace init` can clone the workspace configuration repo,
     update `~/.base.d/config.yaml`, and materialize manifest repositories;
     init and pull share one local `file://` parser that percent-decodes once,
     accepts empty or `localhost` authority, and rejects remote authorities;
-    `workspace update` runs `git pull --ff-only` across present repositories in
-    manifest order, including the active Base checkout when it is the
-    manifest's `base` target;
+    `workspace update` runs `git pull --ff-only` across selected present
+    repositories in manifest order, including the active Base checkout when it
+    is the manifest's `base` target. `--repos name[,name...]` selects a
+    validated subset, and `--format json` reports the versioned result schema;
     `workspace setup` delegates local project setup serially in manifest order.
   - `workspace configure` previews delegated `repo configure` calls by default;
     `--apply` authorizes changes and prompts unless `--yes` is supplied. `--yes`
@@ -97,7 +100,8 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
     confirmation to each delegated setup command.
   - `workspace update --dry-run` previews the ordered Git pull plan; without
     `--dry-run`, it continues after per-repo failures and reports
-    updated/unchanged/skipped/failed counts.
+    updated/unchanged/skipped/failed counts. JSON dry runs report `planned`
+    results and do not invoke Git.
 - `basectl repo <init|clone|check|configure|agent-guidance|installer-template>` -
   create repository baselines, clone GitHub repositories into the configured
   workspace, configure GitHub repository settings, default branch protection,

@@ -307,7 +307,7 @@ EOF
     [[ "$output" == *"workspace_agent_brief_options=--workspace --manifest --format"* ]]
     [[ "$output" == *"workspace_clone_options=--workspace --manifest --include-optional --dry-run"* ]]
     [[ "$output" == *"workspace_pull_options=--source --manifest --dry-run"* ]]
-    [[ "$output" == *"workspace_update_options=--workspace --manifest --dry-run"* ]]
+    [[ "$output" == *"workspace_update_options=--workspace --manifest --repos --dry-run --format"* ]]
     [[ "$output" == *"workspace_init_options=--owner --path --workspace --manifest --include-optional --dry-run"* ]]
     [[ "$output" == *"workspace_configure_options=--workspace --manifest --dry-run"* ]]
     [[ "$output" == *"workspace_setup_options=--workspace --manifest --dry-run --yes"* ]]

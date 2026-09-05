@@ -668,7 +668,7 @@ _base_basectl_completion() {
                         _base_basectl_completion_compgen "--source --manifest --dry-run -v -h --help" "$cur"
                         ;;
                     update)
-                        _base_basectl_completion_compgen "--workspace --manifest --dry-run -v -h --help" "$cur"
+                        _base_basectl_completion_compgen "--workspace --manifest --repos --dry-run --format -v -h --help" "$cur"
                         ;;
                     init)
                         _base_basectl_completion_compgen "--owner --path --workspace --manifest --include-optional --dry-run -v -h --help" "$cur"

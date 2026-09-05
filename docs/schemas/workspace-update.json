@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/basefoundry/base/blob/main/docs/schemas/workspace-update.json",
+  "title": "Base workspace update report",
+  "description": "Stable schema version 1 for basectl workspace update --format json. Additional properties are allowed for additive, non-breaking fields.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "workspace",
+    "workspace_manifest",
+    "dry_run",
+    "selected_repositories",
+    "repository_count",
+    "repositories",
+    "counts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "workspace": {
+      "type": "string"
+    },
+    "workspace_manifest": {
+      "$ref": "#/$defs/workspaceManifest"
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "selected_repositories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "repository_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repositories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/repository"
+      }
+    },
+    "counts": {
+      "$ref": "#/$defs/counts"
+    }
+  },
+  "$defs": {
+    "workspaceManifest": {
+      "type": "object",
+      "required": ["path", "name", "schema_version"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "required": ["repository", "path", "required", "action", "status", "fatal"],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "action": {
+          "enum": ["pull", "skip"]
+        },
+        "status": {
+          "enum": ["planned", "updated", "unchanged", "skipped", "failed"]
+        },
+        "fatal": {
+          "type": "boolean"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "exit_code": {
+          "type": "integer"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["planned", "updated", "unchanged", "skipped", "failed"],
+      "properties": {
+        "planned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

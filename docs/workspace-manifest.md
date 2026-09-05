@@ -130,6 +130,8 @@ only a manifest-declared test is available, its execution stays behind a
 recommended `basectl test` so Base retains runner, trust, and environment
 ownership. The brief never executes those commands. It does not use GitHub,
 generate guidance or context files, clone repositories, or change setup state.
+The JSON contract is published at
+[`docs/schemas/workspace-agent-brief.json`](schemas/workspace-agent-brief.json).
 
 `basectl workspace clone --manifest <path>` uses the expected repository list
 as an explicit clone plan. It clones missing required GitHub repositories by
@@ -252,19 +254,23 @@ and you want one Git update across the workspace:
 basectl workspace update --dry-run
 basectl workspace update
 basectl workspace update --workspace ~/workspace --manifest ~/workspace/base-workspace/workspace.yaml
+basectl workspace update --repos base,base-cli --format json
 ```
 
 Update walks the manifest in order and runs `git pull --ff-only` in each
-present repository. It continues after individual failures and reports
-updated, unchanged, skipped, and failed counts. Missing optional repositories
-are skipped; missing required repositories are failures. The command never
-clones, resets, force-updates, or refreshes the manifest. When the manifest's
-`base` path is the active `BASE_HOME` checkout, it is skipped to protect the
-control plane. A separate workspace checkout of `base` is updated normally.
-Text output is rendered as one repository/action/result table; raw Git output
-is retained for debug diagnostics, while failures include concise repository
-context and exit details in the report. Use `workspace pull` separately when
-the manifest file itself must be refreshed from `workspace.manifest_source`.
+present repository. Use `--repos name[,name...]` to select a subset; selections
+are validated before any Git operation and output remains in manifest order. It
+continues after individual failures and reports updated, unchanged, skipped,
+and failed counts. Missing optional repositories are skipped; missing required
+repositories are failures. The command never clones, resets, force-updates, or
+refreshes the manifest. When the manifest's `base` path is the active
+`BASE_HOME` checkout, it is skipped to protect the control plane. A separate
+workspace checkout of `base` is updated normally. Text output is rendered as
+one repository/action/result table. `--format json` emits a stable
+`schema_version: 1` report with selected repositories, per-repository results,
+and aggregate counts; JSON dry runs report `planned` results without invoking
+Git. Use `workspace pull` separately when the manifest file itself must be
+refreshed from `workspace.manifest_source`.
 
 ### Accepted Source Formats
 

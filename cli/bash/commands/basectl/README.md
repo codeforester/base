@@ -255,7 +255,8 @@ such command directories exist. Optional utility CLIs such as `caff` and
   evidence as read-only text or stable JSON. Environment evidence reports the
   expected executable interpreter file as present but unverified. It does not
   run the recommended setup, repo-check, or validation commands and performs no
-  network calls.
+  network calls. Its JSON output follows the stable schema in
+  `docs/schemas/workspace-agent-brief.json`.
 - `basectl workspace clone` materializes missing required repositories from a
   configured or explicit workspace manifest by delegating to `basectl repo clone`.
   Optional repositories are reported but skipped unless `--include-optional` is

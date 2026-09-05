@@ -13,6 +13,7 @@ class WorkspaceCommandOptions:
     output_format: str
     project_name: str | None = None
     workspace_manifest: str | None = None
+    workspace_repos: str | None = None
     workspace_manifest_source: str | None = None
     workspace_config_path: str | None = None
     workspace_owner: str | None = None

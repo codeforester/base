@@ -681,15 +681,17 @@ materialize member repositories. `basectl workspace configure` previews the
 existing `repo configure` repair path by default and applies it only with
 `--apply` across discovered Base-managed workspace repositories.
 `basectl workspace update` walks the manifest in order and runs
-`git pull --ff-only` for present repositories, continuing after individual
-failures. It skips the active `BASE_HOME` control plane when that checkout is
-the manifest's `base` target; a separate workspace checkout is eligible for
-update. `basectl workspace setup` walks the manifest in order and
+`git pull --ff-only` for selected present repositories, continuing after
+individual failures. Its optional `--repos` filter is validated before any Git
+operation and preserves manifest order. It skips the active `BASE_HOME` control
+plane when that checkout is the manifest's `base` target; a separate workspace
+checkout is eligible for update. Its optional `--format json` report uses the
+published schema-versioned result contract. `basectl workspace setup` walks the manifest in order and
 delegates eligible local repositories to `basectl setup`, forwarding `--yes`
 when requested. It continues after individual failures and returns a failure
 when any setup target fails; dry-run reports required missing or invalid targets
 as failures without modifying repositories. JSON output is part of the
-status/check/doctor/onboarding/agent-brief contract so automation and future CI
+status/check/doctor/onboarding/agent-brief/workspace-update contract so automation and future CI
 smoke checks can use the same data.
 
 Future workspace commands should follow the same principles:
