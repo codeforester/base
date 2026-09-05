@@ -342,7 +342,18 @@ case "$*" in
     fi
     ;;
   project\\ field-list*)
-    cat <<'JSON'
+    if [[ "${PROJECT_INTAKE_MISSING_FIELD_OPTION:-0}" == "1" ]]; then
+      cat <<'JSON'
+{"fields":[
+  {"name":"Status","id":"F_status","options":[{"name":"Backlog","id":"O_backlog"},{"name":"Done","id":"O_done"}]},
+  {"name":"Priority","id":"F_priority","options":[{"name":"P2","id":"O_p2"}]},
+  {"name":"Size","id":"F_size","options":[{"name":"S","id":"O_s"}]},
+  {"name":"Area","id":"F_area","options":[]},
+  {"name":"Initiative","id":"F_initiative","options":[{"name":"Adoption Polish","id":"O_adoption"}]}
+]}
+JSON
+    else
+      cat <<'JSON'
 {"fields":[
   {"name":"Status","id":"F_status","options":[{"name":"Backlog","id":"O_backlog"},{"name":"Done","id":"O_done"}]},
   {"name":"Priority","id":"F_priority","options":[{"name":"P2","id":"O_p2"}]},
@@ -351,6 +362,7 @@ case "$*" in
   {"name":"Initiative","id":"F_initiative","options":[{"name":"Adoption Polish","id":"O_adoption"}]}
 ]}
 JSON
+    fi
     ;;
   project\\ item-edit*)
     printf '%s\\n' "$*" >> "${PROJECT_INTAKE_STATE:?}/edits.log"
@@ -372,6 +384,16 @@ JSON
     project_intake_mock_write_option "$field_id" "$option_id"
     ;;
   "api users/basefoundry")
+    if [[ "${PROJECT_INTAKE_REST_FAIL_OPERATION:-}" == "owner" ]]; then
+      printf 'API rate limit already exceeded\\n' >&2
+      printf 'Retry-After: 7\\n' >&2
+      exit 1
+    fi
+    if [[ "${PROJECT_INTAKE_REST_FAIL_OPERATION:-}" == "transport-owner" ]]; then
+      printf '503 Service Unavailable\\n' >&2
+      printf 'Retry-After: 3\\n' >&2
+      exit 1
+    fi
     printf '{"login":"basefoundry","type":"%s"}\\n' "${PROJECT_INTAKE_OWNER_TYPE:-Organization}"
     ;;
   api\\ *projectsV2\\?per_page=100)

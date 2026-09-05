@@ -280,7 +280,8 @@ not a replacement for project tests; it is the seed contract that lets
 `basectl test <project>` work immediately.
 
 The generated `.github/workflows/project-intake.yml` handles issue open,
-reopen, close, and manual dispatch events. It is a visible fallback for issues
+reopen, close, and manual dispatch events. It is a visible, advisory metadata
+fallback for issues
 created outside `basectl gh issue create`: the workflow idempotently adds the
 issue to the repo-named Project and sets `Status`, `Priority`, `Size`, `Area`,
 and `Initiative` from the generated defaults. Set a `BASE_PROJECT_TOKEN`
@@ -293,6 +294,12 @@ once after the reported `Retry-After` or rate-limit reset delay when available.
 `401 Unauthorized` / `Bad credentials` errors remain clear token configuration
 failures with `BASE_PROJECT_TOKEN` rotation guidance and can be rerun through
 `workflow_dispatch` after the secret is repaired.
+
+Project Intake is named `Project Intake metadata (advisory)`. Quota, transport,
+and delayed-visibility conditions produce a warning and step summary without
+changing the required product-validation status. Authentication, missing-Project,
+field-validation, and exact-readback failures remain fail-closed so metadata
+contract problems stay visible and actionable.
 
 For older repositories that predate this workflow, rerun
 `basectl repo configure <path> --repo <owner/name>` to create the missing

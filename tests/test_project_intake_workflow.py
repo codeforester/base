@@ -39,6 +39,8 @@ def test_project_intake_requires_base_project_token() -> None:
     sync_job = workflow["jobs"]["sync"]
     run_command = project_intake_run_command()
 
+    assert workflow["name"] == "Project Intake metadata (advisory)"
+    assert sync_job["name"] == "Project metadata sync (advisory)"
     assert sync_job["env"]["GH_TOKEN"] == "${{ secrets.BASE_PROJECT_TOKEN }}"
     assert "github.token" not in run_command
     assert "BASE_PROJECT_TOKEN secret is required for Project Intake." in run_command
@@ -72,6 +74,9 @@ def test_project_intake_classifies_rate_limits_and_auth_failures() -> None:
     assert "project_intake_is_project_transport_failure()" in run_command
     assert "unknown owner type" in run_command
     assert "Falling back to the REST Projects API." in run_command
+    assert "project_intake_is_transport_failure()" in run_command
+    assert "project_intake_record_advisory()" in run_command
+    assert "advisory, non-product condition" in run_command
     assert 'project_intake_gh "update REST Project fields" gh api --method PATCH' in run_command
 
 
@@ -105,6 +110,39 @@ def test_project_intake_auth_failures_do_not_retry(tmp_path: Path) -> None:
     assert "retrying once" not in result.stderr
     assert not (tmp_path / "sleep.log").exists()
     assert (tmp_path / "issue-view-count").read_text(encoding="utf-8") == "1\n"
+
+
+def test_project_intake_persistent_quota_is_advisory_and_does_not_fail_product_ci(
+    tmp_path: Path,
+) -> None:
+    summary_path = tmp_path / "summary.md"
+    result = run_project_intake_script(
+        tmp_path,
+        PROJECT_INTAKE_GRAPHQL_FAILURE="quota",
+        PROJECT_INTAKE_REST_FAIL_OPERATION="owner",
+        GITHUB_STEP_SUMMARY=str(summary_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "category=quota" in result.stderr
+    assert "Core product validation is unaffected" in summary_path.read_text(encoding="utf-8")
+    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "7\n"
+    assert "Synced issue" not in result.stdout
+
+
+def test_project_intake_transport_failure_is_advisory_after_retry(tmp_path: Path) -> None:
+    summary_path = tmp_path / "summary.md"
+    result = run_project_intake_script(
+        tmp_path,
+        PROJECT_INTAKE_GRAPHQL_FAILURE="quota",
+        PROJECT_INTAKE_REST_FAIL_OPERATION="transport-owner",
+        GITHUB_STEP_SUMMARY=str(summary_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "category=transport" in result.stderr
+    assert "Core product validation is unaffected" in summary_path.read_text(encoding="utf-8")
+    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "3\n"
 
 
 def test_project_intake_falls_back_to_rest_for_graphql_quota_exhaustion(
@@ -192,17 +230,31 @@ def test_project_intake_retries_graphql_item_visibility_after_add(tmp_path: Path
     assert gh_log.count("project item-list") == 3
 
 
-def test_project_intake_fails_closed_when_graphql_item_never_becomes_visible(
+def test_project_intake_graphql_item_never_visible_is_advisory(
     tmp_path: Path,
 ) -> None:
+    summary_path = tmp_path / "summary.md"
     result = run_project_intake_script(
         tmp_path,
         PROJECT_INTAKE_ITEM_NEVER_VISIBLE="1",
+        GITHUB_STEP_SUMMARY=str(summary_path),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "category=visibility" in result.stderr
+    assert "Core product validation is unaffected" in summary_path.read_text(encoding="utf-8")
+    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "1\n2\n"
+    assert "Synced issue" not in result.stdout
+
+
+def test_project_intake_field_validation_remains_fail_closed(tmp_path: Path) -> None:
+    result = run_project_intake_script(
+        tmp_path,
+        PROJECT_INTAKE_MISSING_FIELD_OPTION="1",
     )
 
     assert result.returncode != 0
-    assert "bounded visibility retry" in result.stderr
-    assert (tmp_path / "sleep.log").read_text(encoding="utf-8") == "1\n2\n"
+    assert "Project field validation failed" in result.stderr
     assert "Synced issue" not in result.stdout
 
 

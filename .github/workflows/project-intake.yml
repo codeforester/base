@@ -1,4 +1,4 @@
-name: Project Intake
+name: Project Intake metadata (advisory)
 
 on:
   issues:
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   sync:
-    name: Sync issue Project fields
+    name: Project metadata sync (advisory)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -64,6 +64,13 @@ jobs:
             printf '%s\n' "$output" | grep -Eiq 'rate limit|secondary rate limit|abuse detection|Retry-After|x-ratelimit-reset'
           }
 
+          project_intake_is_transport_failure() {
+            local output="$1"
+
+            printf '%s\n' "$output" | grep -Eiq \
+              'Could not resolve host|connection (reset|refused)|timed out|HTTP 5(02|03|04)|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout'
+          }
+
           project_intake_is_project_transport_failure() {
             local output="$1"
 
@@ -75,6 +82,23 @@ jobs:
             local output="$1"
 
             printf '%s\n' "$output" | grep -Eiq 'Content already exists in this project'
+          }
+
+          project_intake_record_advisory() {
+            local category="$1"
+            local operation="$2"
+            local detail="${3:-}"
+
+            echo "::warning::Project metadata synchronization unavailable (advisory, non-product condition): category=$category operation=$operation" >&2
+            [[ -z "$detail" ]] || printf '%s\n' "$detail" >&2
+            if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+              {
+                printf '## Project metadata synchronization (advisory)\n\n'
+                printf -- '- Condition: `%s`\n' "$category"
+                printf -- '- Operation: `%s`\n' "$operation"
+                printf '%s\n' '- Core product validation is unaffected; retry the Project Intake workflow after the GitHub service condition clears.'
+              } >>"$GITHUB_STEP_SUMMARY"
+            fi
           }
 
           project_intake_retry_delay_seconds() {
@@ -156,9 +180,14 @@ jobs:
               return 76
             fi
 
-            if project_intake_is_retryable_api_failure "$diagnostic_output"; then
+            if project_intake_is_retryable_api_failure "$diagnostic_output" ||
+              project_intake_is_transport_failure "$diagnostic_output"; then
               retry_delay="$(project_intake_retry_delay_seconds "$diagnostic_output")"
-              echo "::warning::GitHub API pressure during Project Intake: $operation" >&2
+              if project_intake_is_retryable_api_failure "$diagnostic_output"; then
+                echo "::warning::GitHub API pressure during Project Intake: $operation" >&2
+              else
+                echo "::warning::GitHub transport pressure during Project Intake: $operation" >&2
+              fi
               echo "::warning::Waiting ${retry_delay}s and retrying once." >&2
               sleep "$retry_delay"
               stderr_file="$(mktemp)"
@@ -177,6 +206,21 @@ jobs:
               if [[ -n "$error_output" ]]; then
                 [[ -z "$diagnostic_output" ]] || diagnostic_output+=$'\n'
                 diagnostic_output+="$error_output"
+              fi
+              if project_intake_is_auth_failure "$diagnostic_output"; then
+                echo "::error::GitHub authentication failed during Project Intake: $operation" >&2
+                echo "::error::Rotate BASE_PROJECT_TOKEN and rerun this workflow_dispatch for issue #${issue_number:-unknown}." >&2
+                echo "::error::Fix: gh auth token | gh secret set BASE_PROJECT_TOKEN --repo $GITHUB_REPOSITORY" >&2
+                printf '%s\n' "$diagnostic_output" >&2
+                return "$status"
+              fi
+              if project_intake_is_transport_failure "$diagnostic_output"; then
+                project_intake_record_advisory "transport" "$operation" "$diagnostic_output"
+                return 77
+              fi
+              if project_intake_is_retryable_api_failure "$diagnostic_output"; then
+                project_intake_record_advisory "quota" "$operation" "$diagnostic_output"
+                return 77
               fi
               echo "::error::GitHub API retry failed during Project Intake: $operation" >&2
               printf '%s\n' "$diagnostic_output" >&2
@@ -215,8 +259,9 @@ jobs:
               fi
             done
 
-            echo "::error::Project item '$item_id' was not returned after the bounded visibility retry." >&2
-            return 1
+            project_intake_record_advisory "visibility" "list Project items" \
+              "Project item '$item_id' was not returned after the bounded visibility retry."
+            return 77
           }
 
           project_intake_rest_item_after_add() {
@@ -272,11 +317,20 @@ jobs:
               fi
             done
 
-            echo "::error::REST Project item '$display_item_id' was not returned after the bounded visibility retry." >&2
-            return 1
+            project_intake_record_advisory "visibility" "find REST Project item after add" \
+              "REST Project item '$display_item_id' was not returned after the bounded visibility retry."
+            return 77
           }
 
-          issue_json="$(project_intake_gh "view issue" gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number")"
+          if issue_json="$(project_intake_gh "view issue" gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number")"; then
+            :
+          else
+            issue_status=$?
+            if [[ "$issue_status" == "77" ]]; then
+              exit 0
+            fi
+            exit "$issue_status"
+          fi
           issue_state="$(jq -r '.state | ascii_upcase' <<<"$issue_json")"
           issue_url="$(jq -r '.html_url' <<<"$issue_json")"
           issue_id="$(jq -r '.id' <<<"$issue_json")"
@@ -314,7 +368,7 @@ jobs:
                 head -n 1
             )"
             if [[ -z "$project_number" ]]; then
-              echo "::error::GitHub Project '$BASE_PROJECT_TITLE' was not found for owner '$BASE_PROJECT_OWNER'." >&2
+              echo "::error::Project metadata validation failed: GitHub Project '$BASE_PROJECT_TITLE' was not found for owner '$BASE_PROJECT_OWNER'." >&2
               echo "::error::If this Project exists, set BASE_PROJECT_TOKEN with user Project read/write access." >&2
               return 1
             fi
@@ -377,7 +431,7 @@ jobs:
               field_id="$(graphql_field_id_for "$field_name")"
               option_id="$(graphql_option_id_for "$field_name" "$option_name")"
               if [[ -z "$field_id" || -z "$option_id" ]]; then
-                echo "::error::Project field '$field_name' option '$option_name' was not found." >&2
+                echo "::error::Project field validation failed during Project Intake: field '$field_name' option '$option_name' was not found." >&2
                 return 1
               fi
 
@@ -432,7 +486,7 @@ jobs:
               '.status == $status and .priority == $priority and .size == $size and
                .area == $area and .initiative == $initiative' \
               <<<"$refreshed_item_json" >/dev/null; then
-              echo "::error::Project field verification failed after the GraphQL update." >&2
+              echo "::error::Project field validation failed after the GraphQL update." >&2
               return 1
             fi
           }
@@ -458,8 +512,14 @@ jobs:
             local expected_area
             local expected_initiative
             local verified_item_json
+            local command_status
 
-            owner_json="$(project_intake_gh "view REST Project owner" gh api "users/$BASE_PROJECT_OWNER")"
+            if owner_json="$(project_intake_gh "view REST Project owner" gh api "users/$BASE_PROJECT_OWNER")"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
             owner_type="$(jq -r '.type' <<<"$owner_json")"
             case "$owner_type" in
               Organization)
@@ -474,19 +534,29 @@ jobs:
                 ;;
             esac
 
-            projects_json="$(project_intake_gh "list REST Projects" gh api "$owner_api_prefix/projectsV2?per_page=100")"
+            if projects_json="$(project_intake_gh "list REST Projects" gh api "$owner_api_prefix/projectsV2?per_page=100")"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
             project_number="$(
               jq -r --arg title "$BASE_PROJECT_TITLE" \
                 '.[] | select(.title == $title) | .number' <<<"$projects_json" |
                 head -n 1
             )"
             if [[ -z "$project_number" ]]; then
-              echo "::error::REST Project '$BASE_PROJECT_TITLE' was not found for owner '$BASE_PROJECT_OWNER'." >&2
+              echo "::error::Project metadata validation failed during the REST fallback: Project '$BASE_PROJECT_TITLE' was not found for owner '$BASE_PROJECT_OWNER'." >&2
               return 1
             fi
 
-            fields_json="$(project_intake_gh "list REST Project fields" gh api \
-              "$owner_api_prefix/projectsV2/$project_number/fields?per_page=100")"
+            if fields_json="$(project_intake_gh "list REST Project fields" gh api \
+              "$owner_api_prefix/projectsV2/$project_number/fields?per_page=100")"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
             field_ids_csv="$(
               jq -r \
                 '[.[] | select(.name == "Status" or .name == "Priority" or .name == "Size" or
@@ -494,7 +564,7 @@ jobs:
                 <<<"$fields_json"
             )"
             if [[ "$(awk -F, '{print NF}' <<<"$field_ids_csv")" != "5" ]]; then
-              echo "::error::REST Project field lookup did not resolve all five managed fields." >&2
+              echo "::error::Project field validation failed during the REST fallback: lookup did not resolve all five managed fields." >&2
               return 1
             fi
 
@@ -541,9 +611,14 @@ jobs:
               fi
             fi
 
-            current_item_json="$(project_intake_gh "read REST Project fields" gh api --method GET \
+            if current_item_json="$(project_intake_gh "read REST Project fields" gh api --method GET \
               "$owner_api_prefix/projectsV2/$project_number/items/$item_id" \
-              -f fields="$field_ids_csv")"
+              -f fields="$field_ids_csv")"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
 
             rest_field_id_for() {
               local field_name="$1"
@@ -580,7 +655,7 @@ jobs:
               field_id="$(rest_field_id_for "$field_name")"
               option_id="$(rest_option_id_for "$field_name" "$option_name")"
               if [[ -z "$field_id" || -z "$option_id" ]]; then
-                echo "::error::REST Project field '$field_name' option '$option_name' was not found." >&2
+                echo "::error::Project field validation failed during the REST fallback: field '$field_name' option '$option_name' was not found." >&2
                 return 1
               fi
               updates_json="$(jq -c --argjson id "$field_id" --arg value "$option_id" \
@@ -619,9 +694,14 @@ jobs:
                 --input - <<<"$update_payload" >/dev/null
             fi
 
-            verified_item_json="$(project_intake_gh "verify REST Project fields" gh api --method GET \
+            if verified_item_json="$(project_intake_gh "verify REST Project fields" gh api --method GET \
               "$owner_api_prefix/projectsV2/$project_number/items/$item_id" \
-              -f fields="$field_ids_csv")"
+              -f fields="$field_ids_csv")"; then
+              :
+            else
+              command_status=$?
+              return "$command_status"
+            fi
             if ! jq -e \
               --arg status "$status_value" \
               --arg priority "$expected_priority" \
@@ -637,7 +717,7 @@ jobs:
                value_for("Area") == $area and
                value_for("Initiative") == $initiative' \
               <<<"$verified_item_json" >/dev/null; then
-              echo "::error::Project field verification failed after the REST fallback update." >&2
+              echo "::error::Project field validation failed after the REST fallback update." >&2
               return 1
             fi
           }
@@ -646,11 +726,21 @@ jobs:
             transport="GraphQL"
           else
             graphql_status=$?
+            if [[ "$graphql_status" == "77" ]]; then
+              exit 0
+            fi
             if [[ "$graphql_status" != "75" ]]; then
               exit "$graphql_status"
             fi
-            project_intake_rest_reconcile
-            transport="REST fallback"
+            if project_intake_rest_reconcile; then
+              transport="REST fallback"
+            else
+              rest_status=$?
+              if [[ "$rest_status" == "77" ]]; then
+                exit 0
+              fi
+              exit "$rest_status"
+            fi
           fi
 
           printf 'Synced issue #%s into Project %s via %s.\n' \
