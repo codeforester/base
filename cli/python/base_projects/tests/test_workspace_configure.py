@@ -370,7 +370,9 @@ repos:
             mock.patch("base_projects.workspace_context.resolve_workspace_root", return_value=workspace_root),
             mock.patch("base_projects.workspace_context.effective_workspace_manifest", return_value="workspace.yaml"),
             mock.patch("base_projects.workspace_configure.resolve_workspace_manifest", return_value=manifest),
-            mock.patch("base_projects.workspace_configure.workspace_configure_command", return_value=0) as configure_command,
+            mock.patch(
+                "base_projects.workspace_configure.workspace_configure_command", return_value=0
+            ) as configure_command,
         ):
             status = workspace_configure.workspace_configure_from_options(ctx, options)
 
@@ -424,7 +426,10 @@ repos:
             write_git_remote(workspace / "base", "git@github.com:basefoundry/base.git")
             write_workspace_manifest(
                 manifest_path,
-                "schema_version: 1\nworkspace:\n  name: demo-suite\nrepos:\n  - name: base\n    url: git@github.com:basefoundry/base.git\n",
+                (
+                    "schema_version: 1\nworkspace:\n  name: demo-suite\nrepos:\n"
+                    "  - name: base\n    url: git@github.com:basefoundry/base.git\n"
+                ),
             )
 
             status, stdout, stderr = invoke_engine(
