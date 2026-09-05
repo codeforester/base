@@ -90,9 +90,10 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
     is the manifest's `base` target. `--repos name[,name...]` selects a
     validated subset, and `--format json` reports the versioned result schema;
     `workspace setup` delegates local project setup serially in manifest order.
-  - `workspace configure --dry-run` previews delegated `repo configure` calls;
-    without `--dry-run`, it skips missing or non-Base-managed repos, continues
-    after per-repo failures, and reports configured/skipped/failed counts.
+  - `workspace configure` previews delegated `repo configure` calls by default;
+    `--apply` authorizes changes and prompts unless `--yes` is supplied. `--yes`
+    alone is rejected. Applied runs skip missing or non-Base-managed repos,
+    continue after per-repo failures, and report configured/skipped/failed counts.
   - `workspace setup --dry-run` previews delegated `basectl setup` calls;
     without `--dry-run`, it skips ineligible repositories, continues after
     per-repo failures, and reports setup/skipped/failed counts. `--yes` forwards
