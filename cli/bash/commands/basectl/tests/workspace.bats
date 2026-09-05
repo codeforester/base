@@ -252,10 +252,11 @@ EOF
     run env \
         HOME="$TEST_HOME" \
         PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
-        "$BASE_REPO_ROOT/bin/basectl" workspace update --workspace "$workspace" --manifest "$manifest" --dry-run
+        "$BASE_REPO_ROOT/bin/basectl" workspace update --workspace "$workspace" --manifest "$manifest" \
+        --repos base,base-cli --dry-run --format json
 
     [ "$status" -eq 0 ]
-    [ "$output" = "ARGS=--workspace $workspace --manifest $manifest --dry-run" ]
+    [ "$output" = "ARGS=--workspace $workspace --manifest $manifest --repos base,base-cli --dry-run --format json" ]
 }
 
 @test "basectl workspace configure delegates to the Python projects layer" {
@@ -447,9 +448,10 @@ EOF
     [[ "$output" == *"basectl workspace update [options]"* ]]
     [[ "$output" == *"--workspace <path>"* ]]
     [[ "$output" == *"--manifest <path>"* ]]
+    [[ "$output" == *"--repos <name[,name...]>"* ]]
     [[ "$output" == *"--dry-run"* ]]
+    [[ "$output" == *"--format <text|json>"* ]]
     [[ "$output" == *"git pull --ff-only"* ]]
-    [[ "$output" != *"--format"* ]]
 
     run_basectl workspace configure --help
 

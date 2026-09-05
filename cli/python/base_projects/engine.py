@@ -96,6 +96,11 @@ def main(argv: list[str] | None = None) -> int:
 )
 @base_cli.option("--manifest", "workspace_manifest", help="Local workspace manifest to read.")
 @base_cli.option(
+    "--repos",
+    "workspace_repos",
+    help="Comma-separated workspace repository names to update.",
+)
+@base_cli.option(
     "--source",
     "workspace_manifest_source",
     sensitive=True,
@@ -118,6 +123,7 @@ def run(
     project_name: str | None,
     output_format: str,
     workspace_manifest: str | None,
+    workspace_repos: str | None,
     workspace_manifest_source: str | None,
     workspace_config_path: str | None,
     workspace_owner: str | None,
@@ -134,6 +140,7 @@ def run(
                 output_format=output_format,
                 project_name=project_name,
                 workspace_manifest=workspace_manifest,
+                workspace_repos=workspace_repos,
                 workspace_manifest_source=workspace_manifest_source,
                 workspace_config_path=workspace_config_path,
                 workspace_owner=workspace_owner,

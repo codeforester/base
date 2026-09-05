@@ -33,6 +33,7 @@ class WorkspaceUpdateTarget:
 
 @dataclass(frozen=True)
 class WorkspaceUpdateCounts:
+    planned: int = 0
     updated: int = 0
     unchanged: int = 0
     skipped: int = 0
@@ -46,12 +47,17 @@ class WorkspaceUpdateResult:
     exit_code: int | None = None
 
 
+class WorkspaceUpdateSelectionError(ValueError):
+    """Raised when --repos does not identify a valid manifest selection."""
+
+
 def workspace_update_from_options(
     ctx: base_cli.Context,
     options: Any,
 ) -> int:
-    if getattr(options, "output_format", "text") != "text":
-        ctx.log.error("Unsupported output format '%s'. Expected: text.", options.output_format)
+    output_format = str(getattr(options, "output_format", "text") or "text").lower()
+    if output_format not in {"text", "json"}:
+        ctx.log.error("Unsupported output format '%s'. Expected: text or json.", options.output_format)
         return base_cli.ExitCode.USAGE_ERROR
 
     try:
@@ -70,46 +76,71 @@ def workspace_update_from_options(
         )
         return base_cli.ExitCode.FAILURE
 
+    try:
+        selected_repositories = select_workspace_update_repositories(
+            manifest,
+            getattr(options, "workspace_repos", None),
+        )
+    except WorkspaceUpdateSelectionError as exc:
+        ctx.log.error(str(exc))
+        return base_cli.ExitCode.USAGE_ERROR
+
     return workspace_update_command(
         ctx,
         workspace_root,
         manifest,
         dry_run=options.dry_run,
+        repositories=selected_repositories,
+        output_format=output_format,
     )
 
 
+# pylint: disable=too-many-arguments
 def workspace_update_command(
     ctx: base_cli.Context,
     workspace_root: Path,
     workspace_manifest: WorkspaceManifest,
     *,
     dry_run: bool,
+    repositories: tuple[WorkspaceManifestRepo, ...] | None = None,
+    output_format: str = "text",
 ) -> int:
-    targets = workspace_update_targets(workspace_root, workspace_manifest)
+    targets = workspace_update_targets(workspace_root, workspace_manifest, repositories=repositories)
     name_width = max(len("REPOSITORY"), *(len(target.name) for target in targets))
-    print_workspace_update_header(workspace_root, workspace_manifest, len(targets), name_width)
+    if output_format == "text":
+        print_workspace_update_header(workspace_root, workspace_manifest, len(targets), name_width)
 
     counts = WorkspaceUpdateCounts()
+    results: list[tuple[WorkspaceUpdateTarget, WorkspaceUpdateResult]] = []
     for target in targets:
         if target.action == "skip":
             result = WorkspaceUpdateResult("skipped", target.reason)
             counts = update_workspace_update_counts(counts, result, fatal=target.fatal)
+        elif dry_run:
+            result = WorkspaceUpdateResult("planned")
+            counts = update_workspace_update_counts(counts, result)
+        else:
+            result = execute_workspace_update_target(ctx, target)
+            counts = update_workspace_update_counts(counts, result)
+
+        results.append((target, result))
+        if output_format == "text":
             print_workspace_update_result(target, result, name_width)
-            continue
 
-        if dry_run:
-            print_workspace_update_result(target, WorkspaceUpdateResult("planned"), name_width)
-            continue
-
-        result = execute_workspace_update_target(ctx, target)
-        counts = update_workspace_update_counts(counts, result)
-        print_workspace_update_result(target, result, name_width)
+    if output_format == "json":
+        return render_workspace_update_json(
+            workspace_root,
+            workspace_manifest,
+            targets,
+            results,
+            counts,
+            dry_run=dry_run,
+        )
 
     if dry_run:
-        planned = sum(target.action == "pull" for target in targets)
         print(
             "Workspace update plan complete: "
-            f"planned={planned} skipped={counts.skipped} failed={counts.failed}."
+            f"planned={counts.planned} skipped={counts.skipped} failed={counts.failed}."
         )
         print("[DRY-RUN] No repositories were modified.")
         return base_cli.ExitCode.FAILURE if counts.failed else base_cli.ExitCode.SUCCESS
@@ -122,16 +153,101 @@ def workspace_update_command(
     return base_cli.ExitCode.FAILURE if counts.failed else base_cli.ExitCode.SUCCESS
 
 
+def select_workspace_update_repositories(
+    workspace_manifest: WorkspaceManifest,
+    repository_selector: str | None,
+) -> tuple[WorkspaceManifestRepo, ...]:
+    if repository_selector is None:
+        return workspace_manifest.repos
+
+    requested_names: list[str] = []
+    for raw_name in repository_selector.split(","):
+        name = raw_name.strip()
+        if not name:
+            raise WorkspaceUpdateSelectionError("--repos must not contain an empty repository name.")
+        if name in requested_names:
+            raise WorkspaceUpdateSelectionError(f"--repos contains duplicate repository '{name}'.")
+        requested_names.append(name)
+
+    manifest_names = {repo.name for repo in workspace_manifest.repos}
+    unknown_names = [name for name in requested_names if name not in manifest_names]
+    if unknown_names:
+        available = ", ".join(repo.name for repo in workspace_manifest.repos)
+        unknown = ", ".join(unknown_names)
+        raise WorkspaceUpdateSelectionError(
+            f"--repos contains unknown repository name(s): {unknown}. Available repositories: {available}."
+        )
+
+    requested = set(requested_names)
+    return tuple(repo for repo in workspace_manifest.repos if repo.name in requested)
+
+
+# pylint: disable=too-many-arguments
+def render_workspace_update_json(
+    workspace_root: Path,
+    workspace_manifest: WorkspaceManifest,
+    targets: tuple[WorkspaceUpdateTarget, ...],
+    results: list[tuple[WorkspaceUpdateTarget, WorkspaceUpdateResult]],
+    counts: WorkspaceUpdateCounts,
+    *,
+    dry_run: bool,
+) -> int:
+    payload: dict[str, Any] = {
+        "schema_version": 1,
+        "workspace": str(workspace_root),
+        "workspace_manifest": {
+            "path": str(workspace_manifest.path),
+            "name": workspace_manifest.name,
+            "schema_version": workspace_manifest.schema_version,
+        },
+        "dry_run": dry_run,
+        "selected_repositories": [target.name for target in targets],
+        "repository_count": len(targets),
+        "repositories": [workspace_update_repository_to_json(target, result) for target, result in results],
+        "counts": {
+            "planned": counts.planned,
+            "updated": counts.updated,
+            "unchanged": counts.unchanged,
+            "skipped": counts.skipped,
+            "failed": counts.failed,
+        },
+    }
+    base_cli.render_document(payload, requested_format="json")
+    return base_cli.ExitCode.FAILURE if counts.failed else base_cli.ExitCode.SUCCESS
+
+
+def workspace_update_repository_to_json(
+    target: WorkspaceUpdateTarget,
+    result: WorkspaceUpdateResult,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "repository": target.name,
+        "path": str(target.root),
+        "required": target.required,
+        "action": target.action,
+        "status": result.status,
+        "fatal": target.fatal,
+    }
+    if result.detail is not None:
+        payload["detail"] = result.detail
+    if result.exit_code is not None:
+        payload["exit_code"] = result.exit_code
+    return payload
+
+
 def workspace_update_targets(
     workspace_root: Path,
     workspace_manifest: WorkspaceManifest,
+    *,
+    repositories: tuple[WorkspaceManifestRepo, ...] | None = None,
 ) -> tuple[WorkspaceUpdateTarget, ...]:
+    selected_repositories = workspace_manifest.repos if repositories is None else repositories
     return tuple(
         workspace_update_manifest_target(
             workspace_root,
             repo,
         )
-        for repo in workspace_manifest.repos
+        for repo in selected_repositories
     )
 
 
@@ -203,6 +319,7 @@ def update_workspace_update_counts(
     fatal: bool = False,
 ) -> WorkspaceUpdateCounts:
     return WorkspaceUpdateCounts(
+        planned=counts.planned + (result.status == "planned"),
         updated=counts.updated + (result.status == "updated"),
         unchanged=counts.unchanged + (result.status == "unchanged"),
         skipped=counts.skipped + (result.status == "skipped"),

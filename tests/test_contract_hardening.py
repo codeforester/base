@@ -225,6 +225,7 @@ def test_contract_registry_maps_initial_review_contracts_to_enforcement() -> Non
         "CLI local log file privacy": "base-cli/tests/test_logging.py",
         "Canonical positioning documentation": "tests/test_contract_hardening.py",
         "Workspace agent-brief JSON schema": "tests/contracts/test_workspace_agent_brief_schema.py",
+        "Workspace update JSON schema": "tests/contracts/test_workspace_update_schema.py",
     }
     for contract, enforcement in expected_entries.items():
         assert contract in text
@@ -251,6 +252,7 @@ def test_contract_registry_rows_have_complete_enforcement_metadata() -> None:
         "Project metadata defaults",
         "Canonical positioning documentation",
         "Workspace agent-brief JSON schema",
+        "Workspace update JSON schema",
     }
     for row in rows:
         assert row["Source of truth"], row
@@ -269,6 +271,7 @@ def test_contract_runner_composes_existing_policy_checks() -> None:
         "cli/python/base_projects/tests/test_workspace_manifest.py",
         "cli/python/base_projects/tests/test_workspace_pull.py",
         "tests/contracts/test_workspace_agent_brief_schema.py",
+        "tests/contracts/test_workspace_update_schema.py",
         "cli/python/base_release/tests/test_engine.py",
         "cli/bash/commands/basectl/tests/inspection-json.bats",
         'bats --filter "project installer template"',
