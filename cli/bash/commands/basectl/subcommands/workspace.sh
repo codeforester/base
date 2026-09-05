@@ -67,7 +67,11 @@ Options:
   --workspace <path>  Workspace directory to update. Defaults to workspace.root, then BASE_HOME's parent.
   --manifest <path>   Local workspace manifest describing expected repositories.
                       Overrides workspace.manifest from ~/.base.d/config.yaml.
+  --repos <name[,name...]>
+                      Update only the selected manifest repositories, in manifest order.
   --dry-run           Show the ordered workspace update plan without writing.
+  --format <text|json>
+                      Output text or the stable workspace-update JSON schema. Defaults to text.
   -v                  Enable DEBUG logging for this subcommand.
   -h, --help          Show this help text.
 
@@ -208,7 +212,7 @@ Commands:
   agent-brief Show local agent handoff readiness. Supports --format text|csv|tsv|yaml|json.
   clone      Clone or validate expected repositories from a workspace manifest.
   pull       Fetch and validate a canonical workspace manifest source.
-  update     Run git pull --ff-only across existing workspace repositories.
+  update     Run git pull --ff-only across existing workspace repositories. Supports --repos and --format json.
   init       Initialize a workspace from a workspace configuration repository.
   configure  Apply repo configure across workspace repositories.
   setup      Set up eligible workspace repositories in manifest order.

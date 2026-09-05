@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 import re
 import subprocess
@@ -231,6 +232,186 @@ repos:
                 self.assertEqual(call.args[0], ["git", "pull", "--ff-only"])
                 self.assertEqual(call.kwargs["env"]["GIT_TERMINAL_PROMPT"], "0")
                 self.assertEqual(call.kwargs["env"]["LC_ALL"], "C")
+
+    def test_workspace_update_repos_filter_preserves_manifest_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            for name in ("first", "later"):
+                (root / name).mkdir()
+            write_workspace_manifest(manifest_path)
+
+            results = [
+                subprocess.CompletedProcess(
+                    ["git", "pull", "--ff-only"],
+                    0,
+                    stdout="Already up to date.\n",
+                    stderr="",
+                ),
+                subprocess.CompletedProcess(
+                    ["git", "pull", "--ff-only"],
+                    0,
+                    stdout="Already up to date.\n",
+                    stderr="",
+                ),
+            ]
+            with mock.patch("base_projects.workspace_update.subprocess.run", side_effect=results) as run:
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "update",
+                        "--workspace",
+                        str(root),
+                        "--manifest",
+                        str(manifest_path),
+                        "--repos",
+                        "later,first",
+                    ],
+                    base_home,
+                    home,
+                )
+
+            self.assertEqual(status, 0)
+            self.assertEqual(stderr, "")
+            self.assertIn(f"Workspace update: {root.resolve()} (2 manifest repos)", stdout)
+            self.assertNotIn("base ", stdout)
+            self.assertLess(stdout.index("\nfirst "), stdout.index("\nlater "))
+            self.assertEqual(
+                [call.kwargs["cwd"] for call in run.call_args_list],
+                [root.resolve() / "first", root.resolve() / "later"],
+            )
+
+    def test_workspace_update_repos_filter_rejects_unknown_names_before_git(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            write_workspace_manifest(manifest_path)
+
+            with mock.patch("base_projects.workspace_update.subprocess.run") as run:
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "update",
+                        "--workspace",
+                        str(root),
+                        "--manifest",
+                        str(manifest_path),
+                        "--repos",
+                        "first,missing",
+                    ],
+                    base_home,
+                    home,
+                )
+
+            self.assertEqual(status, 2)
+            self.assertEqual(stdout, "")
+            self.assertIn("unknown repository name(s): missing", stderr)
+            run.assert_not_called()
+
+    def test_workspace_update_json_dry_run_is_machine_readable_and_does_not_run_git(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            base_home = root / "base"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            base_home.mkdir()
+            for name in ("first", "later"):
+                (root / name).mkdir()
+            write_workspace_manifest(manifest_path)
+
+            with mock.patch("base_projects.workspace_update.subprocess.run") as run:
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "update",
+                        "--workspace",
+                        str(root),
+                        "--manifest",
+                        str(manifest_path),
+                        "--repos",
+                        "later,first",
+                        "--dry-run",
+                        "--format",
+                        "json",
+                    ],
+                    base_home,
+                    home,
+                )
+
+            self.assertEqual(status, 0)
+            self.assertEqual(stderr, "")
+            payload = json.loads(stdout)
+            self.assertEqual(payload["schema_version"], 1)
+            self.assertTrue(payload["dry_run"])
+            self.assertEqual(payload["selected_repositories"], ["first", "later"])
+            self.assertEqual([repo["status"] for repo in payload["repositories"]], ["planned", "planned"])
+            self.assertEqual(payload["counts"], {"planned": 2, "updated": 0, "unchanged": 0, "skipped": 0, "failed": 0})
+            run.assert_not_called()
+
+    def test_workspace_update_json_reports_results_and_exit_code(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            workspace = root / "workspace"
+            base_home = workspace / "base"
+            manifest_path = root / "workspace.yaml"
+            home.mkdir()
+            workspace.mkdir()
+            base_home.mkdir()
+            for name in ("first", "failing"):
+                (workspace / name).mkdir()
+            write_workspace_manifest(manifest_path)
+
+            results = [
+                subprocess.CompletedProcess(
+                    ["git", "pull", "--ff-only"],
+                    0,
+                    stdout="Updating abc..def\nFast-forward\n",
+                    stderr="",
+                ),
+                subprocess.CompletedProcess(
+                    ["git", "pull", "--ff-only"],
+                    1,
+                    stdout="",
+                    stderr="fatal: Not possible to fast-forward, aborting.\n",
+                ),
+            ]
+            with mock.patch("base_projects.workspace_update.subprocess.run", side_effect=results):
+                status, stdout, stderr = invoke_engine(
+                    [
+                        "update",
+                        "--workspace",
+                        str(workspace),
+                        "--manifest",
+                        str(manifest_path),
+                        "--repos",
+                        "first,failing,optional-missing",
+                        "--format",
+                        "json",
+                    ],
+                    base_home,
+                    home,
+                )
+
+            self.assertEqual(status, 1)
+            self.assertEqual(stderr, "")
+            payload = json.loads(stdout)
+            self.assertEqual(
+                [repo["repository"] for repo in payload["repositories"]],
+                ["first", "failing", "optional-missing"],
+            )
+            self.assertEqual(payload["repositories"][0]["status"], "updated")
+            self.assertEqual(payload["repositories"][1]["status"], "failed")
+            self.assertEqual(payload["repositories"][1]["exit_code"], 1)
+            self.assertIn("Not possible to fast-forward", payload["repositories"][1]["detail"])
+            self.assertEqual(payload["repositories"][2]["status"], "skipped")
+            self.assertEqual(payload["counts"], {"planned": 0, "updated": 1, "unchanged": 0, "skipped": 1, "failed": 1})
 
     def test_workspace_update_requires_a_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

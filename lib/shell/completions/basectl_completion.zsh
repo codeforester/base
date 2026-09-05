@@ -566,7 +566,9 @@ _base_basectl_completion() {
                     _arguments '2:workspace command:(status check doctor onboarding agent-brief clone pull update init configure setup)' \
                         '--workspace[Workspace directory to update]:path:_files' \
                         '--manifest[Local workspace manifest]:path:_files' \
+                        '--repos[Comma-separated manifest repository names]:repository-names:' \
                         '--dry-run[Show the ordered workspace update plan without writing]' \
+                        '--format[Output format]:format:(text json)' \
                         '-v[Enable DEBUG logging]' '(-h --help)'{-h,--help}'[Show help text]'
                     ;;
                 init)

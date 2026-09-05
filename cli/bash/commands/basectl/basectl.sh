@@ -588,7 +588,7 @@ basectl_run_bundle_project() {
             continue
         fi
         case "$argument" in
-            --manifest|--format|--profile|--environment|--config|--log-file|--project|--workspace|--path|--target|--version|--command|--status|--older-than|--keep-last|--since|--until|--last|--lines)
+            --manifest|--format|--repos|--profile|--environment|--config|--log-file|--project|--workspace|--path|--target|--version|--command|--status|--older-than|--keep-last|--since|--until|--last|--lines)
                 option_value=1
                 ;;
             --*=*|--*|-*)
