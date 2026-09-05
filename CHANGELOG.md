@@ -10,6 +10,10 @@ numeric next development line is tracked in `DEVELOPMENT_VERSION`.
 
 ### Added
 
+- Published the Stable schema for `basectl workspace agent-brief --format json`
+  at `docs/schemas/workspace-agent-brief.json` and added a CI contract test to
+  prevent output drift.
+
 - Enforced repository secret scanning and provider push protection, with a
   required checksum-pinned Gitleaks history scan for generic patterns and
   rotate-first maintainer response guidance.

@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/basefoundry/base/blob/main/docs/schemas/workspace-agent-brief.json",
+  "title": "Base workspace agent brief",
+  "description": "Stable schema version 1 for basectl workspace agent-brief --format json. Additional properties are allowed for additive, non-breaking fields.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "workspace",
+    "workspace_manifest",
+    "repository_count",
+    "repositories"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "workspace": {
+      "type": "string"
+    },
+    "workspace_manifest": {
+      "$ref": "#/$defs/workspaceManifest"
+    },
+    "repository_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repositories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/repository"
+      }
+    }
+  },
+  "$defs": {
+    "workspaceManifest": {
+      "type": "object",
+      "required": ["path", "name", "schema_version"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1
+        }
+      }
+    },
+    "fileSignal": {
+      "type": "object",
+      "required": ["status", "missing_files", "not_executable_files"],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "not_applicable",
+            "unavailable",
+            "present",
+            "partial",
+            "missing"
+          ]
+        },
+        "missing_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "not_executable_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "validationSignal": {
+      "type": "object",
+      "required": ["status", "command", "source"],
+      "properties": {
+        "status": {
+          "enum": ["available", "unavailable"]
+        },
+        "command": {
+          "type": ["string", "null"]
+        },
+        "source": {
+          "enum": ["repo_baseline", "manifest_test", null]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "repository",
+        "project",
+        "path",
+        "expected",
+        "required",
+        "base_managed",
+        "scope",
+        "discovery_status",
+        "manifest_path",
+        "manifest",
+        "venv",
+        "handoff_status",
+        "signals",
+        "next_actions"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "project": {
+          "type": ["string", "null"]
+        },
+        "path": {
+          "type": "string"
+        },
+        "expected": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "base_managed": {
+          "type": "boolean"
+        },
+        "scope": {
+          "enum": ["required", "optional", "local_only"]
+        },
+        "discovery_status": {
+          "enum": ["present", "missing"]
+        },
+        "manifest_path": {
+          "type": ["string", "null"]
+        },
+        "manifest": {
+          "enum": ["valid", "invalid", "missing", "unknown"]
+        },
+        "venv": {
+          "enum": ["ready", "present_unverified", "not_applicable", "missing", "unknown"]
+        },
+        "handoff_status": {
+          "enum": [
+            "missing_required",
+            "missing_optional",
+            "unmanaged",
+            "needs_manifest_repair",
+            "needs_baseline",
+            "needs_setup",
+            "needs_agent_guidance",
+            "ready"
+          ]
+        },
+        "signals": {
+          "type": "object",
+          "required": ["baseline", "agent_guidance", "ai_context", "validation"],
+          "properties": {
+            "baseline": {
+              "$ref": "#/$defs/fileSignal"
+            },
+            "agent_guidance": {
+              "$ref": "#/$defs/fileSignal"
+            },
+            "ai_context": {
+              "type": "object",
+              "required": ["status"],
+              "properties": {
+                "status": {
+                  "enum": ["present", "missing", "invalid", "unavailable"]
+                }
+              }
+            },
+            "validation": {
+              "$ref": "#/$defs/validationSignal"
+            }
+          }
+        },
+        "next_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "url": {
+          "type": "string"
+        },
+        "default_branch": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

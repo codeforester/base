@@ -76,7 +76,8 @@ the v1.x compatibility window; new automation should use `--debug-wrapper`.
   - `workspace agent-brief` reports baseline, agent-guidance, AI-context,
     environment, and validation evidence for expected and extra Base-managed
     repositories. It is local and read-only; manifest-declared test execution
-    stays behind a recommended `basectl test` command.
+    stays behind a recommended `basectl test` command. Its schema-versioned JSON
+    output follows `docs/schemas/workspace-agent-brief.json`.
   - `workspace clone` mutates repository checkouts only when invoked directly;
     `workspace pull` mutates only the local workspace manifest after validating
     the source; `workspace init` can clone the workspace configuration repo,

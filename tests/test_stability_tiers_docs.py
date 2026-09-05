@@ -7,6 +7,7 @@ COMMAND_REFERENCE = REPO_ROOT / "docs" / "command-reference.md"
 DOCS_README = REPO_ROOT / "docs" / "README.md"
 CONTRACTS_DOC = REPO_ROOT / "docs" / "contracts.md"
 INSPECTION_JSON_DOC = REPO_ROOT / "docs" / "inspection-json.md"
+AGENT_BRIEF_SCHEMA = REPO_ROOT / "docs" / "schemas" / "workspace-agent-brief.json"
 
 
 def test_stability_tiers_doc_defines_public_tiers() -> None:
@@ -45,3 +46,16 @@ def test_inspection_json_contract_is_registered_and_stable() -> None:
     assert "usage_error" in contract
     assert "inspection-json.md" in registry
     assert "Inspection JSON" in stability
+
+
+def test_workspace_agent_brief_schema_is_registered_as_stable() -> None:
+    schema = AGENT_BRIEF_SCHEMA.read_text(encoding="utf-8")
+    stability = STABILITY_DOC.read_text(encoding="utf-8")
+    command_reference = COMMAND_REFERENCE.read_text(encoding="utf-8")
+    contracts = CONTRACTS_DOC.read_text(encoding="utf-8")
+
+    assert '"$schema": "https://json-schema.org/draft/2020-12/schema"' in schema
+    assert '"schema_version":' in schema
+    assert "schemas/workspace-agent-brief.json" in stability
+    assert "schemas/workspace-agent-brief.json" in command_reference
+    assert "test_workspace_agent_brief_schema.py" in contracts

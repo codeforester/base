@@ -130,6 +130,8 @@ only a manifest-declared test is available, its execution stays behind a
 recommended `basectl test` so Base retains runner, trust, and environment
 ownership. The brief never executes those commands. It does not use GitHub,
 generate guidance or context files, clone repositories, or change setup state.
+The JSON contract is published at
+[`docs/schemas/workspace-agent-brief.json`](schemas/workspace-agent-brief.json).
 
 `basectl workspace clone --manifest <path>` uses the expected repository list
 as an explicit clone plan. It clones missing required GitHub repositories by

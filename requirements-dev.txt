@@ -7,3 +7,4 @@ pytest-cov==7.1.0
 tomli==2.4.1
 bandit==1.9.4
 pip-audit==2.10.1
+jsonschema==4.25.1
