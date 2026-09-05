@@ -398,6 +398,7 @@ EOF
     [[ "$output" == *"--manifest <path>"* ]]
     [[ "$output" == *"--format <text|csv|tsv|yaml|json>"* ]]
     [[ "$output" == *"Output format for the agent brief. Defaults to text."* ]]
+    [[ "$output" == *"docs/schemas/workspace-agent-brief.json"* ]]
     [[ "$output" == *"without cloning, setup, or network calls"* ]]
 
     run_basectl workspace check --help

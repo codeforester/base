@@ -61,6 +61,9 @@ Stable JSON contracts include:
   [Command Quick Reference](command-reference.md);
 - the shared v1 envelope and command-specific fields for read-only control-plane
   inspection JSON documented in [Inspection JSON](inspection-json.md).
+- `basectl workspace agent-brief --format json`, whose schema version 1 is
+  published at
+  [`schemas/workspace-agent-brief.json`](schemas/workspace-agent-brief.json).
 
 Additive keys are allowed when they do not change the meaning of existing keys.
 Removing keys, renaming keys, changing value types, or changing enum meanings is

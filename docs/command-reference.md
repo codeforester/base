@@ -207,7 +207,7 @@ manifest trust.
 | `basectl workspace check` | Render check-oriented readiness state across workspace projects. Text output summarizes check names and messages; JSON keeps the diagnostic envelope. Uses `workspace.manifest` from user config unless `--manifest` is supplied. | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl workspace doctor` | Render actionable workspace diagnostics with stable finding IDs and fix guidance. Uses `workspace.manifest` from user config unless `--manifest` is supplied. | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl workspace onboarding` | Summarize expected-repository first-day state and next actions without cloning or setup. Requires a configured or explicit workspace manifest. | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
-| `basectl workspace agent-brief` | Report local baseline, agent-guidance, AI-context, environment, and validation evidence for expected and extra Base-managed repositories without mutation or network calls. Requires a configured or explicit workspace manifest. | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
+| `basectl workspace agent-brief` | Report local baseline, agent-guidance, AI-context, environment, and validation evidence for expected and extra Base-managed repositories without mutation or network calls. Requires a configured or explicit workspace manifest. JSON schema: [`docs/schemas/workspace-agent-brief.json`](schemas/workspace-agent-brief.json). | `--workspace <path>`, `--manifest <path>`, `--format <text\|csv\|tsv\|yaml\|json>` |
 | `basectl workspace clone` | Clone or validate expected repositories from a workspace manifest. Missing-repository materialization is GitHub-only today because this path delegates to `repo clone`. Uses `workspace.manifest` from user config unless `--manifest` is supplied. Text output uses a stable repository/action/result table with aggregate counts. | `--workspace <path>`, `--manifest <path>`, `--include-optional`, `--dry-run` |
 | `basectl workspace pull` | Explicitly fetch and validate a canonical workspace manifest source before updating the local workspace manifest. Uses `workspace.manifest_source` and `workspace.manifest` from user config unless flags are supplied. | `--source <url-or-path>`, `--manifest <path>`, `--dry-run` |
 | `basectl workspace update` | Run `git pull --ff-only` across present repositories in manifest order, including the active Base checkout when it is the manifest's `base` target. Continues after failures, skips missing optional repositories, treats missing required repositories as failures, and reports updated/unchanged/skipped/failed counts. | `--workspace <path>`, `--manifest <path>`, `--dry-run` |
@@ -615,6 +615,8 @@ read-only text or JSON view.
 state into a handoff-readiness view. It includes expected repositories and
 extra locally discovered Base-managed projects, then reports repository
 baseline, agent-guidance, `.ai-context`, environment, and validation evidence.
+Its `--format json` output is Stable schema version 1; see
+[`docs/schemas/workspace-agent-brief.json`](schemas/workspace-agent-brief.json).
 Readiness is structural: a ready repository has a valid manifest, an executable
 interpreter file at the expected project-environment path, complete Base
 baseline and agent-guidance file contracts, and an available validation path.

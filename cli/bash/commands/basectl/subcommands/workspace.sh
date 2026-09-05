@@ -104,6 +104,7 @@ Options:
                       Overrides workspace.manifest from ~/.base.d/config.yaml.
   --format <text|csv|tsv|yaml|json>
                       Output format for the agent brief. Defaults to text.
+                      JSON follows docs/schemas/workspace-agent-brief.json (schema version 1).
   -v                  Enable DEBUG logging for this subcommand.
   -h, --help          Show this help text.
 
