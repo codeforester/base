@@ -86,9 +86,11 @@ same meaning. See [Doctor Finding IDs](doctor-findings.md).
 
 The Stable command, JSON, schema, and finding-ID contracts are checked by the
 `Stable compatibility` job in `.github/workflows/tests.yml`. The checker uses
-the normalized fixture in `docs/stability-baseline/current.json`; the initial
-fixture records `v1.8.0` as its provenance in
-`docs/stability-baseline/v1.8.0.json`.
+the normalized fixture in `docs/stability-baseline/current.json`. Command flags
+are read from the source-owned `basectl <command> --help` output during CI;
+Markdown prose is not used as the command contract. The initial fixture records
+`v1.8.0` as its provenance in `docs/stability-baseline/v1.8.0.json`, and the
+accepted current fixture is compared against that provenance on every run.
 
 The check allows additive commands, flags, object keys, enum values, schema
 definitions, and finding IDs. It fails when an accepted command or flag is
@@ -99,10 +101,13 @@ meaning.
 
 An intentional breaking change must update `current.json`, update this page
 and the affected contract documentation with migration guidance, and add a
-changelog bullet beginning with `Stability compatibility:`. The CI job checks
-that fixture updates include that changelog marker. The v1.8.0 provenance file
-is retained so the accepted baseline remains auditable; it is not rewritten
-when the current compatibility baseline advances.
+non-placeholder changelog bullet beginning exactly with
+`Stability compatibility:`. The CI job checks that fixture updates include that
+changelog marker. Changes from v1.8.0 must also be listed in
+`current.json`'s `baseline_exceptions` with a reason; stale or unapproved
+exceptions fail the check. The v1.8.0 provenance file is retained so the
+accepted baseline remains auditable and is never rewritten as the current
+compatibility fixture advances.
 
 ## Internal Surfaces
 
