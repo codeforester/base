@@ -828,10 +828,14 @@ does not require a secret, never checks out pull-request code, and automatically
 queues default-branch revalidation for matching open pull requests when an
 issue category label changes.
 Set a `BASE_PROJECT_TOKEN` Actions secret with Project write access so that
-workflow can add issue items and apply the repo Project defaults on issue open,
-reopen, and close events. `repo configure` checks for that secret when Project
-support is enabled and prints a `gh secret set BASE_PROJECT_TOKEN` command when
-the required secret is missing.
+advisory `Project Intake metadata` workflow can add issue items and apply the
+repo Project defaults on issue open, reopen, and close events. Quota, transport,
+and delayed-visibility failures are warnings in this metadata workflow and do
+not replace or block required product-validation workflows; authentication,
+Project lookup, field-validation, and exact-readback failures remain errors.
+`repo configure` checks for that secret when Project support is enabled and
+prints a `gh secret set BASE_PROJECT_TOKEN` command when the required secret is
+missing.
 Pass `--no-protect-default-branch` when a repository intentionally skips that
 ruleset. Pass `--no-project` when a repository intentionally skips Base-managed
 Project metadata, or `--project`, `--project-owner`, and

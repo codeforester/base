@@ -160,7 +160,7 @@ repo-local issue creation default. `basectl gh issue create` uses those
 defaults immediately when it creates an issue and adds it to the repo Project.
 
 Base-managed repositories also carry `.github/workflows/project-intake.yml`.
-That workflow is a repo-visible fallback for issues created through GitHub UI,
+That workflow is a repo-visible, advisory metadata fallback for issues created through GitHub UI,
 plain `gh issue create`, or external connectors that can bypass
 `basectl gh issue create` and GitHub's hidden Project auto-add filters.
 `basectl repo configure` creates this workflow when it is missing from older
@@ -179,10 +179,14 @@ quota or reports `unknown owner type`, Project Intake falls back to the REST
 Projects API. The fallback resolves organization and user owners explicitly,
 finds the exact issue item, preserves non-empty Priority, Size, Area, and
 Initiative values, applies the open/closed Status policy, and reads back all
-five fields before reporting success. REST and authorization failures remain
-fail-closed. `401 Unauthorized` / `Bad credentials` errors are treated as token
-configuration failures with `BASE_PROJECT_TOKEN` rotation guidance and can be
-rerun through `workflow_dispatch` after the secret is repaired.
+five fields before reporting success. The workflow is named
+`Project Intake metadata (advisory)` and reports quota, transport, and delayed
+visibility conditions as a warning plus step summary while leaving required
+product validation workflows independent. Authentication, missing-Project, and
+field-validation/readback failures remain fail-closed. `401 Unauthorized` /
+`Bad credentials` errors are treated as token configuration failures with
+`BASE_PROJECT_TOKEN` rotation guidance and can be rerun through
+`workflow_dispatch` after the secret is repaired.
 Use `basectl gh project` directly for lower-level Project inspection,
 schema repair, or issue field updates. `basectl gh project issue set-fields`
 checks that the selected Project is linked to the issue's repository before it
